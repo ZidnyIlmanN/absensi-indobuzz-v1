@@ -7,9 +7,11 @@ import {
   TouchableOpacity,
   Alert,
   Dimensions,
+  RefreshControl,
 } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import { StatusBar } from 'expo-status-bar';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import {
   Clock,
   MapPin,
@@ -18,18 +20,26 @@ import {
   LogIn,
   LogOut,
   Camera,
+  Wifi,
+  WifiOff,
 } from 'lucide-react-native';
 import { AttendanceCard } from '@/components/AttendanceCard';
 import { QuickActionCard } from '@/components/QuickActionCard';
 import { StatsCard } from '@/components/StatsCard';
+import { LoadingSpinner } from '@/components/LoadingSpinner';
+import { ErrorBoundary } from '@/components/ErrorBoundary';
 
 const { width } = Dimensions.get('window');
 
 export default function HomeScreen() {
+  const insets = useSafeAreaInsets();
   const [isWorking, setIsWorking] = useState(false);
   const [currentTime, setCurrentTime] = useState(new Date());
   const [workHours, setWorkHours] = useState('00:00');
   const [clockInTime, setClockInTime] = useState<Date | null>(null);
+  const [isLoading, setIsLoading] = useState(false);
+  const [isOnline, setIsOnline] = useState(true);
+  const [refreshing, setRefreshing] = useState(false);
 
   useEffect(() => {
     const timer = setInterval(() => {
@@ -45,7 +55,19 @@ export default function HomeScreen() {
     return () => clearInterval(timer);
   }, [clockInTime]);
 
+  const onRefresh = async () => {
+    setRefreshing(true);
+    // Simulate API call
+    await new Promise(resolve => setTimeout(resolve, 1000));
+    setRefreshing(false);
+  };
+
   const handleClockIn = () => {
+    if (!isOnline) {
+      Alert.alert('No Connection', 'Please check your internet connection and try again.');
+      return;
+    }
+
     Alert.alert(
       'Clock In',
       'Are you sure you want to clock in?',
@@ -54,9 +76,14 @@ export default function HomeScreen() {
         {
           text: 'Confirm',
           onPress: () => {
-            setIsWorking(true);
-            setClockInTime(new Date());
-            Alert.alert('Success', 'You have successfully clocked in!');
+            setIsLoading(true);
+            // Simulate API call
+            setTimeout(() => {
+              setIsLoading(false);
+              setIsWorking(true);
+              setClockInTime(new Date());
+              Alert.alert('Success', 'You have successfully clocked in!');
+            }, 1500);
           },
         },
       ]
@@ -64,6 +91,11 @@ export default function HomeScreen() {
   };
 
   const handleClockOut = () => {
+    if (!isOnline) {
+      Alert.alert('No Connection', 'Please check your internet connection and try again.');
+      return;
+    }
+
     Alert.alert(
       'Clock Out',
       'Please take a selfie to confirm clock out',
@@ -72,10 +104,15 @@ export default function HomeScreen() {
         {
           text: 'Take Selfie',
           onPress: () => {
-            setIsWorking(false);
-            setClockInTime(null);
-            setWorkHours('00:00');
-            Alert.alert('Success', 'You have successfully clocked out!');
+            setIsLoading(true);
+            // Simulate API call
+            setTimeout(() => {
+              setIsLoading(false);
+              setIsWorking(false);
+              setClockInTime(null);
+              setWorkHours('00:00');
+              Alert.alert('Success', 'You have successfully clocked out!');
+            }, 1500);
           },
         },
       ]
@@ -101,124 +138,149 @@ export default function HomeScreen() {
   ];
 
   return (
-    <View style={styles.container}>
-      <StatusBar style="light" />
-      
-      {/* Header */}
-      <LinearGradient
-        colors={['#4A90E2', '#357ABD']}
-        style={styles.header}
-      >
-        <View style={styles.headerContent}>
-          <View>
-            <Text style={styles.greeting}>Good Morning,</Text>
-            <Text style={styles.userName}>Employee Name</Text>
+    <ErrorBoundary>
+      <View style={styles.container}>
+        <StatusBar style="light" />
+        
+        {/* Header */}
+        <LinearGradient
+          colors={['#4A90E2', '#357ABD']}
+          style={[styles.header, { paddingTop: insets.top + 20 }]}
+        >
+          <View style={styles.headerContent}>
+            <View>
+              <Text style={styles.greeting}>Good Morning,</Text>
+              <Text style={styles.userName}>Employee Name</Text>
+            </View>
+            <View style={styles.headerRight}>
+              <View style={styles.connectionStatus}>
+                {isOnline ? (
+                  <Wifi size={16} color="rgba(255, 255, 255, 0.8)" />
+                ) : (
+                  <WifiOff size={16} color="#FF6B6B" />
+                )}
+              </View>
+              <View style={styles.timeContainer}>
+                <Text style={styles.currentTime}>
+                  {currentTime.toLocaleTimeString([], { 
+                    hour: '2-digit', 
+                    minute: '2-digit' 
+                  })}
+                </Text>
+                <Text style={styles.currentDate}>
+                  {currentTime.toLocaleDateString([], {
+                    weekday: 'short',
+                    day: 'numeric',
+                    month: 'short',
+                  })}
+                </Text>
+              </View>
+            </View>
           </View>
-          <View style={styles.timeContainer}>
-            <Text style={styles.currentTime}>
-              {currentTime.toLocaleTimeString([], { 
-                hour: '2-digit', 
-                minute: '2-digit' 
-              })}
-            </Text>
-            <Text style={styles.currentDate}>
-              {currentTime.toLocaleDateString([], {
-                weekday: 'long',
-                day: 'numeric',
-                month: 'long',
-                year: 'numeric',
-              })}
-            </Text>
+        </LinearGradient>
+
+        <ScrollView 
+          style={styles.content} 
+          showsVerticalScrollIndicator={false}
+          refreshControl={
+            <RefreshControl refreshing={refreshing} onRefresh={onRefresh} />
+          }
+        >
+          {/* Attendance Card */}
+          <AttendanceCard
+            isWorking={isWorking}
+            workHours={workHours}
+            onClockIn={handleClockIn}
+            onClockOut={handleClockOut}
+            clockInTime={clockInTime}
+            isLoading={isLoading}
+          />
+
+          {/* Quick Actions */}
+          <View style={styles.section}>
+            <Text style={styles.sectionTitle}>Quick Actions</Text>
+            <View style={styles.quickActionsGrid}>
+              {quickActions.map((action, index) => (
+                <QuickActionCard
+                  key={index}
+                  title={action.title}
+                  icon={action.icon}
+                  backgroundColor={action.color}
+                  onPress={() => Alert.alert('Feature', `${action.title} feature coming soon!`)}
+                />
+              ))}
+            </View>
           </View>
-        </View>
-      </LinearGradient>
 
-      <ScrollView style={styles.content} showsVerticalScrollIndicator={false}>
-        {/* Attendance Card */}
-        <AttendanceCard
-          isWorking={isWorking}
-          workHours={workHours}
-          onClockIn={handleClockIn}
-          onClockOut={handleClockOut}
-          clockInTime={clockInTime}
-        />
-
-        {/* Quick Actions */}
-        <View style={styles.section}>
-          <Text style={styles.sectionTitle}>Quick Actions</Text>
-          <View style={styles.quickActionsGrid}>
-            {quickActions.map((action, index) => (
-              <QuickActionCard
-                key={index}
-                title={action.title}
-                icon={action.icon}
-                backgroundColor={action.color}
-                onPress={() => Alert.alert('Feature', `${action.title} feature coming soon!`)}
+          {/* Today's Stats */}
+          <View style={styles.section}>
+            <Text style={styles.sectionTitle}>Today's Overview</Text>
+            <View style={styles.statsGrid}>
+              <StatsCard
+                title="Work Hours"
+                value={workHours}
+                icon={<Clock size={20} color="#4A90E2" />}
+                color="#E3F2FD"
               />
-            ))}
-          </View>
-        </View>
-
-        {/* Today's Stats */}
-        <View style={styles.section}>
-          <Text style={styles.sectionTitle}>Today's Overview</Text>
-          <View style={styles.statsGrid}>
-            <StatsCard
-              title="Work Hours"
-              value={workHours}
-              icon={<Clock size={20} color="#4A90E2" />}
-              color="#E3F2FD"
-            />
-            <StatsCard
-              title="Status"
-              value={isWorking ? "Working" : "Off"}
-              icon={<TrendingUp size={20} color="#4CAF50" />}
-              color="#E8F5E8"
-            />
-          </View>
-        </View>
-
-        {/* Recent Attendance */}
-        <View style={styles.section}>
-          <View style={styles.sectionHeader}>
-            <Text style={styles.sectionTitle}>Recent Attendance</Text>
-            <TouchableOpacity>
-              <Text style={styles.viewAllText}>View All</Text>
-            </TouchableOpacity>
-          </View>
-          
-          <View style={styles.attendanceList}>
-            <View style={styles.attendanceItem}>
-              <View style={styles.attendanceIconContainer}>
-                <LogIn size={20} color="#4CAF50" />
-              </View>
-              <View style={styles.attendanceInfo}>
-                <Text style={styles.attendanceType}>Clock In</Text>
-                <Text style={styles.attendanceTime}>08:30 AM</Text>
-                <Text style={styles.attendanceDate}>Today</Text>
-              </View>
-              <View style={styles.attendanceStatus}>
-                <Text style={[styles.statusText, { color: '#4CAF50' }]}>Success</Text>
-              </View>
+              <StatsCard
+                title="Status"
+                value={isWorking ? "Working" : "Off"}
+                icon={<TrendingUp size={20} color="#4CAF50" />}
+                color="#E8F5E8"
+              />
             </View>
+          </View>
 
-            <View style={styles.attendanceItem}>
-              <View style={styles.attendanceIconContainer}>
-                <LogOut size={20} color="#FF6B6B" />
+          {/* Recent Attendance */}
+          <View style={styles.section}>
+            <View style={styles.sectionHeader}>
+              <Text style={styles.sectionTitle}>Recent Attendance</Text>
+              <TouchableOpacity>
+                <Text style={styles.viewAllText}>View All</Text>
+              </TouchableOpacity>
+            </View>
+            
+            <View style={styles.attendanceList}>
+              <View style={styles.attendanceItem}>
+                <View style={styles.attendanceIconContainer}>
+                  <LogIn size={20} color="#4CAF50" />
+                </View>
+                <View style={styles.attendanceInfo}>
+                  <Text style={styles.attendanceType}>Clock In</Text>
+                  <Text style={styles.attendanceTime}>08:30 AM</Text>
+                  <Text style={styles.attendanceDate}>Today</Text>
+                </View>
+                <View style={styles.attendanceStatus}>
+                  <Text style={[styles.statusText, { color: '#4CAF50' }]}>Success</Text>
+                </View>
               </View>
-              <View style={styles.attendanceInfo}>
-                <Text style={styles.attendanceType}>Clock Out</Text>
-                <Text style={styles.attendanceTime}>17:30 PM</Text>
-                <Text style={styles.attendanceDate}>Yesterday</Text>
-              </View>
-              <View style={styles.attendanceStatus}>
-                <Text style={[styles.statusText, { color: '#FF9800' }]}>Pending</Text>
+
+              <View style={styles.attendanceItem}>
+                <View style={styles.attendanceIconContainer}>
+                  <LogOut size={20} color="#FF6B6B" />
+                </View>
+                <View style={styles.attendanceInfo}>
+                  <Text style={styles.attendanceType}>Clock Out</Text>
+                  <Text style={styles.attendanceTime}>17:30 PM</Text>
+                  <Text style={styles.attendanceDate}>Yesterday</Text>
+                </View>
+                <View style={styles.attendanceStatus}>
+                  <Text style={[styles.statusText, { color: '#FF9800' }]}>Pending</Text>
+                </View>
               </View>
             </View>
           </View>
-        </View>
-      </ScrollView>
-    </View>
+        </ScrollView>
+
+        {/* Loading Overlay */}
+        {isLoading && (
+          <LoadingSpinner 
+            overlay 
+            text={isWorking ? "Clocking out..." : "Clocking in..."} 
+          />
+        )}
+      </View>
+    </ErrorBoundary>
   );
 }
 
@@ -228,7 +290,6 @@ const styles = StyleSheet.create({
     backgroundColor: '#F8F9FA',
   },
   header: {
-    paddingTop: 50,
     paddingBottom: 20,
     paddingHorizontal: 20,
   },
@@ -246,6 +307,12 @@ const styles = StyleSheet.create({
     fontSize: 20,
     fontWeight: 'bold',
     color: 'white',
+  },
+  headerRight: {
+    alignItems: 'flex-end',
+  },
+  connectionStatus: {
+    marginBottom: 8,
   },
   timeContainer: {
     alignItems: 'flex-end',

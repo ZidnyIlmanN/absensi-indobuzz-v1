@@ -17,6 +17,7 @@ interface AttendanceCardProps {
   onClockIn: () => void;
   onClockOut: () => void;
   clockInTime: Date | null;
+  isLoading?: boolean;
 }
 
 export function AttendanceCard({
@@ -25,6 +26,7 @@ export function AttendanceCard({
   onClockIn,
   onClockOut,
   clockInTime,
+  isLoading = false,
 }: AttendanceCardProps) {
   return (
     <View style={styles.container}>
@@ -65,16 +67,22 @@ export function AttendanceCard({
         <TouchableOpacity
           style={styles.actionButton}
           onPress={isWorking ? onClockOut : onClockIn}
+          disabled={isLoading}
           activeOpacity={0.8}
         >
           <View style={styles.buttonContent}>
-            {isWorking ? (
+            {isLoading ? (
+              <ActivityIndicator size="small" color="#4A90E2" />
+            ) : isWorking ? (
               <LogOut size={20} color="#4A90E2" />
             ) : (
               <LogIn size={20} color="#4A90E2" />
             )}
             <Text style={styles.buttonText}>
-              {isWorking ? 'Clock Out' : 'Clock In'}
+              {isLoading 
+                ? (isWorking ? 'Clocking Out...' : 'Clocking In...') 
+                : (isWorking ? 'Clock Out' : 'Clock In')
+              }
             </Text>
           </View>
         </TouchableOpacity>

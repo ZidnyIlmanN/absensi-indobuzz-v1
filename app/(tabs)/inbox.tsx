@@ -5,10 +5,13 @@ import {
   StyleSheet,
   ScrollView,
   TouchableOpacity,
+  RefreshControl,
 } from 'react-native';
 import { StatusBar } from 'expo-status-bar';
 import { LinearGradient } from 'expo-linear-gradient';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Bell, Calendar, CircleAlert as AlertCircle, CircleCheck as CheckCircle, Clock, Users, MessageSquare, Filter } from 'lucide-react-native';
+import { EmptyState } from '@/components/EmptyState';
 
 interface Notification {
   id: string;
@@ -69,7 +72,16 @@ const notifications: Notification[] = [
 ];
 
 export default function InboxScreen() {
+  const insets = useSafeAreaInsets();
   const [filter, setFilter] = useState<'all' | 'unread' | 'announcements'>('all');
+  const [refreshing, setRefreshing] = useState(false);
+
+  const onRefresh = async () => {
+    setRefreshing(true);
+    // Simulate API call
+    await new Promise(resolve => setTimeout(resolve, 1000));
+    setRefreshing(false);
+  };
 
   const getNotificationIcon = (type: string) => {
     switch (type) {
@@ -134,7 +146,7 @@ export default function InboxScreen() {
       {/* Header */}
       <LinearGradient
         colors={['#4A90E2', '#357ABD']}
-        style={styles.header}
+        style={[styles.header, { paddingTop: insets.top + 20 }]}
       >
         <View style={styles.headerContent}>
           <View>
@@ -149,7 +161,13 @@ export default function InboxScreen() {
         </View>
       </LinearGradient>
 
-      <ScrollView style={styles.content} showsVerticalScrollIndicator={false}>
+      <ScrollView 
+        style={styles.content} 
+        showsVerticalScrollIndicator={false}
+        refreshControl={
+          <RefreshControl refreshing={refreshing} onRefresh={onRefresh} />
+        }
+      >
         {/* Filter Tabs */}
         <View style={styles.filterTabs}>
           <TouchableOpacity
@@ -182,7 +200,18 @@ export default function InboxScreen() {
 
         {/* Notifications List */}
         <View style={styles.section}>
-          {filteredNotifications.map((notification) => (
+          {filteredNotifications.length === 0 ? (
+            <EmptyState
+              icon={<MessageSquare size={48} color="#E0E0E0" />}
+              title="No notifications"
+              message={
+                filter === 'unread' 
+                  ? "You're all caught up!" 
+                  : "No notifications to show"
+              }
+            />
+          ) : (
+            filteredNotifications.map((notification) => (
             <TouchableOpacity
               key={notification.id}
               style={[
@@ -231,22 +260,9 @@ export default function InboxScreen() {
                 </View>
               </View>
             </TouchableOpacity>
-          ))}
+            ))
+          )}
         </View>
-
-        {/* Empty State */}
-        {filteredNotifications.length === 0 && (
-          <View style={styles.emptyState}>
-            <MessageSquare size={48} color="#E0E0E0" />
-            <Text style={styles.emptyTitle}>No notifications</Text>
-            <Text style={styles.emptyMessage}>
-              {filter === 'unread' 
-                ? "You're all caught up!" 
-                : "No notifications to show"
-              }
-            </Text>
-          </View>
-        )}
       </ScrollView>
     </View>
   );
@@ -258,7 +274,6 @@ const styles = StyleSheet.create({
     backgroundColor: '#F8F9FA',
   },
   header: {
-    paddingTop: 50,
     paddingBottom: 20,
     paddingHorizontal: 20,
   },
@@ -395,21 +410,5 @@ const styles = StyleSheet.create({
   notificationTimestamp: {
     fontSize: 12,
     color: '#999',
-  },
-  emptyState: {
-    alignItems: 'center',
-    paddingVertical: 60,
-  },
-  emptyTitle: {
-    fontSize: 18,
-    fontWeight: '600',
-    color: '#1A1A1A',
-    marginTop: 16,
-    marginBottom: 8,
-  },
-  emptyMessage: {
-    fontSize: 14,
-    color: '#666',
-    textAlign: 'center',
   },
 });

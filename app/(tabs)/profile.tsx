@@ -7,9 +7,11 @@ import {
   TouchableOpacity,
   Image,
   Alert,
+  RefreshControl,
 } from 'react-native';
 import { StatusBar } from 'expo-status-bar';
 import { LinearGradient } from 'expo-linear-gradient';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { User, Settings, Bell, Shield, CircleHelp as HelpCircle, LogOut, CreditCard as Edit, Camera, MapPin, Phone, Mail, Calendar, Clock, ChevronRight } from 'lucide-react-native';
 
 const profileData = {
@@ -28,7 +30,16 @@ const profileData = {
 };
 
 export default function ProfileScreen() {
+  const insets = useSafeAreaInsets();
   const [profileImage, setProfileImage] = useState(profileData.avatar);
+  const [refreshing, setRefreshing] = useState(false);
+
+  const onRefresh = async () => {
+    setRefreshing(true);
+    // Simulate API call
+    await new Promise(resolve => setTimeout(resolve, 1000));
+    setRefreshing(false);
+  };
 
   const handleEditProfile = () => {
     Alert.alert('Edit Profile', 'Profile editing feature coming soon!');
@@ -91,7 +102,7 @@ export default function ProfileScreen() {
       {/* Header */}
       <LinearGradient
         colors={['#4A90E2', '#357ABD']}
-        style={styles.header}
+        style={[styles.header, { paddingTop: insets.top + 20 }]}
       >
         <View style={styles.headerContent}>
           <Text style={styles.headerTitle}>Profile</Text>
@@ -101,7 +112,13 @@ export default function ProfileScreen() {
         </View>
       </LinearGradient>
 
-      <ScrollView style={styles.content} showsVerticalScrollIndicator={false}>
+      <ScrollView 
+        style={styles.content} 
+        showsVerticalScrollIndicator={false}
+        refreshControl={
+          <RefreshControl refreshing={refreshing} onRefresh={onRefresh} />
+        }
+      >
         {/* Profile Section */}
         <View style={styles.profileSection}>
           <View style={styles.profileImageContainer}>
@@ -255,7 +272,6 @@ const styles = StyleSheet.create({
     backgroundColor: '#F8F9FA',
   },
   header: {
-    paddingTop: 50,
     paddingBottom: 20,
     paddingHorizontal: 20,
   },

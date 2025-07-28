@@ -7,9 +7,11 @@ import {
   TouchableOpacity,
   TextInput,
   Image,
+  RefreshControl,
 } from 'react-native';
 import { StatusBar } from 'expo-status-bar';
 import { LinearGradient } from 'expo-linear-gradient';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import {
   Search,
   Filter,
@@ -18,7 +20,10 @@ import {
   MapPin,
   Phone,
   Mail,
+  UserX,
 } from 'lucide-react-native';
+import { EmptyState } from '@/components/EmptyState';
+import { LoadingSpinner } from '@/components/LoadingSpinner';
 
 interface Employee {
   id: string;
@@ -73,8 +78,18 @@ const employees: Employee[] = [
 ];
 
 export default function EmployeeScreen() {
+  const insets = useSafeAreaInsets();
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedFilter, setSelectedFilter] = useState('all');
+  const [isLoading, setIsLoading] = useState(false);
+  const [refreshing, setRefreshing] = useState(false);
+
+  const onRefresh = async () => {
+    setRefreshing(true);
+    // Simulate API call
+    await new Promise(resolve => setTimeout(resolve, 1000));
+    setRefreshing(false);
+  };
 
   const getStatusColor = (status: string) => {
     switch (status) {
@@ -115,7 +130,7 @@ export default function EmployeeScreen() {
       {/* Header */}
       <LinearGradient
         colors={['#4A90E2', '#357ABD']}
-        style={styles.header}
+        style={[styles.header, { paddingTop: insets.top + 20 }]}
       >
         <Text style={styles.headerTitle}>Employee Directory</Text>
         <Text style={styles.headerSubtitle}>
@@ -123,7 +138,13 @@ export default function EmployeeScreen() {
         </Text>
       </LinearGradient>
 
-      <ScrollView style={styles.content} showsVerticalScrollIndicator={false}>
+      <ScrollView 
+        style={styles.content} 
+        showsVerticalScrollIndicator={false}
+        refreshControl={
+          <RefreshControl refreshing={refreshing} onRefresh={onRefresh} />
+        }
+      >
         {/* Search and Filter */}
         <View style={styles.searchContainer}>
           <View style={styles.searchInputContainer}>
@@ -178,7 +199,16 @@ export default function EmployeeScreen() {
         <View style={styles.section}>
           <Text style={styles.sectionTitle}>All Employees</Text>
           
-          {filteredEmployees.map((employee) => (
+          {isLoading ? (
+            <LoadingSpinner text="Loading employees..." />
+          ) : filteredEmployees.length === 0 ? (
+            <EmptyState
+              icon={<UserX size={48} color="#E0E0E0" />}
+              title="No employees found"
+              message={searchQuery ? "Try adjusting your search terms" : "No employees available"}
+            />
+          ) : (
+            filteredEmployees.map((employee) => (
             <TouchableOpacity
               key={employee.id}
               style={styles.employeeCard}
@@ -235,7 +265,8 @@ export default function EmployeeScreen() {
                 </View>
               </View>
             </TouchableOpacity>
-          ))}
+            ))
+          )}
         </View>
       </ScrollView>
     </View>
@@ -248,7 +279,6 @@ const styles = StyleSheet.create({
     backgroundColor: '#F8F9FA',
   },
   header: {
-    paddingTop: 50,
     paddingBottom: 20,
     paddingHorizontal: 20,
   },

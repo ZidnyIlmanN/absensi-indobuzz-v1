@@ -8,10 +8,13 @@ import {
   Alert,
   Modal,
   TextInput,
+  RefreshControl,
 } from 'react-native';
 import { StatusBar } from 'expo-status-bar';
 import { LinearGradient } from 'expo-linear-gradient';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Calendar, Clock, DollarSign, Plus, FileText, CircleCheck as CheckCircle, Circle as XCircle, CircleAlert as AlertCircle } from 'lucide-react-native';
+import { EmptyState } from '@/components/EmptyState';
 
 interface Request {
   id: string;
@@ -52,11 +55,21 @@ const requests: Request[] = [
 ];
 
 export default function RequestScreen() {
+  const insets = useSafeAreaInsets();
   const [modalVisible, setModalVisible] = useState(false);
   const [selectedType, setSelectedType] = useState<'leave' | 'permission' | 'reimbursement'>('leave');
   const [title, setTitle] = useState('');
   const [description, setDescription] = useState('');
   const [amount, setAmount] = useState('');
+  const [refreshing, setRefreshing] = useState(false);
+  const [isSubmitting, setIsSubmitting] = useState(false);
+
+  const onRefresh = async () => {
+    setRefreshing(true);
+    // Simulate API call
+    await new Promise(resolve => setTimeout(resolve, 1000));
+    setRefreshing(false);
+  };
 
   const getStatusColor = (status: string) => {
     switch (status) {
@@ -121,11 +134,17 @@ export default function RequestScreen() {
       return;
     }
 
-    Alert.alert('Success', 'Your request has been submitted successfully!');
-    setModalVisible(false);
-    setTitle('');
-    setDescription('');
-    setAmount('');
+    setIsSubmitting(true);
+    
+    // Simulate API call
+    setTimeout(() => {
+      setIsSubmitting(false);
+      Alert.alert('Success', 'Your request has been submitted successfully!');
+      setModalVisible(false);
+      setTitle('');
+      setDescription('');
+      setAmount('');
+    }, 1500);
   };
 
   const requestTypes = [
@@ -141,7 +160,7 @@ export default function RequestScreen() {
       {/* Header */}
       <LinearGradient
         colors={['#4A90E2', '#357ABD']}
-        style={styles.header}
+        style={[styles.header, { paddingTop: insets.top + 20 }]}
       >
         <View style={styles.headerContent}>
           <View>
@@ -159,7 +178,13 @@ export default function RequestScreen() {
         </View>
       </LinearGradient>
 
-      <ScrollView style={styles.content} showsVerticalScrollIndicator={false}>
+      <ScrollView 
+        style={styles.content} 
+        showsVerticalScrollIndicator={false}
+        refreshControl={
+          <RefreshControl refreshing={refreshing} onRefresh={onRefresh} />
+        }
+      >
         {/* Stats */}
         <View style={styles.statsContainer}>
           <View style={styles.statCard}>
@@ -185,7 +210,16 @@ export default function RequestScreen() {
         <View style={styles.section}>
           <Text style={styles.sectionTitle}>Recent Requests</Text>
           
-          {requests.map((request) => (
+          {requests.length === 0 ? (
+            <EmptyState
+              icon={<FileText size={48} color="#E0E0E0" />}
+              title="No requests yet"
+              message="Start by creating your first request"
+              actionText="Create Request"
+              onAction={() => setModalVisible(true)}
+            />
+          ) : (
+            requests.map((request) => (
             <TouchableOpacity
               key={request.id}
               style={styles.requestCard}
@@ -218,7 +252,8 @@ export default function RequestScreen() {
                 </View>
               </View>
             </TouchableOpacity>
-          ))}
+            ))
+          )}
         </View>
       </ScrollView>
 
@@ -314,8 +349,11 @@ export default function RequestScreen() {
               <TouchableOpacity
                 style={styles.submitButton}
                 onPress={handleSubmitRequest}
+                disabled={isSubmitting}
               >
-                <Text style={styles.submitButtonText}>Submit Request</Text>
+                <Text style={styles.submitButtonText}>
+                  {isSubmitting ? 'Submitting...' : 'Submit Request'}
+                </Text>
               </TouchableOpacity>
             </View>
           </View>
@@ -331,7 +369,6 @@ const styles = StyleSheet.create({
     backgroundColor: '#F8F9FA',
   },
   header: {
-    paddingTop: 50,
     paddingBottom: 20,
     paddingHorizontal: 20,
   },
