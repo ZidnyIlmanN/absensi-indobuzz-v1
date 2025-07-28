@@ -12,6 +12,7 @@ import {
 import { LinearGradient } from 'expo-linear-gradient';
 import { StatusBar } from 'expo-status-bar';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import { router } from 'expo-router';
 import {
   Clock,
   MapPin,
@@ -28,15 +29,14 @@ import { QuickActionCard } from '@/components/QuickActionCard';
 import { StatsCard } from '@/components/StatsCard';
 import { LoadingSpinner } from '@/components/LoadingSpinner';
 import { ErrorBoundary } from '@/components/ErrorBoundary';
+import { useAppContext } from '@/context/AppContext';
 
 const { width } = Dimensions.get('window');
 
 export default function HomeScreen() {
   const insets = useSafeAreaInsets();
-  const [isWorking, setIsWorking] = useState(false);
+  const { state, dispatch } = useAppContext();
   const [currentTime, setCurrentTime] = useState(new Date());
-  const [workHours, setWorkHours] = useState('00:00');
-  const [clockInTime, setClockInTime] = useState<Date | null>(null);
   const [isLoading, setIsLoading] = useState(false);
   const [isOnline, setIsOnline] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
@@ -44,16 +44,17 @@ export default function HomeScreen() {
   useEffect(() => {
     const timer = setInterval(() => {
       setCurrentTime(new Date());
-      if (clockInTime) {
-        const diff = new Date().getTime() - clockInTime.getTime();
+      if (state.currentAttendance?.clockIn) {
+        const diff = new Date().getTime() - state.currentAttendance.clockIn.getTime();
         const hours = Math.floor(diff / (1000 * 60 * 60));
         const minutes = Math.floor((diff % (1000 * 60 * 60)) / (1000 * 60));
-        setWorkHours(`${hours.toString().padStart(2, '0')}:${minutes.toString().padStart(2, '0')}`);
+        const workHours = `${hours.toString().padStart(2, '0')}:${minutes.toString().padStart(2, '0')}`;
+        dispatch({ type: 'SET_WORK_HOURS', payload: workHours });
       }
     }, 1000);
 
     return () => clearInterval(timer);
-  }, [clockInTime]);
+  }, [state.currentAttendance?.clockIn, dispatch]);
 
   const onRefresh = async () => {
     setRefreshing(true);
@@ -80,8 +81,22 @@ export default function HomeScreen() {
             // Simulate API call
             setTimeout(() => {
               setIsLoading(false);
-              setIsWorking(true);
-              setClockInTime(new Date());
+              dispatch({ type: 'SET_WORKING_STATUS', payload: true });
+              const now = new Date();
+              const attendance = {
+                id: Date.now().toString(),
+                userId: state.user?.id || '',
+                clockIn: now,
+                date: now.toISOString().split('T')[0],
+                workHours: 0,
+                status: 'working' as const,
+                location: {
+                  latitude: -6.2088,
+                  longitude: 106.8456,
+                  address: 'Jakarta Office',
+                },
+              };
+              dispatch({ type: 'SET_ATTENDANCE', payload: attendance });
               Alert.alert('Success', 'You have successfully clocked in!');
             }, 1500);
           },
@@ -108,9 +123,9 @@ export default function HomeScreen() {
             // Simulate API call
             setTimeout(() => {
               setIsLoading(false);
-              setIsWorking(false);
-              setClockInTime(null);
-              setWorkHours('00:00');
+              dispatch({ type: 'SET_WORKING_STATUS', payload: false });
+              dispatch({ type: 'SET_ATTENDANCE', payload: null });
+              dispatch({ type: 'SET_WORK_HOURS', payload: '00:00' });
               Alert.alert('Success', 'You have successfully clocked out!');
             }, 1500);
           },
@@ -188,11 +203,11 @@ export default function HomeScreen() {
         >
           {/* Attendance Card */}
           <AttendanceCard
-            isWorking={isWorking}
-            workHours={workHours}
+            isWorking={state.isWorking}
+            workHours={state.workHours}
             onClockIn={handleClockIn}
             onClockOut={handleClockOut}
-            clockInTime={clockInTime}
+            clockInTime={state.currentAttendance?.clockIn || null}
             isLoading={isLoading}
           />
 
@@ -206,7 +221,21 @@ export default function HomeScreen() {
                   title={action.title}
                   icon={action.icon}
                   backgroundColor={action.color}
-                  onPress={() => Alert.alert('Feature', `${action.title} feature coming soon!`)}
+                  onPress={() => {
+                    switch (index) {
+                      case 0:
+                        router.push('/attendance');
+                        break;
+                      case 1:
+                        router.push('/timeoff');
+                        break;
+                      case 2:
+                        router.push('/reimburse');
+                        break;
+                      default:
+                        Alert.alert('Feature', `${action.title} feature coming soon!`);
+                    }
+                  }}
                 />
               ))}
             </View>
@@ -218,13 +247,13 @@ export default function HomeScreen() {
             <View style={styles.statsGrid}>
               <StatsCard
                 title="Work Hours"
-                value={workHours}
+                value={state.workHours}
                 icon={<Clock size={20} color="#4A90E2" />}
                 color="#E3F2FD"
               />
               <StatsCard
                 title="Status"
-                value={isWorking ? "Working" : "Off"}
+                value={state.isWorking ? "Working" : "Off"}
                 icon={<TrendingUp size={20} color="#4CAF50" />}
                 color="#E8F5E8"
               />
@@ -235,12 +264,16 @@ export default function HomeScreen() {
           <View style={styles.section}>
             <View style={styles.sectionHeader}>
               <Text style={styles.sectionTitle}>Recent Attendance</Text>
-              <TouchableOpacity>
+              <TouchableOpacity onPress={() => router.push('/attendance')}>
                 <Text style={styles.viewAllText}>View All</Text>
               </TouchableOpacity>
             </View>
             
-            <View style={styles.attendanceList}>
+            <TouchableOpacity 
+              style={styles.attendanceList}
+              onPress={() => router.push('/attendance')}
+              activeOpacity={0.7}
+            >
               <View style={styles.attendanceItem}>
                 <View style={styles.attendanceIconContainer}>
                   <LogIn size={20} color="#4CAF50" />
@@ -268,7 +301,7 @@ export default function HomeScreen() {
                   <Text style={[styles.statusText, { color: '#FF9800' }]}>Pending</Text>
                 </View>
               </View>
-            </View>
+            </TouchableOpacity>
           </View>
         </ScrollView>
 
