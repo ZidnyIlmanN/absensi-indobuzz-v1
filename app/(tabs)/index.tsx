@@ -64,45 +64,7 @@ export default function HomeScreen() {
   };
 
   const handleClockIn = () => {
-    if (!isOnline) {
-      Alert.alert('No Connection', 'Please check your internet connection and try again.');
-      return;
-    }
-
-    Alert.alert(
-      'Clock In',
-      'Are you sure you want to clock in?',
-      [
-        { text: 'Cancel', style: 'cancel' },
-        {
-          text: 'Confirm',
-          onPress: () => {
-            setIsLoading(true);
-            // Simulate API call
-            setTimeout(() => {
-              setIsLoading(false);
-              dispatch({ type: 'SET_WORKING_STATUS', payload: true });
-              const now = new Date();
-              const attendance = {
-                id: Date.now().toString(),
-                userId: state.user?.id || '',
-                clockIn: now,
-                date: now.toISOString().split('T')[0],
-                workHours: 0,
-                status: 'working' as const,
-                location: {
-                  latitude: -6.2088,
-                  longitude: 106.8456,
-                  address: 'Jakarta Office',
-                },
-              };
-              dispatch({ type: 'SET_ATTENDANCE', payload: attendance });
-              Alert.alert('Success', 'You have successfully clocked in!');
-            }, 1500);
-          },
-        },
-      ]
-    );
+    router.push('/clock-in');
   };
 
   const handleClockOut = () => {
