@@ -13,15 +13,7 @@ import { LinearGradient } from 'expo-linear-gradient';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { router } from 'expo-router';
 import { CameraView, CameraType, useCameraPermissions } from 'expo-camera';
-import {
-  ArrowLeft,
-  Camera,
-  RotateCcw,
-  CheckCircle,
-  RefreshCw,
-  User,
-  ChevronRight,
-} from 'lucide-react-native';
+import { ArrowLeft, Camera, RotateCcw, CircleCheck as CheckCircle, RefreshCw, User, ChevronRight } from 'lucide-react-native';
 import { useAppContext } from '@/context/AppContext';
 
 const { width, height } = Dimensions.get('window');
