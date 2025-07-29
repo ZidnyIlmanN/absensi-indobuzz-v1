@@ -14,7 +14,6 @@ import {
   ArrowLeft,
   LogIn,
   LogOut,
-  Clock,
   Coffee,
   RefreshCw,
   RotateCcw,
@@ -23,6 +22,7 @@ import {
   Calendar,
   ChevronRight,
   List,
+  Clock,
 } from 'lucide-react-native';
 
 interface MenuItem {
