@@ -186,7 +186,7 @@ export default function HomeScreen() {
                   onPress={() => {
                     switch (index) {
                       case 0:
-                        router.push('/attendance');
+                        router.push('/live-attendance');
                         break;
                       case 1:
                         router.push('/timeoff');
