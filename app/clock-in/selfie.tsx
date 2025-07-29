@@ -82,6 +82,9 @@ export default function SelfieScreen() {
         clockIn: now,
         date: now.toISOString().split('T')[0],
         workHours: 0,
+        breakTime: 0,
+        overtimeHours: 0,
+        clientVisitTime: 0,
         status: 'working' as const,
         location: {
           latitude: -6.2088,
@@ -89,11 +92,26 @@ export default function SelfieScreen() {
           address: 'PT. INDOBUZZ REPUBLIK DIGITAL',
         },
         selfieUrl: capturedImage,
+        activities: [],
       };
 
       // Update app state
       dispatch({ type: 'SET_WORKING_STATUS', payload: true });
+      dispatch({ type: 'SET_CURRENT_STATUS', payload: 'working' });
       dispatch({ type: 'SET_ATTENDANCE', payload: attendance });
+      
+      // Add clock in activity
+      const clockInActivity = {
+        id: Date.now().toString(),
+        type: 'clock_in' as const,
+        timestamp: now,
+        location: {
+          latitude: -6.2088,
+          longitude: 106.8456,
+          address: 'PT. INDOBUZZ REPUBLIK DIGITAL',
+        },
+      };
+      dispatch({ type: 'ADD_ACTIVITY', payload: clockInActivity });
 
       // Navigate back to live attendance
       router.replace('/live-attendance');

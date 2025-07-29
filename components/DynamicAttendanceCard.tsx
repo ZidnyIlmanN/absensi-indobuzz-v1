@@ -23,20 +23,35 @@ import {
   Activity,
 } from 'lucide-react-native';
 import { useAppContext } from '@/context/AppContext';
+import { ActivityRecord } from '@/types';
 
 const { width } = Dimensions.get('window');
 
-type AttendanceState = 'ready' | 'working' | 'break' | 'overtime' | 'client_visit';
-
 export function DynamicAttendanceCard() {
   const { state, dispatch } = useAppContext();
-  const [attendanceState, setAttendanceState] = useState<AttendanceState>('ready');
   const [isLoading, setIsLoading] = useState(false);
 
+  // Helper function to add activity and update times
+  const addActivity = (type: ActivityRecord['type'], notes?: string) => {
+    const activity: ActivityRecord = {
+      id: Date.now().toString(),
+      type,
+      timestamp: new Date(),
+      location: {
+        latitude: -6.2088,
+        longitude: 106.8456,
+        address: 'PT. INDOBUZZ REPUBLIK DIGITAL',
+      },
+      notes,
+    };
+    
+    dispatch({ type: 'ADD_ACTIVITY', payload: activity });
+    return activity;
+  };
   const getCardConfig = () => {
     if (!state.isWorking) {
       return {
-        state: 'ready' as AttendanceState,
+        state: 'ready',
         title: 'Ready to Start',
         subtitle: 'Tap to begin your workday with selfie verification',
         colors: ['#667eea', '#764ba2'],
@@ -46,10 +61,10 @@ export function DynamicAttendanceCard() {
       };
     }
 
-    switch (attendanceState) {
+    switch (state.currentStatus) {
       case 'working':
         return {
-          state: 'working' as AttendanceState,
+          state: 'working',
           title: 'Currently Working',
           subtitle: `Started at ${state.currentAttendance?.clockIn.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}`,
           colors: ['#4CAF50', '#45A049'],
@@ -59,7 +74,7 @@ export function DynamicAttendanceCard() {
         };
       case 'break':
         return {
-          state: 'break' as AttendanceState,
+          state: 'break',
           title: 'On Break',
           subtitle: 'Enjoy your break time',
           colors: ['#FF9800', '#F57C00'],
@@ -69,7 +84,7 @@ export function DynamicAttendanceCard() {
         };
       case 'overtime':
         return {
-          state: 'overtime' as AttendanceState,
+          state: 'overtime',
           title: 'Overtime Mode',
           subtitle: 'Working extended hours',
           colors: ['#9C27B0', '#7B1FA2'],
@@ -79,7 +94,7 @@ export function DynamicAttendanceCard() {
         };
       case 'client_visit':
         return {
-          state: 'client_visit' as AttendanceState,
+          state: 'client_visit',
           title: 'Client Visit',
           subtitle: 'Currently visiting client',
           colors: ['#2196F3', '#1976D2'],
@@ -89,7 +104,7 @@ export function DynamicAttendanceCard() {
         };
       default:
         return {
-          state: 'working' as AttendanceState,
+          state: 'working',
           title: 'Currently Working',
           subtitle: `Started at ${state.currentAttendance?.clockIn.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}`,
           colors: ['#4CAF50', '#45A049'],
@@ -105,14 +120,49 @@ export function DynamicAttendanceCard() {
   };
 
   const handleClockOut = () => {
-    router.push('/check-out');
+    // Fixed: Ensure selfie verification is triggered for clock out
+    Alert.alert(
+      'Clock Out',
+      'Please take a selfie to verify your clock out',
+      [
+        { text: 'Cancel', style: 'cancel' },
+        {
+          text: 'Take Selfie',
+          onPress: () => {
+            // Navigate to clock out selfie screen
+            router.push('/clock-out/selfie');
+          },
+        },
+      ]
+    );
   };
 
-  const handleStateChange = (newState: AttendanceState) => {
+  const handleStateChange = (newState: typeof state.currentStatus) => {
     setIsLoading(true);
     
+    // Add activity for state changes
+    const currentState = state.currentStatus;
+    
+    // End current activity
+    if (currentState === 'break') {
+      addActivity('break_end');
+    } else if (currentState === 'overtime') {
+      addActivity('overtime_end');
+    } else if (currentState === 'client_visit') {
+      addActivity('client_visit_end');
+    }
+    
+    // Start new activity
+    if (newState === 'break') {
+      addActivity('break_start');
+    } else if (newState === 'overtime') {
+      addActivity('overtime_start');
+    } else if (newState === 'client_visit') {
+      addActivity('client_visit_start');
+    }
+    
     setTimeout(() => {
-      setAttendanceState(newState);
+      dispatch({ type: 'SET_CURRENT_STATUS', payload: newState });
       setIsLoading(false);
       
       const stateMessages = {
@@ -120,6 +170,7 @@ export function DynamicAttendanceCard() {
         break: 'Break started',
         overtime: 'Overtime mode activated',
         client_visit: 'Client visit started',
+        ready: 'Ready to start',
       };
       
       Alert.alert('Status Updated', stateMessages[newState] || 'Status changed');
@@ -180,7 +231,7 @@ export function DynamicAttendanceCard() {
           {/* Secondary Actions */}
           {state.isWorking && (
             <View style={styles.secondaryActions}>
-              {attendanceState === 'working' && (
+              {state.currentStatus === 'working' && (
                 <>
                   <TouchableOpacity
                     style={styles.secondaryButton}

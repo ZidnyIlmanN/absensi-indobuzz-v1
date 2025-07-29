@@ -5,7 +5,12 @@ interface AppState {
   user: User | null;
   currentAttendance: AttendanceRecord | null;
   isWorking: boolean;
+  currentStatus: 'ready' | 'working' | 'break' | 'overtime' | 'client_visit';
   workHours: string;
+  breakTime: string;
+  overtimeHours: string;
+  clientVisitTime: string;
+  todayActivities: ActivityRecord[];
   requests: Request[];
   notifications: Notification[];
   employees: Employee[];
@@ -17,7 +22,13 @@ type AppAction =
   | { type: 'SET_USER'; payload: User }
   | { type: 'SET_ATTENDANCE'; payload: AttendanceRecord | null }
   | { type: 'SET_WORKING_STATUS'; payload: boolean }
+  | { type: 'SET_CURRENT_STATUS'; payload: 'ready' | 'working' | 'break' | 'overtime' | 'client_visit' }
   | { type: 'SET_WORK_HOURS'; payload: string }
+  | { type: 'SET_BREAK_TIME'; payload: string }
+  | { type: 'SET_OVERTIME_HOURS'; payload: string }
+  | { type: 'SET_CLIENT_VISIT_TIME'; payload: string }
+  | { type: 'ADD_ACTIVITY'; payload: ActivityRecord }
+  | { type: 'SET_TODAY_ACTIVITIES'; payload: ActivityRecord[] }
   | { type: 'ADD_REQUEST'; payload: Request }
   | { type: 'UPDATE_REQUEST'; payload: Request }
   | { type: 'SET_NOTIFICATIONS'; payload: Notification[] }
@@ -42,7 +53,12 @@ const initialState: AppState = {
   },
   currentAttendance: null,
   isWorking: false,
+  currentStatus: 'ready',
   workHours: '00:00',
+  breakTime: '00:00',
+  overtimeHours: '00:00',
+  clientVisitTime: '00:00',
+  todayActivities: [],
   requests: [],
   notifications: [],
   employees: [],
@@ -58,8 +74,25 @@ const appReducer = (state: AppState, action: AppAction): AppState => {
       return { ...state, currentAttendance: action.payload };
     case 'SET_WORKING_STATUS':
       return { ...state, isWorking: action.payload };
+    case 'SET_CURRENT_STATUS':
+      return { ...state, currentStatus: action.payload };
     case 'SET_WORK_HOURS':
       return { ...state, workHours: action.payload };
+    case 'SET_BREAK_TIME':
+      return { ...state, breakTime: action.payload };
+    case 'SET_OVERTIME_HOURS':
+      return { ...state, overtimeHours: action.payload };
+    case 'SET_CLIENT_VISIT_TIME':
+      return { ...state, clientVisitTime: action.payload };
+    case 'ADD_ACTIVITY':
+      return { 
+        ...state, 
+        todayActivities: [...state.todayActivities, action.payload].sort(
+          (a, b) => b.timestamp.getTime() - a.timestamp.getTime()
+        )
+      };
+    case 'SET_TODAY_ACTIVITIES':
+      return { ...state, todayActivities: action.payload };
     case 'ADD_REQUEST':
       return { ...state, requests: [...state.requests, action.payload] };
     case 'UPDATE_REQUEST':

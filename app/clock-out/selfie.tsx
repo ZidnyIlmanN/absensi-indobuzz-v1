@@ -74,10 +74,28 @@ export default function ClockOutSelfieScreen() {
       // Simulate API call for face verification
       await new Promise(resolve => setTimeout(resolve, 2000));
 
+      // Add clock out activity
+      const clockOutActivity = {
+        id: Date.now().toString(),
+        type: 'clock_out' as const,
+        timestamp: new Date(),
+        location: {
+          latitude: -6.2088,
+          longitude: 106.8456,
+          address: 'PT. INDOBUZZ REPUBLIK DIGITAL',
+        },
+      };
+      dispatch({ type: 'ADD_ACTIVITY', payload: clockOutActivity });
+
       // Update app state
       dispatch({ type: 'SET_WORKING_STATUS', payload: false });
+      dispatch({ type: 'SET_CURRENT_STATUS', payload: 'ready' });
       dispatch({ type: 'SET_ATTENDANCE', payload: null });
       dispatch({ type: 'SET_WORK_HOURS', payload: '00:00' });
+      dispatch({ type: 'SET_BREAK_TIME', payload: '00:00' });
+      dispatch({ type: 'SET_OVERTIME_HOURS', payload: '00:00' });
+      dispatch({ type: 'SET_CLIENT_VISIT_TIME', payload: '00:00' });
+      dispatch({ type: 'SET_TODAY_ACTIVITIES', payload: [] });
 
       // Navigate back to live attendance
       router.replace('/live-attendance');

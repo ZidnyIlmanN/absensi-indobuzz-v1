@@ -19,6 +19,9 @@ export interface AttendanceRecord {
   clockOut?: Date;
   date: string;
   workHours: number;
+  breakTime: number; // Total break time in minutes
+  overtimeHours: number; // Total overtime in minutes
+  clientVisitTime: number; // Total client visit time in minutes
   status: 'working' | 'completed' | 'break';
   location: {
     latitude: number;
@@ -26,6 +29,19 @@ export interface AttendanceRecord {
     address: string;
   };
   selfieUrl?: string;
+  notes?: string;
+  activities: ActivityRecord[]; // Track all activities during the day
+}
+
+export interface ActivityRecord {
+  id: string;
+  type: 'clock_in' | 'clock_out' | 'break_start' | 'break_end' | 'overtime_start' | 'overtime_end' | 'client_visit_start' | 'client_visit_end';
+  timestamp: Date;
+  location?: {
+    latitude: number;
+    longitude: number;
+    address: string;
+  };
   notes?: string;
 }
 

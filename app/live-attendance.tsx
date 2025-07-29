@@ -32,22 +32,119 @@ import {
 } from 'lucide-react-native';
 import { useAppContext } from '@/context/AppContext';
 import { DynamicAttendanceCard } from '@/components/DynamicAttendanceCard';
+import { ActivityRecord } from '@/types';
 
 const { width } = Dimensions.get('window');
 
 export default function LiveAttendanceScreen() {
   const insets = useSafeAreaInsets();
-  const { state } = useAppContext();
+  const { state, dispatch } = useAppContext();
   const [currentTime, setCurrentTime] = useState(new Date());
   const [refreshing, setRefreshing] = useState(false);
 
   useEffect(() => {
     const timer = setInterval(() => {
       setCurrentTime(new Date());
+      
+      // Real-time calculation of work hours, break time, overtime, and client visit time
+      if (state.currentAttendance?.clockIn) {
+        calculateRealTimeTotals();
+      }
     }, 1000);
 
     return () => clearInterval(timer);
-  }, []);
+  }, [state.currentAttendance, state.todayActivities, state.currentStatus]);
+
+  // Calculate real-time totals based on activities and current status
+  const calculateRealTimeTotals = () => {
+    if (!state.currentAttendance?.clockIn) return;
+
+    const now = new Date();
+    const clockInTime = state.currentAttendance.clockIn.getTime();
+    
+    let totalWorkTime = 0;
+    let totalBreakTime = 0;
+    let totalOvertimeTime = 0;
+    let totalClientVisitTime = 0;
+    
+    // Calculate time based on activities
+    const activities = [...state.todayActivities].sort((a, b) => a.timestamp.getTime() - b.timestamp.getTime());
+    
+    let currentActivityStart = clockInTime;
+    let currentActivityType: 'working' | 'break' | 'overtime' | 'client_visit' = 'working';
+    
+    // Process all completed activities
+    for (let i = 0; i < activities.length; i++) {
+      const activity = activities[i];
+      const activityTime = activity.timestamp.getTime();
+      const duration = activityTime - currentActivityStart;
+      
+      // Add duration to appropriate category
+      switch (currentActivityType) {
+        case 'working':
+          totalWorkTime += duration;
+          break;
+        case 'break':
+          totalBreakTime += duration;
+          break;
+        case 'overtime':
+          totalOvertimeTime += duration;
+          break;
+        case 'client_visit':
+          totalClientVisitTime += duration;
+          break;
+      }
+      
+      // Update current activity type based on activity
+      switch (activity.type) {
+        case 'break_start':
+          currentActivityType = 'break';
+          break;
+        case 'break_end':
+        case 'overtime_end':
+        case 'client_visit_end':
+          currentActivityType = 'working';
+          break;
+        case 'overtime_start':
+          currentActivityType = 'overtime';
+          break;
+        case 'client_visit_start':
+          currentActivityType = 'client_visit';
+          break;
+      }
+      
+      currentActivityStart = activityTime;
+    }
+    
+    // Add current ongoing activity time
+    const currentDuration = now.getTime() - currentActivityStart;
+    switch (state.currentStatus) {
+      case 'working':
+        totalWorkTime += currentDuration;
+        break;
+      case 'break':
+        totalBreakTime += currentDuration;
+        break;
+      case 'overtime':
+        totalOvertimeTime += currentDuration;
+        break;
+      case 'client_visit':
+        totalClientVisitTime += currentDuration;
+        break;
+    }
+    
+    // Convert to readable format and dispatch updates
+    const formatTime = (ms: number) => {
+      const hours = Math.floor(ms / (1000 * 60 * 60));
+      const minutes = Math.floor((ms % (1000 * 60 * 60)) / (1000 * 60));
+      return `${hours.toString().padStart(2, '0')}:${minutes.toString().padStart(2, '0')}`;
+    };
+    
+    dispatch({ type: 'SET_WORK_HOURS', payload: formatTime(totalWorkTime) });
+    dispatch({ type: 'SET_BREAK_TIME', payload: formatTime(totalBreakTime) });
+    dispatch({ type: 'SET_OVERTIME_HOURS', payload: formatTime(totalOvertimeTime) });
+    dispatch({ type: 'SET_CLIENT_VISIT_TIME', payload: formatTime(totalClientVisitTime) });
+  };
 
   const onRefresh = async () => {
     setRefreshing(true);
@@ -55,24 +152,31 @@ export default function LiveAttendanceScreen() {
     setRefreshing(false);
   };
 
+  // Updated quick stats with new metrics
   const quickStats = [
     {
       icon: <Clock size={20} color="#4A90E2" />,
-      label: 'Today',
+      label: 'Work Time',
       value: state.workHours,
       color: '#E3F2FD',
     },
     {
-      icon: <Calendar size={20} color="#4CAF50" />,
-      label: 'This Week',
-      value: '42h 30m',
-      color: '#E8F5E8',
+      icon: <Coffee size={20} color="#FF9800" />,
+      label: 'Break Time',
+      value: state.breakTime,
+      color: '#FFF3E0',
     },
     {
-      icon: <TrendingUp size={20} color="#FF9800" />,
-      label: 'This Month',
-      value: '168h 45m',
-      color: '#FFF3E0',
+      icon: <RotateCcw size={20} color="#9C27B0" />,
+      label: 'Overtime',
+      value: state.overtimeHours,
+      color: '#F3E5F5',
+    },
+    {
+      icon: <Users size={20} color="#2196F3" />,
+      label: 'Client Visit',
+      value: state.clientVisitTime,
+      color: '#E3F2FD',
     },
   ];
 
@@ -99,6 +203,57 @@ export default function LiveAttendanceScreen() {
     router.push(route as any);
   };
 
+  // Helper function to get activity display info
+  const getActivityDisplayInfo = (activity: ActivityRecord) => {
+    const activityConfig = {
+      clock_in: {
+        title: 'Clock In',
+        color: '#4CAF50',
+        icon: <LogIn size={12} color="#4CAF50" />,
+      },
+      clock_out: {
+        title: 'Clock Out',
+        color: '#F44336',
+        icon: <LogOut size={12} color="#F44336" />,
+      },
+      break_start: {
+        title: 'Break Started',
+        color: '#FF9800',
+        icon: <Coffee size={12} color="#FF9800" />,
+      },
+      break_end: {
+        title: 'Break Ended',
+        color: '#4CAF50',
+        icon: <Activity size={12} color="#4CAF50" />,
+      },
+      overtime_start: {
+        title: 'Overtime Started',
+        color: '#9C27B0',
+        icon: <RotateCcw size={12} color="#9C27B0" />,
+      },
+      overtime_end: {
+        title: 'Overtime Ended',
+        color: '#4CAF50',
+        icon: <Activity size={12} color="#4CAF50" />,
+      },
+      client_visit_start: {
+        title: 'Client Visit Started',
+        color: '#2196F3',
+        icon: <Users size={12} color="#2196F3" />,
+      },
+      client_visit_end: {
+        title: 'Client Visit Ended',
+        color: '#4CAF50',
+        icon: <Activity size={12} color="#4CAF50" />,
+      },
+    };
+    
+    return activityConfig[activity.type] || {
+      title: 'Activity',
+      color: '#666',
+      icon: <Activity size={12} color="#666" />,
+    };
+  };
   return (
     <View style={styles.container}>
       <StatusBar style="light" />
@@ -174,26 +329,75 @@ export default function LiveAttendanceScreen() {
         <View style={styles.section}>
           <Text style={styles.sectionTitle}>Today's Activity</Text>
           <View style={styles.timelineContainer}>
-            <View style={styles.timelineItem}>
-              <View style={[styles.timelineDot, { backgroundColor: '#4CAF50' }]} />
-              <View style={styles.timelineContent}>
-                <Text style={styles.timelineTitle}>Clock In</Text>
-                <Text style={styles.timelineTime}>08:30 AM</Text>
-                <Text style={styles.timelineLocation}>PT. INDOBUZZ REPUBLIK DIGITAL</Text>
-              </View>
-            </View>
-
-            {state.isWorking && (
+            {/* Always show clock in if working */}
+            {state.currentAttendance?.clockIn && (
               <View style={styles.timelineItem}>
-                <View style={[styles.timelineDot, { backgroundColor: '#4A90E2' }]} />
+                <View style={[styles.timelineDot, { backgroundColor: '#4CAF50' }]} />
                 <View style={styles.timelineContent}>
-                  <Text style={styles.timelineTitle}>Currently Working</Text>
-                  <Text style={styles.timelineTime}>{state.workHours} elapsed</Text>
-                  <Text style={styles.timelineLocation}>Active session</Text>
+                  <Text style={styles.timelineTitle}>Clock In</Text>
+                  <Text style={styles.timelineTime}>
+                    {state.currentAttendance.clockIn.toLocaleTimeString([], { 
+                      hour: '2-digit', 
+                      minute: '2-digit' 
+                    })}
+                  </Text>
+                  <Text style={styles.timelineLocation}>PT. INDOBUZZ REPUBLIK DIGITAL</Text>
                 </View>
               </View>
             )}
-          </div>
+
+            {/* Show all activities in reverse chronological order */}
+            {state.todayActivities.map((activity) => {
+              const displayInfo = getActivityDisplayInfo(activity);
+              return (
+                <View key={activity.id} style={styles.timelineItem}>
+                  <View style={[styles.timelineDot, { backgroundColor: displayInfo.color }]} />
+                  <View style={styles.timelineContent}>
+                    <View style={styles.timelineTitleRow}>
+                      {displayInfo.icon}
+                      <Text style={styles.timelineTitle}>{displayInfo.title}</Text>
+                    </View>
+                    <Text style={styles.timelineTime}>
+                      {activity.timestamp.toLocaleTimeString([], { 
+                        hour: '2-digit', 
+                        minute: '2-digit' 
+                      })}
+                    </Text>
+                    <Text style={styles.timelineLocation}>
+                      {activity.location?.address || 'PT. INDOBUZZ REPUBLIK DIGITAL'}
+                    </Text>
+                    {activity.notes && (
+                      <Text style={styles.timelineNotes}>{activity.notes}</Text>
+                    )}
+                  </View>
+                </View>
+              );
+            })}
+            {/* Show current status if working */}
+            {state.isWorking && state.currentStatus !== 'working' && (
+              <View style={styles.timelineItem}>
+                <View style={[styles.timelineDot, { backgroundColor: '#FF9800' }]} />
+                <View style={styles.timelineContent}>
+                  <Text style={styles.timelineTitle}>
+                    Currently {state.currentStatus === 'break' ? 'On Break' : 
+                               state.currentStatus === 'overtime' ? 'In Overtime' :
+                               state.currentStatus === 'client_visit' ? 'On Client Visit' : 'Working'}
+                  </Text>
+                  <Text style={styles.timelineTime}>Active now</Text>
+                  <Text style={styles.timelineLocation}>Live session</Text>
+                </View>
+              </View>
+            )}
+
+            {/* Show empty state if no activities */}
+            {!state.currentAttendance && state.todayActivities.length === 0 && (
+              <View style={styles.emptyState}>
+                <Activity size={32} color="#E0E0E0" />
+                <Text style={styles.emptyStateText}>No activities today</Text>
+                <Text style={styles.emptyStateSubtext}>Clock in to start tracking your day</Text>
+              </View>
+            )}
+          </View>
         </View>
 
         {/* Quick Actions */}
@@ -310,14 +514,15 @@ const styles = StyleSheet.create({
   },
   statsGrid: {
     flexDirection: 'row',
+    flexWrap: 'wrap',
     justifyContent: 'space-between',
   },
   statCard: {
-    flex: 1,
+    width: '48%',
     borderRadius: 16,
     padding: 16,
     alignItems: 'center',
-    marginHorizontal: 4,
+    marginBottom: 12,
     elevation: 2,
     shadowColor: '#000',
     shadowOffset: { width: 0, height: 2 },
@@ -362,11 +567,16 @@ const styles = StyleSheet.create({
   timelineContent: {
     flex: 1,
   },
+  timelineTitleRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginBottom: 2,
+  },
   timelineTitle: {
     fontSize: 16,
     fontWeight: '600',
     color: '#1A1A1A',
-    marginBottom: 2,
+    marginLeft: 6,
   },
   timelineTime: {
     fontSize: 14,
@@ -376,6 +586,27 @@ const styles = StyleSheet.create({
   timelineLocation: {
     fontSize: 12,
     color: '#666',
+  },
+  timelineNotes: {
+    fontSize: 12,
+    color: '#999',
+    fontStyle: 'italic',
+    marginTop: 4,
+  },
+  emptyState: {
+    alignItems: 'center',
+    paddingVertical: 40,
+  },
+  emptyStateText: {
+    fontSize: 16,
+    fontWeight: '600',
+    color: '#666',
+    marginTop: 12,
+    marginBottom: 4,
+  },
+  emptyStateSubtext: {
+    fontSize: 14,
+    color: '#999',
   },
   quickActionsGrid: {
     gap: 12,
