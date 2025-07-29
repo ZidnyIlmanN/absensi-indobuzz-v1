@@ -17,6 +17,7 @@ export default function RootLayout() {
             <Stack.Screen name="splash" />
             <Stack.Screen name="(tabs)" />
             <Stack.Screen name="clock-in" />
+            <Stack.Screen name="clock-out" />
             <Stack.Screen name="attendance" />
             <Stack.Screen name="timeoff" />
             <Stack.Screen name="reimburse" />

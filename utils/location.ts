@@ -88,8 +88,8 @@ export const formatCoordinates = (coordinates: LocationCoordinates): string => {
 export const WORK_LOCATIONS = [
   {
     id: '1',
-    name: 'Jakarta Office',
-    address: 'Jl. Sudirman No. 1, Jakarta',
+    name: 'PT. INDOBUZZ REPUBLIK DIGITAL',
+    address: 'https://maps.app.goo.gl/qDuqJVP6z6vbAkan6',
     coordinates: {
       latitude: -6.2088,
       longitude: 106.8456,

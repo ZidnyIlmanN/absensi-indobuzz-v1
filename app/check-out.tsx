@@ -14,11 +14,6 @@ import { ArrowLeft, LogOut, Camera, Clock, MapPin } from 'lucide-react-native';
 import { useAppContext } from '@/context/AppContext';
 
 export default function CheckOutScreen() {
-  const insets = useSafeAreaInsets();
-  const { state, dispatch } = useAppContext();
-  const [isLoading, setIsLoading] = useState(false);
-
-  const handleClockOut = () => {
     Alert.alert(
       'Clock Out',
       'Please take a selfie to confirm clock out',
@@ -27,16 +22,7 @@ export default function CheckOutScreen() {
         {
           text: 'Take Selfie',
           onPress: () => {
-            setIsLoading(true);
-            // Simulate API call
-            setTimeout(() => {
-              setIsLoading(false);
-              dispatch({ type: 'SET_WORKING_STATUS', payload: false });
-              dispatch({ type: 'SET_ATTENDANCE', payload: null });
-              dispatch({ type: 'SET_WORK_HOURS', payload: '00:00' });
-              Alert.alert('Success', 'You have successfully clocked out!');
-              router.back();
-            }, 1500);
+            router.push('/clock-out/selfie');
           },
         },
       ]
@@ -60,7 +46,7 @@ export default function CheckOutScreen() {
             <ArrowLeft size={24} color="white" />
           </TouchableOpacity>
           <Text style={styles.headerTitle}>Presensi Keluar</Text>
-          <View style={styles.placeholder} />
+          <Text style={styles.locationText}>PT. INDOBUZZ REPUBLIK DIGITAL</Text>
         </View>
       </LinearGradient>
 
@@ -158,7 +144,7 @@ const styles = StyleSheet.create({
   },
   backButton: {
     width: 40,
-    height: 40,
+            <Text style={styles.locationText}>PT. INDOBUZZ REPUBLIK DIGITAL</Text>
     borderRadius: 20,
     backgroundColor: 'rgba(255, 255, 255, 0.2)',
     justifyContent: 'center',

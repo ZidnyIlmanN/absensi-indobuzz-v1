@@ -19,14 +19,14 @@ import {
   RotateCcw,
   CheckCircle,
   RefreshCw,
-  User,
+  LogOut,
   ChevronRight,
 } from 'lucide-react-native';
 import { useAppContext } from '@/context/AppContext';
 
 const { width, height } = Dimensions.get('window');
 
-export default function SelfieScreen() {
+export default function ClockOutSelfieScreen() {
   const insets = useSafeAreaInsets();
   const { state, dispatch } = useAppContext();
   const [facing, setFacing] = useState<CameraType>('front');
@@ -82,37 +82,21 @@ export default function SelfieScreen() {
       // Simulate API call for face verification
       await new Promise(resolve => setTimeout(resolve, 2000));
 
-      // Create attendance record
-      const now = new Date();
-      const attendance = {
-        id: Date.now().toString(),
-        userId: state.user?.id || '',
-        clockIn: now,
-        date: now.toISOString().split('T')[0],
-        workHours: 0,
-        status: 'working' as const,
-        location: {
-          latitude: -6.2088,
-          longitude: 106.8456,
-          address: 'PT. INDOBUZZ REPUBLIK DIGITAL',
-        },
-        selfieUrl: capturedImage,
-      };
-
       // Update app state
-      dispatch({ type: 'SET_WORKING_STATUS', payload: true });
-      dispatch({ type: 'SET_ATTENDANCE', payload: attendance });
+      dispatch({ type: 'SET_WORKING_STATUS', payload: false });
+      dispatch({ type: 'SET_ATTENDANCE', payload: null });
+      dispatch({ type: 'SET_WORK_HOURS', payload: '00:00' });
 
       // Navigate back to live attendance
       router.replace('/live-attendance');
       
       Alert.alert(
         'Success!',
-        'You have successfully clocked in. Have a great workday!',
+        'You have successfully clocked out. Have a great rest of your day!',
         [{ text: 'OK' }]
       );
     } catch (error) {
-      console.error('Error submitting attendance:', error);
+      console.error('Error submitting clock out:', error);
       Alert.alert(
         'Verification Failed',
         'Face verification failed. Please try again with better lighting.',
@@ -136,7 +120,7 @@ export default function SelfieScreen() {
       <View style={styles.container}>
         <StatusBar style="light" />
         <LinearGradient
-          colors={['#4A90E2', '#357ABD']}
+          colors={['#F44336', '#D32F2F']}
           style={[styles.header, { paddingTop: insets.top + 20 }]}
         >
           <View style={styles.headerContent}>
@@ -146,7 +130,7 @@ export default function SelfieScreen() {
             >
               <ArrowLeft size={24} color="white" />
             </TouchableOpacity>
-            <Text style={styles.headerTitle}>Take Selfie</Text>
+            <Text style={styles.headerTitle}>Clock Out Selfie</Text>
             <View style={styles.placeholder} />
           </View>
         </LinearGradient>
@@ -155,7 +139,7 @@ export default function SelfieScreen() {
           <Camera size={64} color="#E0E0E0" />
           <Text style={styles.permissionTitle}>Camera Permission Required</Text>
           <Text style={styles.permissionText}>
-            We need access to your camera to take a selfie for attendance verification.
+            We need access to your camera to take a selfie for clock out verification.
           </Text>
           <TouchableOpacity style={styles.permissionButton} onPress={requestPermission}>
             <Text style={styles.permissionButtonText}>Grant Permission</Text>
@@ -171,7 +155,7 @@ export default function SelfieScreen() {
       
       {/* Header */}
       <LinearGradient
-        colors={['#4A90E2', '#357ABD']}
+        colors={['#F44336', '#D32F2F']}
         style={[styles.header, { paddingTop: insets.top + 20 }]}
       >
         <View style={styles.headerContent}>
@@ -181,7 +165,7 @@ export default function SelfieScreen() {
           >
             <ArrowLeft size={24} color="white" />
           </TouchableOpacity>
-          <Text style={styles.headerTitle}>Take Selfie</Text>
+          <Text style={styles.headerTitle}>Clock Out Selfie</Text>
           <TouchableOpacity
             style={styles.flipButton}
             onPress={toggleCameraFacing}
@@ -195,7 +179,7 @@ export default function SelfieScreen() {
           <View style={styles.progressBar}>
             <View style={[styles.progressFill, { width: '100%' }]} />
           </View>
-          <Text style={styles.progressText}>Step 2 of 2</Text>
+          <Text style={styles.progressText}>Final Step</Text>
         </View>
       </LinearGradient>
 
@@ -206,9 +190,9 @@ export default function SelfieScreen() {
           
           <View style={styles.previewOverlay}>
             <View style={styles.previewHeader}>
-              <Text style={styles.previewTitle}>Photo Preview</Text>
+              <Text style={styles.previewTitle}>Clock Out Confirmation</Text>
               <Text style={styles.previewSubtitle}>
-                Make sure your face is clearly visible
+                Verify your identity to complete clock out
               </Text>
             </View>
 
@@ -217,7 +201,7 @@ export default function SelfieScreen() {
                 style={styles.retakeButton}
                 onPress={retakePicture}
               >
-                <RefreshCw size={20} color="#4A90E2" />
+                <RefreshCw size={20} color="#F44336" />
                 <Text style={styles.retakeButtonText}>Retake</Text>
               </TouchableOpacity>
 
@@ -227,7 +211,7 @@ export default function SelfieScreen() {
                 disabled={isProcessing}
               >
                 <LinearGradient
-                  colors={['#4A90E2', '#357ABD']}
+                  colors={['#F44336', '#D32F2F']}
                   style={styles.submitButtonGradient}
                 >
                   {isProcessing ? (
@@ -235,7 +219,7 @@ export default function SelfieScreen() {
                   ) : (
                     <>
                       <CheckCircle size={20} color="white" />
-                      <Text style={styles.submitButtonText}>Complete Clock In</Text>
+                      <Text style={styles.submitButtonText}>Complete Clock Out</Text>
                     </>
                   )}
                 </LinearGradient>
@@ -249,9 +233,9 @@ export default function SelfieScreen() {
           {/* Instructions */}
           <View style={styles.instructionsContainer}>
             <View style={styles.instructionsCard}>
-              <User size={20} color="#4A90E2" />
+              <LogOut size={20} color="#F44336" />
               <Text style={styles.instructionsText}>
-                Position your face in the center and tap the capture button
+                Position your face in the center and tap to capture your clock out selfie
               </Text>
             </View>
           </View>
@@ -298,7 +282,7 @@ export default function SelfieScreen() {
             </View>
 
             <Text style={styles.captureHint}>
-              Tap to capture your selfie
+              Tap to capture your clock out selfie
             </Text>
           </View>
         </View>
@@ -389,7 +373,7 @@ const styles = StyleSheet.create({
     marginBottom: 32,
   },
   permissionButton: {
-    backgroundColor: '#4A90E2',
+    backgroundColor: '#F44336',
     paddingHorizontal: 32,
     paddingVertical: 16,
     borderRadius: 12,
@@ -441,7 +425,7 @@ const styles = StyleSheet.create({
     height: 200,
     borderRadius: 100,
     borderWidth: 3,
-    borderColor: 'rgba(255, 255, 255, 0.8)',
+    borderColor: 'rgba(244, 67, 54, 0.8)',
     borderStyle: 'dashed',
   },
   controlsContainer: {
@@ -473,7 +457,7 @@ const styles = StyleSheet.create({
     width: 60,
     height: 60,
     borderRadius: 30,
-    backgroundColor: '#4A90E2',
+    backgroundColor: '#F44336',
     justifyContent: 'center',
     alignItems: 'center',
   },
