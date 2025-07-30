@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useRef } from 'react';
 import { getCurrentLocation, checkOfficeProximity, LocationCoordinates } from '@/utils/location';
 
 interface LocationState {
@@ -34,6 +34,14 @@ export function useLocationTracking(options: UseLocationTrackingOptions = {}) {
     lastUpdated: null,
   });
 
+  // Use refs to store callback functions to prevent dependency changes
+  const callbacksRef = useRef({ onLocationChange, onProximityChange });
+  
+  // Update refs when callbacks change
+  useEffect(() => {
+    callbacksRef.current = { onLocationChange, onProximityChange };
+  }, [onLocationChange, onProximityChange]);
+
   const updateLocation = useCallback(async (silent = false) => {
     if (!silent) {
       setLocationState(prev => ({ ...prev, isLoading: true, error: null }));
@@ -57,8 +65,8 @@ export function useLocationTracking(options: UseLocationTrackingOptions = {}) {
         setLocationState(newState);
 
         // Trigger callbacks
-        onLocationChange?.(location);
-        onProximityChange?.(proximityCheck.isWithinRange, proximityCheck.distance);
+        callbacksRef.current.onLocationChange?.(location);
+        callbacksRef.current.onProximityChange?.(proximityCheck.isWithinRange, proximityCheck.distance);
 
         return newState;
       } else {
@@ -75,7 +83,7 @@ export function useLocationTracking(options: UseLocationTrackingOptions = {}) {
 
       return null;
     }
-  }, [onLocationChange, onProximityChange]);
+  }, []); // Remove dependencies to prevent infinite re-renders
 
   const requestLocationUpdate = useCallback(() => {
     return updateLocation(false);
@@ -99,7 +107,7 @@ export function useLocationTracking(options: UseLocationTrackingOptions = {}) {
         clearInterval(interval);
       }
     };
-  }, [enableRealTimeTracking, trackingInterval, updateLocation]);
+  }, [enableRealTimeTracking, trackingInterval]); // Remove updateLocation dependency
 
   return {
     ...locationState,

@@ -53,7 +53,7 @@ export default function AttendanceHistoryScreen() {
     }, 1000);
 
     return () => clearInterval(timer);
-  }, [state.currentAttendance?.clockIn, dispatch]);
+  }, [state.currentAttendance?.clockIn]); // Remove dispatch from dependencies
 
   const onRefresh = async () => {
     setRefreshing(true);

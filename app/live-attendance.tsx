@@ -53,10 +53,10 @@ export default function LiveAttendanceScreen() {
     }, 1000);
 
     return () => clearInterval(timer);
-  }, [state.currentAttendance, state.todayActivities, state.currentStatus]);
+  }, [state.currentAttendance?.clockIn, calculateRealTimeTotals]); // Add calculateRealTimeTotals
 
   // Calculate real-time totals based on activities and current status
-  const calculateRealTimeTotals = () => {
+  const calculateRealTimeTotals = useCallback(() => {
     if (!state.currentAttendance?.clockIn) return;
 
     const now = new Date();
@@ -144,7 +144,7 @@ export default function LiveAttendanceScreen() {
     dispatch({ type: 'SET_BREAK_TIME', payload: formatTime(totalBreakTime) });
     dispatch({ type: 'SET_OVERTIME_HOURS', payload: formatTime(totalOvertimeTime) });
     dispatch({ type: 'SET_CLIENT_VISIT_TIME', payload: formatTime(totalClientVisitTime) });
-  };
+  }, [state.currentAttendance?.clockIn, state.todayActivities, state.currentStatus, dispatch]);
 
   const onRefresh = async () => {
     setRefreshing(true);

@@ -65,14 +65,16 @@ export default function LocationSelectionScreen() {
   } = useLocationTracking({
     enableRealTimeTracking: true,
     trackingInterval: 5000,
-    onProximityChange: (isWithinRange) => {
-      if (isWithinRange) {
-        setSelectedLocation('kantor');
-      } else {
-        setSelectedLocation(null);
-      }
-    },
   });
+
+  // Handle proximity changes separately to avoid dependency issues
+  useEffect(() => {
+    if (isWithinOfficeRange) {
+      setSelectedLocation('kantor');
+    } else {
+      setSelectedLocation(null);
+    }
+  }, [isWithinOfficeRange]);
 
   // Create office location object based on tracking data
   const officeLocation: OfficeLocation | null = currentLocation ? {
