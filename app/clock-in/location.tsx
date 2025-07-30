@@ -18,7 +18,7 @@ import {
   getCurrentLocation, 
   checkOfficeProximity, 
   OFFICE_COORDINATES,
-  ACCEPTABLE_RADIUS,
+  ACCEPTABLE_RADIUS, checkOfficeProximityDetailed,
   LocationCoordinates 
 } from '@/utils/location';
 import { LoadingSpinner } from '@/components/LoadingSpinner';
@@ -51,7 +51,7 @@ export default function LocationSelectionScreen() {
     refreshLocation,
   } = useLocationTracking({
     enableRealTimeTracking: true,
-    trackingInterval: 5000,
+    trackingInterval: 3000, // Check every 3 seconds for more responsive updates
   });
 
   // Handle proximity changes separately to avoid dependency issues
@@ -82,7 +82,17 @@ export default function LocationSelectionScreen() {
 
   const onRefresh = async () => {
     setRefreshing(true);
-    await refreshLocation();
+    console.log('Manual refresh triggered');
+    
+    try {
+      const result = await checkOfficeProximityDetailed(true);
+      console.log('Manual refresh result:', result);
+      
+      await refreshLocation();
+    } catch (error) {
+      console.error('Manual refresh failed:', error);
+    }
+    
     setRefreshing(false);
   };
 
@@ -105,7 +115,7 @@ export default function LocationSelectionScreen() {
     if (!officeLocation?.isInRange) {
       Alert.alert(
         'Location Access Denied',
-        `You must be within ${ACCEPTABLE_RADIUS}m of the office to clock in. Current distance: ${officeLocation?.distance}m`,
+        `You must be within ${ACCEPTABLE_RADIUS}m of the office to clock in. Current distance: ${officeLocation?.distance}m. Please move closer to the office or check if your GPS is accurate.`,
         [{ text: 'OK' }]
       );
       return;
@@ -116,7 +126,15 @@ export default function LocationSelectionScreen() {
   };
 
   const handleRetryLocation = () => {
+    console.log('Retry location triggered');
     refreshLocation();
+    
+    // Also trigger a detailed check for debugging
+    checkOfficeProximityDetailed(true).then(result => {
+      console.log('Retry location result:', result);
+    }).catch(error => {
+      console.error('Retry location failed:', error);
+    });
   };
 
   const handleOpenSettings = () => {
@@ -140,7 +158,7 @@ export default function LocationSelectionScreen() {
     if (officeLocation.isInRange) {
       return `Great! You're ${officeLocation.distance}m from the office. You can proceed with clock in.`;
     } else {
-      return `You're ${officeLocation.distance}m from the office. You need to be within ${ACCEPTABLE_RADIUS}m to clock in.`;
+      return `You're ${officeLocation.distance}m from the office. You need to be within ${ACCEPTABLE_RADIUS}m to clock in. Please ensure your GPS is enabled and accurate.`;
     }
   };
 
@@ -228,6 +246,11 @@ export default function LocationSelectionScreen() {
               <Text style={styles.proximityMessage}>
                 {getProximityMessage()}
               </Text>
+              {currentLocation && (
+                <Text style={styles.coordinatesText}>
+                  Your location: {currentLocation.latitude.toFixed(6)}, {currentLocation.longitude.toFixed(6)}
+                </Text>
+              )}
               {officeLocation && (
                 <Text style={styles.coordinatesText}>
                   Distance: {officeLocation.distance}m from office
@@ -265,7 +288,7 @@ export default function LocationSelectionScreen() {
           ]}>
             {officeLocation?.isInRange 
               ? 'You are within the acceptable range of the office. You can now select the office location and proceed with clock in.'
-              : `You must be within ${ACCEPTABLE_RADIUS} meters of PT. INDOBUZZ REPUBLIK DIGITAL office to clock in. Please move closer to the office location.`
+              : `You must be within ${ACCEPTABLE_RADIUS} meters of PT. INDOBUZZ REPUBLIK DIGITAL office to clock in. Please move closer to the office location or ensure your GPS is working properly.`
             }
           </Text>
         </View>
@@ -285,7 +308,7 @@ export default function LocationSelectionScreen() {
               <MapPinOff size={32} color="#E0E0E0" />
               <Text style={styles.noLocationsText}>No locations available</Text>
               <Text style={styles.noLocationsSubtext}>
-                You must be within {ACCEPTABLE_RADIUS}m of the office to see available locations
+                You must be within {ACCEPTABLE_RADIUS}m of the office to see available locations. Please check your GPS accuracy.
               </Text>
               {officeLocation && (
                 <Text style={styles.distanceInfo}>
@@ -357,7 +380,7 @@ export default function LocationSelectionScreen() {
           </Text>
           <Text style={styles.officeInfoText}>
             <Text style={styles.officeInfoLabel}>Location: </Text>
-            {OFFICE_COORDINATES.latitude.toFixed(6)}, {OFFICE_COORDINATES.longitude.toFixed(6)}
+            Office: {OFFICE_COORDINATES.latitude.toFixed(6)}, {OFFICE_COORDINATES.longitude.toFixed(6)}
           </Text>
         </View>
       </ScrollView>

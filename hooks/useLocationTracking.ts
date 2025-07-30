@@ -1,5 +1,5 @@
 import { useState, useEffect, useCallback, useRef } from 'react';
-import { getCurrentLocation, checkOfficeProximity, LocationCoordinates } from '@/utils/location';
+import { getHighAccuracyLocation, checkOfficeProximityDetailed, LocationCoordinates } from '@/utils/location';
 
 interface LocationState {
   currentLocation: LocationCoordinates | null;
@@ -8,6 +8,7 @@ interface LocationState {
   isLoading: boolean;
   error: string | null;
   lastUpdated: Date | null;
+  accuracy?: number;
 }
 
 interface UseLocationTrackingOptions {
@@ -32,6 +33,7 @@ export function useLocationTracking(options: UseLocationTrackingOptions = {}) {
     isLoading: true,
     error: null,
     lastUpdated: null,
+    accuracy: undefined,
   });
 
   // Use refs to store callback functions to prevent dependency changes
@@ -48,32 +50,36 @@ export function useLocationTracking(options: UseLocationTrackingOptions = {}) {
     }
 
     try {
-      const location = await getCurrentLocation();
+      console.log('Updating location...');
+      const result = await checkOfficeProximityDetailed(true);
       
-      if (location) {
-        const proximityCheck = checkOfficeProximity(location);
+      if (result.currentLocation && !result.error) {
+        const location = result.currentLocation;
         
         const newState: LocationState = {
           currentLocation: location,
-          isWithinOfficeRange: proximityCheck.isWithinRange,
-          distanceFromOffice: proximityCheck.distance,
+          isWithinOfficeRange: result.isWithinRange,
+          distanceFromOffice: result.distance,
           isLoading: false,
           error: null,
           lastUpdated: new Date(),
+          accuracy: result.accuracy,
         };
 
         setLocationState(newState);
 
         // Trigger callbacks
         callbacksRef.current.onLocationChange?.(location);
-        callbacksRef.current.onProximityChange?.(proximityCheck.isWithinRange, proximityCheck.distance);
+        callbacksRef.current.onProximityChange?.(result.isWithinRange, result.distance);
 
+        console.log(`Location updated: ${result.isWithinRange ? 'Within range' : 'Too far'} (${result.distance}m)`);
         return newState;
       } else {
-        throw new Error('Unable to get location');
+        throw new Error(result.error || 'Unable to get location');
       }
     } catch (error) {
       const errorMessage = error instanceof Error ? error.message : 'Location access failed';
+      console.error('Location update failed:', errorMessage);
       
       setLocationState(prev => ({
         ...prev,
@@ -97,6 +103,7 @@ export function useLocationTracking(options: UseLocationTrackingOptions = {}) {
     let interval: NodeJS.Timeout | null = null;
     
     if (enableRealTimeTracking) {
+      console.log(`Starting real-time location tracking (${trackingInterval}ms interval)`);
       interval = setInterval(() => {
         updateLocation(true); // Silent updates for real-time tracking
       }, trackingInterval);
@@ -104,6 +111,7 @@ export function useLocationTracking(options: UseLocationTrackingOptions = {}) {
 
     return () => {
       if (interval) {
+        console.log('Stopping real-time location tracking');
         clearInterval(interval);
       }
     };
