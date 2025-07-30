@@ -13,20 +13,7 @@ import { StatusBar } from 'expo-status-bar';
 import { LinearGradient } from 'expo-linear-gradient';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { router } from 'expo-router';
-import {
-  ArrowLeft,
-  MapPin,
-  Navigation,
-  CheckCircle,
-  Clock,
-  Wifi,
-  WifiOff,
-  ChevronRight,
-  AlertTriangle,
-  RefreshCw,
-  MapPinOff,
-  Loader,
-} from 'lucide-react-native';
+import { ArrowLeft, MapPin, Navigation, CircleCheck as CheckCircle, Clock, Wifi, WifiOff, ChevronRight, TriangleAlert as AlertTriangle, RefreshCw, MapPinOff, Loader } from 'lucide-react-native';
 import { 
   getCurrentLocation, 
   checkOfficeProximity, 

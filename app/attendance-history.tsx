@@ -13,20 +13,7 @@ import { StatusBar } from 'expo-status-bar';
 import { LinearGradient } from 'expo-linear-gradient';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { router } from 'expo-router';
-import {
-  ArrowLeft,
-  Clock,
-  MapPin,
-  Calendar,
-  TrendingUp,
-  LogIn,
-  LogOut,
-  Camera,
-  Wifi,
-  WifiOff,
-  Users,
-  CheckCircle,
-} from 'lucide-react-native';
+import { ArrowLeft, Clock, MapPin, Calendar, TrendingUp, LogIn, LogOut, Camera, Wifi, WifiOff, Users, CircleCheck as CheckCircle } from 'lucide-react-native';
 import { useAppContext } from '@/context/AppContext';
 import { LoadingSpinner } from '@/components/LoadingSpinner';
 
