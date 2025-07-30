@@ -22,6 +22,7 @@ import {
   Camera,
   Activity,
 } from 'lucide-react-native';
+import { ColorValue } from 'react-native';
 import { useAppContext } from '@/context/AppContext';
 import { ActivityRecord } from '@/types';
 
@@ -54,7 +55,7 @@ export function DynamicAttendanceCard() {
         state: 'ready',
         title: 'Ready to Start',
         subtitle: 'Tap to begin your workday with selfie verification',
-        colors: ['#667eea', '#764ba2'],
+        colors: ['#667eea', '#764ba2'] as readonly ColorValue[],
         icon: <LogIn size={24} color="white" />,
         buttonText: 'Clock In',
         buttonAction: handleClockIn,
@@ -67,7 +68,7 @@ export function DynamicAttendanceCard() {
           state: 'working',
           title: 'Currently Working',
           subtitle: `Started at ${state.currentAttendance?.clockIn.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}`,
-          colors: ['#4CAF50', '#45A049'],
+          colors: ['#4CAF50', '#45A049'] as readonly ColorValue[],
           icon: <Activity size={24} color="white" />,
           buttonText: 'Start Break',
           buttonAction: () => handleStateChange('break'),
@@ -77,7 +78,7 @@ export function DynamicAttendanceCard() {
           state: 'break',
           title: 'On Break',
           subtitle: 'Enjoy your break time',
-          colors: ['#FF9800', '#F57C00'],
+          colors: ['#FF9800', '#F57C00'] as readonly ColorValue[],
           icon: <Coffee size={24} color="white" />,
           buttonText: 'End Break',
           buttonAction: () => handleStateChange('working'),
@@ -87,7 +88,7 @@ export function DynamicAttendanceCard() {
           state: 'overtime',
           title: 'Overtime Mode',
           subtitle: 'Working extended hours',
-          colors: ['#9C27B0', '#7B1FA2'],
+          colors: ['#9C27B0', '#7B1FA2'] as readonly ColorValue[],
           icon: <RotateCcw size={24} color="white" />,
           buttonText: 'End Overtime',
           buttonAction: () => handleStateChange('working'),
@@ -97,7 +98,7 @@ export function DynamicAttendanceCard() {
           state: 'client_visit',
           title: 'Client Visit',
           subtitle: 'Currently visiting client',
-          colors: ['#2196F3', '#1976D2'],
+          colors: ['#2196F3', '#1976D2'] as readonly ColorValue[],
           icon: <Users size={24} color="white" />,
           buttonText: 'End Client Visit',
           buttonAction: () => handleStateChange('working'),
@@ -107,7 +108,7 @@ export function DynamicAttendanceCard() {
           state: 'working',
           title: 'Currently Working',
           subtitle: `Started at ${state.currentAttendance?.clockIn.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}`,
-          colors: ['#4CAF50', '#45A049'],
+          colors: ['#4CAF50', '#45A049'] as readonly ColorValue[],
           icon: <Activity size={24} color="white" />,
           buttonText: 'Start Break',
           buttonAction: () => handleStateChange('break'),
@@ -176,13 +177,17 @@ export function DynamicAttendanceCard() {
       Alert.alert('Status Updated', stateMessages[newState] || 'Status changed');
     }, 1000);
   };
+  interface CardConfig {
+  colors: readonly [ColorValue, ColorValue, ...ColorValue[]];
+  // ... other properties
+}
 
   const config = getCardConfig();
 
   return (
     <View style={styles.container}>
       <LinearGradient
-        colors={config.colors}
+        colors={config.colors as readonly [ColorValue, ColorValue, ...ColorValue[]]}
         style={styles.card}
       >
         {/* Status Header */}
@@ -206,12 +211,6 @@ export function DynamicAttendanceCard() {
           <Text style={styles.subtitle}>{config.subtitle}</Text>
         </View>
 
-        {/* Location Info */}
-        <View style={styles.locationInfo}>
-          <MapPin size={14} color="rgba(255, 255, 255, 0.7)" />
-          <Text style={styles.locationText}>PT. INDOBUZZ REPUBLIK DIGITAL</Text>
-        </View>
-
         {/* Action Buttons */}
         <View style={styles.actionButtons}>
           <TouchableOpacity
@@ -221,7 +220,7 @@ export function DynamicAttendanceCard() {
             activeOpacity={0.8}
           >
             <View style={styles.buttonContent}>
-              {config.icon}
+
               <Text style={styles.buttonText}>
                 {isLoading ? 'Processing...' : config.buttonText}
               </Text>
@@ -270,16 +269,15 @@ const styles = StyleSheet.create({
   container: {
     marginTop: -40,
     marginBottom: 24,
-    marginHorizontal: 4,
   },
   card: {
-    borderRadius: 20,
-    padding: 24,
+    borderRadius: 16,
+    padding: 20,
     elevation: 8,
     shadowColor: '#000',
     shadowOffset: { width: 0, height: 4 },
     shadowOpacity: 0.15,
-    shadowRadius: 12,
+    shadowRadius: 8,
   },
   statusHeader: {
     flexDirection: 'row',
@@ -305,10 +303,6 @@ const styles = StyleSheet.create({
   workHoursContainer: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: 'rgba(255, 255, 255, 0.2)',
-    paddingHorizontal: 12,
-    paddingVertical: 6,
-    borderRadius: 16,
   },
   workHours: {
     fontSize: 16,
@@ -402,7 +396,7 @@ const styles = StyleSheet.create({
     borderColor: 'rgba(255, 255, 255, 0.3)',
   },
   clockOutButton: {
-    backgroundColor: 'rgba(244, 67, 54, 0.2)',
+    backgroundColor: 'rgba(255, 78, 66, 0.2)',
     borderColor: 'rgba(244, 67, 54, 0.3)',
   },
   secondaryButtonText: {
