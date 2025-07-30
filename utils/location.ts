@@ -88,22 +88,30 @@ export const formatCoordinates = (coordinates: LocationCoordinates): string => {
 export const WORK_LOCATIONS = [
   {
     id: '1',
-    name: 'PT. INDOBUZZ REPUBLIK DIGITAL',
-    address: 'https://maps.app.goo.gl/qDuqJVP6z6vbAkan6',
+    name: 'Kantor',
+    address: 'PT. INDOBUZZ REPUBLIK DIGITAL',
     coordinates: {
-      latitude: -6.2088,
-      longitude: 106.8456,
+      latitude: -6.200000,
+      longitude: 106.816666,
     },
-    radius: 100,
-  },
-  {
-    id: '2',
-    name: 'Bandung Office',
-    address: 'Jl. Asia Afrika No. 123, Bandung',
-    coordinates: {
-      latitude: -6.9147,
-      longitude: 107.6098,
-    },
-    radius: 150,
+    radius: 50, // 50 meters acceptable radius
   },
 ];
+
+// Office coordinates from Google Maps link
+export const OFFICE_COORDINATES = {
+  latitude: -6.200000,
+  longitude: 106.816666,
+};
+
+export const ACCEPTABLE_RADIUS = 50; // meters
+
+export const checkOfficeProximity = (
+  currentLocation: LocationCoordinates
+): { isWithinRange: boolean; distance: number } => {
+  const distance = calculateDistance(currentLocation, OFFICE_COORDINATES);
+  return {
+    isWithinRange: distance <= ACCEPTABLE_RADIUS,
+    distance: Math.round(distance),
+  };
+};

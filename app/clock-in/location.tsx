@@ -6,6 +6,7 @@ import {
   TouchableOpacity,
   ScrollView,
   Alert,
+  RefreshControl,
 } from 'react-native';
 import { StatusBar } from 'expo-status-bar';
 import { LinearGradient } from 'expo-linear-gradient';
@@ -20,115 +21,170 @@ import {
   Wifi,
   WifiOff,
   ChevronRight,
+  AlertTriangle,
+  RefreshCw,
+  MapPinOff,
+  Loader,
 } from 'lucide-react-native';
-import { getCurrentLocation, WORK_LOCATIONS, calculateDistance } from '@/utils/location';
+import { 
+  getCurrentLocation, 
+  checkOfficeProximity, 
+  OFFICE_COORDINATES,
+  ACCEPTABLE_RADIUS,
+  LocationCoordinates 
+} from '@/utils/location';
 import { LoadingSpinner } from '@/components/LoadingSpinner';
 
-interface WorkLocation {
+interface OfficeLocation {
   id: string;
   name: string;
   address: string;
-  coordinates: {
-    latitude: number;
-    longitude: number;
-  };
-  radius: number;
-  distance?: number;
-  isInRange?: boolean;
+  coordinates: LocationCoordinates;
+  distance: number;
+  isInRange: boolean;
 }
 
 export default function LocationSelectionScreen() {
   const insets = useSafeAreaInsets();
   const [selectedLocation, setSelectedLocation] = useState<string | null>(null);
-  const [currentLocation, setCurrentLocation] = useState<any>(null);
-  const [locations, setLocations] = useState<WorkLocation[]>(WORK_LOCATIONS);
+  const [currentLocation, setCurrentLocation] = useState<LocationCoordinates | null>(null);
+  const [officeLocation, setOfficeLocation] = useState<OfficeLocation | null>(null);
   const [isLoadingLocation, setIsLoadingLocation] = useState(true);
+  const [locationError, setLocationError] = useState<string | null>(null);
   const [isOnline, setIsOnline] = useState(true);
+  const [refreshing, setRefreshing] = useState(false);
+  const [locationCheckInterval, setLocationCheckInterval] = useState<NodeJS.Timeout | null>(null);
 
   useEffect(() => {
     loadCurrentLocation();
+    
+    // Set up real-time location checking every 5 seconds
+    const interval = setInterval(() => {
+      if (!isLoadingLocation) {
+        checkLocationSilently();
+      }
+    }, 5000);
+    
+    setLocationCheckInterval(interval);
+
+    return () => {
+      if (interval) clearInterval(interval);
+    };
   }, []);
 
   const loadCurrentLocation = async () => {
     try {
       setIsLoadingLocation(true);
+      setLocationError(null);
+      
       const location = await getCurrentLocation();
       
       if (location) {
         setCurrentLocation(location);
-        
-        // Calculate distances to work locations
-        const updatedLocations = WORK_LOCATIONS.map(workLocation => {
-          const distance = calculateDistance(location, workLocation.coordinates);
-          const isInRange = distance <= workLocation.radius;
-          
-          return {
-            ...workLocation,
-            distance: Math.round(distance),
-            isInRange,
-          };
-        });
-
-        // Sort by distance
-        updatedLocations.sort((a, b) => (a.distance || 0) - (b.distance || 0));
-        setLocations(updatedLocations);
-
-        // Auto-select if user is within range of a location
-        const inRangeLocation = updatedLocations.find(loc => loc.isInRange);
-        if (inRangeLocation) {
-          setSelectedLocation(inRangeLocation.id);
-        }
+        updateOfficeLocationStatus(location);
+      } else {
+        setLocationError('Unable to get your current location. Please enable GPS and try again.');
       }
     } catch (error) {
       console.error('Error getting location:', error);
-      Alert.alert(
-        'Location Error',
-        'Unable to get your current location. Please select your work location manually.',
-        [{ text: 'OK' }]
-      );
+      setLocationError('Location access denied. Please enable location permissions in your device settings.');
     } finally {
       setIsLoadingLocation(false);
     }
   };
 
+  const checkLocationSilently = async () => {
+    try {
+      const location = await getCurrentLocation();
+      if (location) {
+        setCurrentLocation(location);
+        updateOfficeLocationStatus(location);
+      }
+    } catch (error) {
+      // Silent fail for background checks
+      console.warn('Background location check failed:', error);
+    }
+  };
+
+  const updateOfficeLocationStatus = (userLocation: LocationCoordinates) => {
+    const proximityCheck = checkOfficeProximity(userLocation);
+    
+    const office: OfficeLocation = {
+      id: 'kantor',
+      name: 'Kantor',
+      address: 'PT. INDOBUZZ REPUBLIK DIGITAL',
+      coordinates: OFFICE_COORDINATES,
+      distance: proximityCheck.distance,
+      isInRange: proximityCheck.isWithinRange,
+    };
+
+    setOfficeLocation(office);
+
+    // Auto-select if within range
+    if (proximityCheck.isWithinRange) {
+      setSelectedLocation('kantor');
+    } else {
+      setSelectedLocation(null);
+    }
+  };
+
+  const onRefresh = async () => {
+    setRefreshing(true);
+    await loadCurrentLocation();
+    setRefreshing(false);
+  };
+
   const handleLocationSelect = (locationId: string) => {
-    setSelectedLocation(locationId);
+    if (officeLocation?.isInRange) {
+      setSelectedLocation(locationId);
+    }
   };
 
   const handleContinue = () => {
     if (!selectedLocation) {
-      Alert.alert('Location Required', 'Please select your work location to continue.');
+      Alert.alert(
+        'Location Required', 
+        'Please select your work location to continue.',
+        [{ text: 'OK' }]
+      );
       return;
     }
 
-    const location = locations.find(loc => loc.id === selectedLocation);
-    if (location && !location.isInRange) {
+    if (!officeLocation?.isInRange) {
       Alert.alert(
-        'Location Warning',
-        `You are ${location.distance}m away from ${location.name}. Are you sure you want to continue?`,
-        [
-          { text: 'Cancel', style: 'cancel' },
-          { 
-            text: 'Continue', 
-            onPress: () => router.push('/clock-in/selfie')
-          }
-        ]
+        'Location Access Denied',
+        `You must be within ${ACCEPTABLE_RADIUS}m of the office to clock in. Current distance: ${officeLocation?.distance}m`,
+        [{ text: 'OK' }]
       );
-    } else {
-      router.push('/clock-in/selfie');
+      return;
     }
+
+    // Proceed to selfie step
+    router.push('/clock-in/selfie');
   };
 
-  const getLocationStatusColor = (location: WorkLocation) => {
-    if (location.isInRange) return '#4CAF50';
-    if ((location.distance || 0) <= 500) return '#FF9800';
-    return '#F44336';
+  const handleRetryLocation = () => {
+    loadCurrentLocation();
   };
 
-  const getLocationStatusText = (location: WorkLocation) => {
-    if (location.isInRange) return 'In Range';
-    if ((location.distance || 0) <= 500) return 'Nearby';
-    return 'Far';
+  const getLocationStatusColor = () => {
+    if (!officeLocation) return '#9E9E9E';
+    return officeLocation.isInRange ? '#4CAF50' : '#F44336';
+  };
+
+  const getLocationStatusText = () => {
+    if (!officeLocation) return 'Checking...';
+    return officeLocation.isInRange ? 'Within Range' : 'Too Far';
+  };
+
+  const getProximityMessage = () => {
+    if (!officeLocation) return 'Checking your location...';
+    
+    if (officeLocation.isInRange) {
+      return `Great! You're ${officeLocation.distance}m from the office. You can proceed with clock in.`;
+    } else {
+      return `You're ${officeLocation.distance}m from the office. You need to be within ${ACCEPTABLE_RADIUS}m to clock in.`;
+    }
   };
 
   return (
@@ -166,12 +222,23 @@ export default function LocationSelectionScreen() {
         </View>
       </LinearGradient>
 
-      <ScrollView style={styles.content} showsVerticalScrollIndicator={false}>
+      <ScrollView 
+        style={styles.content} 
+        showsVerticalScrollIndicator={false}
+        refreshControl={
+          <RefreshControl refreshing={refreshing} onRefresh={onRefresh} />
+        }
+      >
         {/* Current Location Status */}
         <View style={styles.statusCard}>
           <View style={styles.statusHeader}>
             <Navigation size={20} color="#4A90E2" />
-            <Text style={styles.statusTitle}>Your Location</Text>
+            <Text style={styles.statusTitle}>Your Location Status</Text>
+            {!isLoadingLocation && (
+              <TouchableOpacity onPress={handleRetryLocation} style={styles.refreshButton}>
+                <RefreshCw size={16} color="#4A90E2" />
+              </TouchableOpacity>
+            )}
           </View>
           
           {isLoadingLocation ? (
@@ -179,10 +246,37 @@ export default function LocationSelectionScreen() {
               <LoadingSpinner size="small" color="#4A90E2" />
               <Text style={styles.loadingText}>Getting your location...</Text>
             </View>
+          ) : locationError ? (
+            <View style={styles.errorContainer}>
+              <AlertTriangle size={20} color="#F44336" />
+              <Text style={styles.errorText}>{locationError}</Text>
+              <TouchableOpacity style={styles.retryButton} onPress={handleRetryLocation}>
+                <Text style={styles.retryButtonText}>Retry</Text>
+              </TouchableOpacity>
+            </View>
           ) : currentLocation ? (
-            <Text style={styles.statusText}>
-              Location detected • GPS accuracy: High
-            </Text>
+            <View style={styles.locationStatusContainer}>
+              <View style={styles.proximityIndicator}>
+                <View style={[
+                  styles.proximityDot,
+                  { backgroundColor: getLocationStatusColor() }
+                ]} />
+                <Text style={[
+                  styles.proximityStatus,
+                  { color: getLocationStatusColor() }
+                ]}>
+                  {getLocationStatusText()}
+                </Text>
+              </View>
+              <Text style={styles.proximityMessage}>
+                {getProximityMessage()}
+              </Text>
+              {officeLocation && (
+                <Text style={styles.coordinatesText}>
+                  Distance: {officeLocation.distance}m from office
+                </Text>
+              )}
+            </View>
           ) : (
             <Text style={styles.statusError}>
               Unable to detect location • Please enable GPS
@@ -191,25 +285,64 @@ export default function LocationSelectionScreen() {
         </View>
 
         {/* Instructions */}
-        <View style={styles.instructionsCard}>
-          <Text style={styles.instructionsTitle}>Choose Your Work Location</Text>
-          <Text style={styles.instructionsText}>
-            Select the location where you'll be working today. We'll verify you're within the designated area.
+        <View style={[
+          styles.instructionsCard,
+          !officeLocation?.isInRange && styles.warningCard
+        ]}>
+          <View style={styles.instructionsHeader}>
+            {officeLocation?.isInRange ? (
+              <CheckCircle size={20} color="#4CAF50" />
+            ) : (
+              <AlertTriangle size={20} color="#F44336" />
+            )}
+            <Text style={[
+              styles.instructionsTitle,
+              { color: officeLocation?.isInRange ? '#2E7D32' : '#D32F2F' }
+            ]}>
+              {officeLocation?.isInRange ? 'Location Verified' : 'Location Required'}
+            </Text>
+          </View>
+          <Text style={[
+            styles.instructionsText,
+            { color: officeLocation?.isInRange ? '#2E7D32' : '#D32F2F' }
+          ]}>
+            {officeLocation?.isInRange 
+              ? 'You are within the acceptable range of the office. You can now select the office location and proceed with clock in.'
+              : `You must be within ${ACCEPTABLE_RADIUS} meters of PT. INDOBUZZ REPUBLIK DIGITAL office to clock in. Please move closer to the office location.`
+            }
           </Text>
         </View>
 
-        {/* Location List */}
+        {/* Available Locations */}
         <View style={styles.locationsSection}>
           <Text style={styles.sectionTitle}>Available Locations</Text>
           
-          {locations.map((location) => (
+          {!currentLocation || isLoadingLocation ? (
+            <View style={styles.noLocationsContainer}>
+              <Loader size={32} color="#E0E0E0" />
+              <Text style={styles.noLocationsText}>Checking your location...</Text>
+              <Text style={styles.noLocationsSubtext}>Please wait while we verify your proximity to the office</Text>
+            </View>
+          ) : !officeLocation?.isInRange ? (
+            <View style={styles.noLocationsContainer}>
+              <MapPinOff size={32} color="#E0E0E0" />
+              <Text style={styles.noLocationsText}>No locations available</Text>
+              <Text style={styles.noLocationsSubtext}>
+                You must be within {ACCEPTABLE_RADIUS}m of the office to see available locations
+              </Text>
+              {officeLocation && (
+                <Text style={styles.distanceInfo}>
+                  Current distance: {officeLocation.distance}m
+                </Text>
+              )}
+            </View>
+          ) : (
             <TouchableOpacity
-              key={location.id}
               style={[
                 styles.locationCard,
-                selectedLocation === location.id && styles.selectedLocationCard
+                selectedLocation === 'kantor' && styles.selectedLocationCard
               ]}
-              onPress={() => handleLocationSelect(location.id)}
+              onPress={() => handleLocationSelect('kantor')}
               activeOpacity={0.7}
             >
               <View style={styles.locationHeader}>
@@ -218,28 +351,24 @@ export default function LocationSelectionScreen() {
                 </View>
                 
                 <View style={styles.locationInfo}>
-                  <Text style={styles.locationName}>{location.name}</Text>
-                  <Text style={styles.locationAddress}>{location.address}</Text>
+                  <Text style={styles.locationName}>Kantor</Text>
+                  <Text style={styles.locationAddress}>PT. INDOBUZZ REPUBLIK DIGITAL</Text>
                   
-                  {location.distance !== undefined && (
-                    <View style={styles.distanceContainer}>
-                      <Text style={styles.distanceText}>
-                        {location.distance}m away
-                      </Text>
-                      <View style={[
-                        styles.statusBadge,
-                        { backgroundColor: getLocationStatusColor(location) }
-                      ]}>
-                        <Text style={styles.statusBadgeText}>
-                          {getLocationStatusText(location)}
-                        </Text>
-                      </View>
+                  <View style={styles.distanceContainer}>
+                    <Text style={styles.distanceText}>
+                      {officeLocation.distance}m away
+                    </Text>
+                    <View style={[
+                      styles.statusBadge,
+                      { backgroundColor: '#4CAF50' }
+                    ]}>
+                      <Text style={styles.statusBadgeText}>In Range</Text>
                     </View>
-                  )}
+                  </View>
                 </View>
                 
                 <View style={styles.selectionIndicator}>
-                  {selectedLocation === location.id ? (
+                  {selectedLocation === 'kantor' ? (
                     <CheckCircle size={24} color="#4A90E2" />
                   ) : (
                     <View style={styles.unselectedCircle} />
@@ -247,27 +376,33 @@ export default function LocationSelectionScreen() {
                 </View>
               </View>
 
-              {location.isInRange && (
-                <View style={styles.inRangeIndicator}>
-                  <CheckCircle size={16} color="#4CAF50" />
-                  <Text style={styles.inRangeText}>You're within the work area</Text>
-                </View>
-              )}
+              <View style={styles.inRangeIndicator}>
+                <CheckCircle size={16} color="#4CAF50" />
+                <Text style={styles.inRangeText}>You're within the office area</Text>
+              </View>
             </TouchableOpacity>
-          ))}
+          )}
         </View>
 
-        {/* Manual Location Option */}
-        <TouchableOpacity style={styles.manualLocationCard}>
-          <View style={styles.manualLocationContent}>
+        {/* Office Information */}
+        <View style={styles.officeInfoCard}>
+          <View style={styles.officeInfoHeader}>
             <MapPin size={20} color="#666" />
-            <View style={styles.manualLocationInfo}>
-              <Text style={styles.manualLocationTitle}>Can't find your location?</Text>
-              <Text style={styles.manualLocationText}>Contact your supervisor for assistance</Text>
-            </View>
-            <ChevronRight size={20} color="#666" />
+            <Text style={styles.officeInfoTitle}>Office Information</Text>
           </View>
-        </TouchableOpacity>
+          <Text style={styles.officeInfoText}>
+            <Text style={styles.officeInfoLabel}>Name: </Text>
+            PT. INDOBUZZ REPUBLIK DIGITAL
+          </Text>
+          <Text style={styles.officeInfoText}>
+            <Text style={styles.officeInfoLabel}>Required Range: </Text>
+            Within {ACCEPTABLE_RADIUS} meters
+          </Text>
+          <Text style={styles.officeInfoText}>
+            <Text style={styles.officeInfoLabel}>Location: </Text>
+            {OFFICE_COORDINATES.latitude.toFixed(6)}, {OFFICE_COORDINATES.longitude.toFixed(6)}
+          </Text>
+        </View>
       </ScrollView>
 
       {/* Continue Button */}
@@ -275,23 +410,32 @@ export default function LocationSelectionScreen() {
         <TouchableOpacity
           style={[
             styles.continueButton,
-            !selectedLocation && styles.disabledButton
+            (!selectedLocation || !officeLocation?.isInRange) && styles.disabledButton
           ]}
           onPress={handleContinue}
-          disabled={!selectedLocation}
+          disabled={!selectedLocation || !officeLocation?.isInRange}
           activeOpacity={0.8}
         >
           <LinearGradient
-            colors={selectedLocation ? ['#4A90E2', '#357ABD'] : ['#E0E0E0', '#BDBDBD']}
+            colors={
+              selectedLocation && officeLocation?.isInRange 
+                ? ['#4A90E2', '#357ABD'] 
+                : ['#E0E0E0', '#BDBDBD']
+            }
             style={styles.continueButtonGradient}
           >
             <Text style={[
               styles.continueButtonText,
-              !selectedLocation && styles.disabledButtonText
+              (!selectedLocation || !officeLocation?.isInRange) && styles.disabledButtonText
             ]}>
-              Continue to Selfie
+              {!officeLocation?.isInRange 
+                ? `Move ${officeLocation ? officeLocation.distance - ACCEPTABLE_RADIUS : '?'}m Closer`
+                : 'Continue to Selfie'
+              }
             </Text>
-            <ChevronRight size={20} color={selectedLocation ? 'white' : '#999'} />
+            {selectedLocation && officeLocation?.isInRange && (
+              <ChevronRight size={20} color="white" />
+            )}
           </LinearGradient>
         </TouchableOpacity>
       </View>
@@ -369,13 +513,17 @@ const styles = StyleSheet.create({
   statusHeader: {
     flexDirection: 'row',
     alignItems: 'center',
-    marginBottom: 8,
+    marginBottom: 12,
   },
   statusTitle: {
     fontSize: 16,
     fontWeight: '600',
     color: '#1A1A1A',
     marginLeft: 8,
+    flex: 1,
+  },
+  refreshButton: {
+    padding: 4,
   },
   loadingContainer: {
     flexDirection: 'row',
@@ -386,31 +534,83 @@ const styles = StyleSheet.create({
     color: '#666',
     marginLeft: 8,
   },
-  statusText: {
+  errorContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    flexWrap: 'wrap',
+  },
+  errorText: {
     fontSize: 14,
-    color: '#4CAF50',
+    color: '#F44336',
+    marginLeft: 8,
+    flex: 1,
+  },
+  retryButton: {
+    backgroundColor: '#4A90E2',
+    paddingHorizontal: 12,
+    paddingVertical: 6,
+    borderRadius: 6,
+    marginLeft: 8,
+  },
+  retryButtonText: {
+    fontSize: 12,
+    color: 'white',
+    fontWeight: '500',
+  },
+  locationStatusContainer: {
+    gap: 8,
+  },
+  proximityIndicator: {
+    flexDirection: 'row',
+    alignItems: 'center',
+  },
+  proximityDot: {
+    width: 8,
+    height: 8,
+    borderRadius: 4,
+    marginRight: 8,
+  },
+  proximityStatus: {
+    fontSize: 14,
+    fontWeight: '600',
+  },
+  proximityMessage: {
+    fontSize: 14,
+    color: '#666',
+    lineHeight: 20,
+  },
+  coordinatesText: {
+    fontSize: 12,
+    color: '#999',
   },
   statusError: {
     fontSize: 14,
     color: '#F44336',
   },
   instructionsCard: {
-    backgroundColor: '#E3F2FD',
+    backgroundColor: '#E8F5E8',
     borderRadius: 12,
     padding: 16,
     marginBottom: 24,
     borderLeftWidth: 4,
-    borderLeftColor: '#4A90E2',
+    borderLeftColor: '#4CAF50',
+  },
+  warningCard: {
+    backgroundColor: '#FFEBEE',
+    borderLeftColor: '#F44336',
+  },
+  instructionsHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginBottom: 8,
   },
   instructionsTitle: {
     fontSize: 16,
     fontWeight: '600',
-    color: '#1565C0',
-    marginBottom: 8,
+    marginLeft: 8,
   },
   instructionsText: {
     fontSize: 14,
-    color: '#1565C0',
     lineHeight: 20,
   },
   locationsSection: {
@@ -422,11 +622,40 @@ const styles = StyleSheet.create({
     color: '#1A1A1A',
     marginBottom: 16,
   },
+  noLocationsContainer: {
+    alignItems: 'center',
+    paddingVertical: 40,
+    backgroundColor: 'white',
+    borderRadius: 12,
+    elevation: 2,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 1 },
+    shadowOpacity: 0.1,
+    shadowRadius: 3,
+  },
+  noLocationsText: {
+    fontSize: 16,
+    fontWeight: '600',
+    color: '#666',
+    marginTop: 12,
+    marginBottom: 4,
+  },
+  noLocationsSubtext: {
+    fontSize: 14,
+    color: '#999',
+    textAlign: 'center',
+    lineHeight: 20,
+  },
+  distanceInfo: {
+    fontSize: 12,
+    color: '#F44336',
+    marginTop: 8,
+    fontWeight: '500',
+  },
   locationCard: {
     backgroundColor: 'white',
     borderRadius: 12,
     padding: 16,
-    marginBottom: 12,
     borderWidth: 2,
     borderColor: 'transparent',
     elevation: 2,
@@ -442,6 +671,7 @@ const styles = StyleSheet.create({
   locationHeader: {
     flexDirection: 'row',
     alignItems: 'flex-start',
+    marginBottom: 12,
   },
   locationIcon: {
     width: 40,
@@ -498,7 +728,6 @@ const styles = StyleSheet.create({
   inRangeIndicator: {
     flexDirection: 'row',
     alignItems: 'center',
-    marginTop: 12,
     paddingTop: 12,
     borderTopWidth: 1,
     borderTopColor: '#F0F0F0',
@@ -509,32 +738,33 @@ const styles = StyleSheet.create({
     marginLeft: 6,
     fontWeight: '500',
   },
-  manualLocationCard: {
-    backgroundColor: 'white',
+  officeInfoCard: {
+    backgroundColor: '#F8F9FA',
     borderRadius: 12,
     padding: 16,
     marginBottom: 24,
     borderWidth: 1,
     borderColor: '#E0E0E0',
-    borderStyle: 'dashed',
   },
-  manualLocationContent: {
+  officeInfoHeader: {
     flexDirection: 'row',
     alignItems: 'center',
+    marginBottom: 12,
   },
-  manualLocationInfo: {
-    flex: 1,
-    marginLeft: 12,
-  },
-  manualLocationTitle: {
+  officeInfoTitle: {
     fontSize: 14,
-    fontWeight: '500',
+    fontWeight: '600',
     color: '#666',
-    marginBottom: 2,
+    marginLeft: 8,
   },
-  manualLocationText: {
+  officeInfoText: {
     fontSize: 12,
-    color: '#999',
+    color: '#666',
+    marginBottom: 4,
+  },
+  officeInfoLabel: {
+    fontWeight: '600',
+    color: '#1A1A1A',
   },
   footer: {
     paddingHorizontal: 20,
