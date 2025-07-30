@@ -7,6 +7,7 @@ import {
   ScrollView,
   Alert,
   RefreshControl,
+  Linking,
 } from 'react-native';
 import { StatusBar } from 'expo-status-bar';
 import { LinearGradient } from 'expo-linear-gradient';
@@ -34,6 +35,8 @@ import {
   LocationCoordinates 
 } from '@/utils/location';
 import { LoadingSpinner } from '@/components/LoadingSpinner';
+import { LocationPermissionModal } from '@/components/LocationPermissionModal';
+import { useLocationTracking } from '@/hooks/useLocationTracking';
 
 interface OfficeLocation {
   id: string;
@@ -47,90 +50,50 @@ interface OfficeLocation {
 export default function LocationSelectionScreen() {
   const insets = useSafeAreaInsets();
   const [selectedLocation, setSelectedLocation] = useState<string | null>(null);
-  const [currentLocation, setCurrentLocation] = useState<LocationCoordinates | null>(null);
-  const [officeLocation, setOfficeLocation] = useState<OfficeLocation | null>(null);
-  const [isLoadingLocation, setIsLoadingLocation] = useState(true);
-  const [locationError, setLocationError] = useState<string | null>(null);
   const [isOnline, setIsOnline] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
-  const [locationCheckInterval, setLocationCheckInterval] = useState<NodeJS.Timeout | null>(null);
+  const [showPermissionModal, setShowPermissionModal] = useState(false);
 
-  useEffect(() => {
-    loadCurrentLocation();
-    
-    // Set up real-time location checking every 5 seconds
-    const interval = setInterval(() => {
-      if (!isLoadingLocation) {
-        checkLocationSilently();
-      }
-    }, 5000);
-    
-    setLocationCheckInterval(interval);
-
-    return () => {
-      if (interval) clearInterval(interval);
-    };
-  }, []);
-
-  const loadCurrentLocation = async () => {
-    try {
-      setIsLoadingLocation(true);
-      setLocationError(null);
-      
-      const location = await getCurrentLocation();
-      
-      if (location) {
-        setCurrentLocation(location);
-        updateOfficeLocationStatus(location);
+  // Use the location tracking hook
+  const {
+    currentLocation,
+    isWithinOfficeRange,
+    distanceFromOffice,
+    isLoading: isLoadingLocation,
+    error: locationError,
+    refreshLocation,
+  } = useLocationTracking({
+    enableRealTimeTracking: true,
+    trackingInterval: 5000,
+    onProximityChange: (isWithinRange) => {
+      if (isWithinRange) {
+        setSelectedLocation('kantor');
       } else {
-        setLocationError('Unable to get your current location. Please enable GPS and try again.');
+        setSelectedLocation(null);
       }
-    } catch (error) {
-      console.error('Error getting location:', error);
-      setLocationError('Location access denied. Please enable location permissions in your device settings.');
-    } finally {
-      setIsLoadingLocation(false);
+    },
+  });
+
+  // Create office location object based on tracking data
+  const officeLocation: OfficeLocation | null = currentLocation ? {
+    id: 'kantor',
+    name: 'Kantor',
+    address: 'PT. INDOBUZZ REPUBLIK DIGITAL',
+    coordinates: OFFICE_COORDINATES,
+    distance: distanceFromOffice,
+    isInRange: isWithinOfficeRange,
+  } : null;
+
+  // Handle location permission errors
+  useEffect(() => {
+    if (locationError && locationError.includes('permission')) {
+      setShowPermissionModal(true);
     }
-  };
-
-  const checkLocationSilently = async () => {
-    try {
-      const location = await getCurrentLocation();
-      if (location) {
-        setCurrentLocation(location);
-        updateOfficeLocationStatus(location);
-      }
-    } catch (error) {
-      // Silent fail for background checks
-      console.warn('Background location check failed:', error);
-    }
-  };
-
-  const updateOfficeLocationStatus = (userLocation: LocationCoordinates) => {
-    const proximityCheck = checkOfficeProximity(userLocation);
-    
-    const office: OfficeLocation = {
-      id: 'kantor',
-      name: 'Kantor',
-      address: 'PT. INDOBUZZ REPUBLIK DIGITAL',
-      coordinates: OFFICE_COORDINATES,
-      distance: proximityCheck.distance,
-      isInRange: proximityCheck.isWithinRange,
-    };
-
-    setOfficeLocation(office);
-
-    // Auto-select if within range
-    if (proximityCheck.isWithinRange) {
-      setSelectedLocation('kantor');
-    } else {
-      setSelectedLocation(null);
-    }
-  };
+  }, [locationError]);
 
   const onRefresh = async () => {
     setRefreshing(true);
-    await loadCurrentLocation();
+    await refreshLocation();
     setRefreshing(false);
   };
 
@@ -164,7 +127,12 @@ export default function LocationSelectionScreen() {
   };
 
   const handleRetryLocation = () => {
-    loadCurrentLocation();
+    refreshLocation();
+  };
+
+  const handleOpenSettings = () => {
+    setShowPermissionModal(false);
+    Linking.openSettings();
   };
 
   const getLocationStatusColor = () => {
@@ -439,6 +407,17 @@ export default function LocationSelectionScreen() {
           </LinearGradient>
         </TouchableOpacity>
       </View>
+
+      {/* Location Permission Modal */}
+      <LocationPermissionModal
+        visible={showPermissionModal}
+        onClose={() => setShowPermissionModal(false)}
+        onRetry={() => {
+          setShowPermissionModal(false);
+          handleRetryLocation();
+        }}
+        onOpenSettings={handleOpenSettings}
+      />
     </View>
   );
 }
