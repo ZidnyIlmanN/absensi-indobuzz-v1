@@ -130,13 +130,7 @@ export default function HomeScreen() {
               <Text style={styles.userName}>Employee Name</Text>
             </View>
             <View style={styles.headerRight}>
-              <View style={styles.connectionStatus}>
-                {isOnline ? (
-                  <Wifi size={16} color="rgba(255, 255, 255, 0.8)" />
-                ) : (
-                  <WifiOff size={16} color="#FF6B6B" />
-                )}
-              </View>
+
               <View style={styles.timeContainer}>
                 <Text style={styles.currentTime}>
                   {currentTime.toLocaleTimeString([], { 
@@ -162,6 +156,7 @@ export default function HomeScreen() {
           refreshControl={
             <RefreshControl refreshing={refreshing} onRefresh={onRefresh} />
           }
+          contentContainerStyle={styles.scrollViewContent}
         >
           {/* Attendance Card */}
           <AttendanceCard
@@ -270,8 +265,8 @@ export default function HomeScreen() {
         {/* Loading Overlay */}
         {isLoading && (
           <LoadingSpinner 
-            overlay 
-            text={isWorking ? "Clocking out..." : "Clocking in..."} 
+            overlay
+            text={state.isWorking ? "Clocking out..." : "Clocking in..."}
           />
         )}
       </View>
@@ -325,6 +320,10 @@ const styles = StyleSheet.create({
   content: {
     flex: 1,
     paddingHorizontal: 20,
+  },
+  scrollViewContent: {
+    paddingTop: 50, // Menambahkan ruang antara header dan AttendanceCard
+    paddingBottom: 50, // Menambahkan ruang di bagian bawah
   },
   section: {
     marginBottom: 24,
