@@ -13,7 +13,7 @@ import { StatusBar } from 'expo-status-bar';
 import { LinearGradient } from 'expo-linear-gradient';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { router } from 'expo-router';
-import { ArrowLeft, Clock, MapPin, Calendar, TrendingUp, LogIn, LogOut, Camera, Wifi, WifiOff, Users, CircleCheck as CheckCircle } from 'lucide-react-native';
+import { ArrowLeft, Clock, Calendar, TrendingUp, Users, LogIn, LogOut, Coffee } from 'lucide-react-native';
 import { useAppContext } from '@/context/AppContext';
 import { LoadingSpinner } from '@/components/LoadingSpinner';
 
@@ -23,8 +23,6 @@ export default function AttendanceHistoryScreen() {
   const insets = useSafeAreaInsets();
   const { state, dispatch } = useAppContext();
   const [currentTime, setCurrentTime] = useState(new Date());
-  const [isLoading, setIsLoading] = useState(false);
-  const [isOnline, setIsOnline] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
 
   useEffect(() => {
@@ -40,74 +38,44 @@ export default function AttendanceHistoryScreen() {
     }, 1000);
 
     return () => clearInterval(timer);
-  }, [state.currentAttendance?.clockIn]); // Remove dispatch from dependencies
+  }, [state.currentAttendance?.clockIn]);
 
   const onRefresh = async () => {
     setRefreshing(true);
-    // Simulate API call
+    // Simulate API call or data refresh
     await new Promise(resolve => setTimeout(resolve, 1000));
     setRefreshing(false);
   };
 
-  const handleClockIn = () => {
-    router.push('/clock-in');
+  // Helper to get break start and end times from today's activities
+  const getBreakTimes = () => {
+    const breakStartActivity = state.todayActivities.find(act => act.type === 'break_start');
+    const breakEndActivity = state.todayActivities.find(act => act.type === 'break_end');
+    return {
+      breakStarted: breakStartActivity ? breakStartActivity.timestamp.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) : '-',
+      breakEnded: breakEndActivity ? breakEndActivity.timestamp.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) : '-',
+    };
   };
 
-  const handleClockOut = () => {
-    if (!isOnline) {
-      Alert.alert('No Connection', 'Please check your internet connection and try again.');
-      return;
-    }
+  // Build attendance history array from state
+  const attendanceHistory = [];
 
-    Alert.alert(
-      'Clock Out',
-      'Please take a selfie to confirm clock out',
-      [
-        { text: 'Cancel', style: 'cancel' },
-        {
-          text: 'Take Selfie',
-          onPress: () => {
-            setIsLoading(true);
-            // Simulate API call
-            setTimeout(() => {
-              setIsLoading(false);
-              dispatch({ type: 'SET_WORKING_STATUS', payload: false });
-              dispatch({ type: 'SET_ATTENDANCE', payload: null });
-              dispatch({ type: 'SET_WORK_HOURS', payload: '00:00' });
-              Alert.alert('Success', 'You have successfully clocked out!');
-            }, 1500);
-          },
-        },
-      ]
-    );
-  };
+  if (state.currentAttendance) {
+    const { breakStarted, breakEnded } = getBreakTimes();
 
-  const attendanceHistory = [
-    {
-      id: '1',
+    attendanceHistory.push({
+      id: 'current',
       date: 'Today',
-      clockIn: '08:30 AM',
-      clockOut: state.isWorking ? 'Working...' : '17:30 PM',
-      workHours: state.isWorking ? state.workHours : '09:00',
+      clockIn: state.currentAttendance.clockIn ? state.currentAttendance.clockIn.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) : '-',
+      breakStarted,
+      breakEnded,
+      clockOut: state.isWorking ? 'Working...' : (state.currentAttendance.clockOut ? state.currentAttendance.clockOut.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) : '-'),
+      workHours: state.isWorking ? state.workHours : '00:00',
       status: state.isWorking ? 'working' : 'completed',
-    },
-    {
-      id: '2',
-      date: 'Yesterday',
-      clockIn: '08:45 AM',
-      clockOut: '17:45 PM',
-      workHours: '09:00',
-      status: 'completed',
-    },
-    {
-      id: '3',
-      date: 'Dec 8, 2024',
-      clockIn: '09:00 AM',
-      clockOut: '18:00 PM',
-      workHours: '09:00',
-      status: 'completed',
-    },
-  ];
+    });
+  }
+
+  // TODO: Add past attendance records if available in state or API
 
   const getStatusColor = (status: string) => {
     switch (status) {
@@ -154,59 +122,8 @@ export default function AttendanceHistoryScreen() {
         refreshControl={
           <RefreshControl refreshing={refreshing} onRefresh={onRefresh} />
         }
+        contentContainerStyle={styles.scrollViewContent}
       >
-        {/* Current Status Card */}
-        <View style={styles.statusCard}>
-          <LinearGradient
-            colors={state.isWorking ? ['#4CAF50', '#45A049'] : ['#4A90E2', '#357ABD']}
-            style={styles.statusGradient}
-          >
-            <View style={styles.statusHeader}>
-              <View style={styles.statusInfo}>
-                <Text style={styles.statusTitle}>
-                  {state.isWorking ? 'Currently Working' : 'Ready to Start'}
-                </Text>
-                <Text style={styles.statusSubtitle}>
-                  {state.isWorking 
-                    ? `Started at ${state.currentAttendance?.clockIn.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}`
-                    : 'Tap to clock in and start your workday'
-                  }
-                </Text>
-              </View>
-              <View style={styles.workHoursContainer}>
-                <Clock size={20} color="rgba(255, 255, 255, 0.8)" />
-                <Text style={styles.workHours}>{state.workHours}</Text>
-              </View>
-            </View>
-
-            <View style={styles.locationContainer}>
-              <MapPin size={16} color="rgba(255, 255, 255, 0.8)" />
-              <Text style={styles.locationText}>Jakarta Office • Indonesia</Text>
-            </View>
-
-            <TouchableOpacity
-              style={styles.clockButton}
-              onPress={state.isWorking ? handleClockOut : handleClockIn}
-              disabled={isLoading}
-            >
-              <View style={styles.clockButtonContent}>
-                {isLoading ? (
-                  <LoadingSpinner size="small" color="#4A90E2" />
-                ) : state.isWorking ? (
-                  <LogOut size={24} color="#4A90E2" />
-                ) : (
-                  <LogIn size={24} color="#4A90E2" />
-                )}
-                <Text style={styles.clockButtonText}>
-                  {isLoading 
-                    ? (state.isWorking ? 'Clocking Out...' : 'Clocking In...') 
-                    : (state.isWorking ? 'Clock Out' : 'Clock In')
-                  }
-                </Text>
-              </View>
-            </TouchableOpacity>
-          </LinearGradient>
-        </View>
 
         {/* Stats */}
         <View style={styles.statsContainer}>
@@ -255,6 +172,18 @@ export default function AttendanceHistoryScreen() {
                   <LogIn size={16} color="#4CAF50" />
                   <Text style={styles.historyLabel}>Clock In</Text>
                   <Text style={styles.historyValue}>{record.clockIn}</Text>
+                </View>
+
+                <View style={styles.historyItem}>
+                  <Coffee size={16} color="#FFA500" />
+                  <Text style={styles.historyLabel}>Break Started</Text>
+                  <Text style={styles.historyValue}>{record.breakStarted}</Text>
+                </View>
+
+                <View style={styles.historyItem}>
+                  <Coffee size={16} color="#FF8C00" />
+                  <Text style={styles.historyLabel}>Break Ended</Text>
+                  <Text style={styles.historyValue}>{record.breakEnded}</Text>
                 </View>
                 
                 <View style={styles.historyItem}>
@@ -319,82 +248,6 @@ const styles = StyleSheet.create({
     flex: 1,
     paddingHorizontal: 20,
   },
-  statusCard: {
-    marginTop: -30,
-    marginBottom: 24,
-    borderRadius: 16,
-    elevation: 8,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.15,
-    shadowRadius: 8,
-  },
-  statusGradient: {
-    borderRadius: 16,
-    padding: 20,
-  },
-  statusHeader: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'flex-start',
-    marginBottom: 16,
-  },
-  statusInfo: {
-    flex: 1,
-  },
-  statusTitle: {
-    fontSize: 20,
-    fontWeight: 'bold',
-    color: 'white',
-    marginBottom: 4,
-  },
-  statusSubtitle: {
-    fontSize: 14,
-    color: 'rgba(255, 255, 255, 0.8)',
-    lineHeight: 20,
-  },
-  workHoursContainer: {
-    flexDirection: 'row',
-    alignItems: 'center',
-  },
-  workHours: {
-    fontSize: 24,
-    fontWeight: 'bold',
-    color: 'white',
-    marginLeft: 8,
-  },
-  locationContainer: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    marginBottom: 20,
-  },
-  locationText: {
-    fontSize: 14,
-    color: 'rgba(255, 255, 255, 0.8)',
-    marginLeft: 8,
-  },
-  clockButton: {
-    backgroundColor: 'white',
-    borderRadius: 12,
-    paddingVertical: 16,
-    paddingHorizontal: 24,
-    elevation: 2,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.1,
-    shadowRadius: 4,
-  },
-  clockButtonContent: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  clockButtonText: {
-    fontSize: 18,
-    fontWeight: '600',
-    color: '#4A90E2',
-    marginLeft: 12,
-  },
   statsContainer: {
     flexDirection: 'row',
     justifyContent: 'space-between',
@@ -423,6 +276,10 @@ const styles = StyleSheet.create({
   statLabel: {
     fontSize: 12,
     color: '#666',
+  },
+    scrollViewContent: {
+    paddingTop: 24, // Menambahkan ruang antara header dan AttendanceCard
+    paddingBottom: 24, // Menambahkan ruang di bagian bawah
   },
   section: {
     marginBottom: 24,
