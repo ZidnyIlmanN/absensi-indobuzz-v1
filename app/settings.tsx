@@ -13,25 +13,7 @@ import { StatusBar } from 'expo-status-bar';
 import { LinearGradient } from 'expo-linear-gradient';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { router } from 'expo-router';
-import {
-  ArrowLeft,
-  Globe,
-  Clock,
-  Palette,
-  Type,
-  Mail,
-  Download,
-  Upload,
-  Trash2,
-  ChevronRight,
-  Moon,
-  Sun,
-  Languages,
-  Bell,
-  Database,
-  AlertTriangle,
-  Check,
-} from 'lucide-react-native';
+import { ArrowLeft, Globe, Clock, Palette, Type, Mail, Download, Upload, Trash2, ChevronRight, Moon, Sun, Languages, Bell, Database, TriangleAlert as AlertTriangle, Check } from 'lucide-react-native';
 
 interface AppSettings {
   language: string;

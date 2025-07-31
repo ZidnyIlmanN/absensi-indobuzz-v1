@@ -14,24 +14,7 @@ import { StatusBar } from 'expo-status-bar';
 import { LinearGradient } from 'expo-linear-gradient';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { router } from 'expo-router';
-import {
-  ArrowLeft,
-  Shield,
-  Lock,
-  Eye,
-  EyeOff,
-  Key,
-  Smartphone,
-  Globe,
-  Users,
-  Database,
-  Activity,
-  AlertTriangle,
-  Check,
-  X,
-  ChevronRight,
-  Trash2,
-} from 'lucide-react-native';
+import { ArrowLeft, Shield, Lock, Eye, EyeOff, Key, Smartphone, Globe, Users, Database, Activity, TriangleAlert as AlertTriangle, Check, X, ChevronRight, Trash2 } from 'lucide-react-native';
 import { LoadingSpinner } from '@/components/LoadingSpinner';
 
 interface SecuritySettings {

@@ -15,21 +15,7 @@ import { StatusBar } from 'expo-status-bar';
 import { LinearGradient } from 'expo-linear-gradient';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { router } from 'expo-router';
-import {
-  ArrowLeft,
-  Camera,
-  Save,
-  X,
-  User,
-  Mail,
-  Phone,
-  MapPin,
-  Calendar,
-  Briefcase,
-  Edit3,
-  Check,
-  AlertCircle,
-} from 'lucide-react-native';
+import { ArrowLeft, Camera, Save, X, User, Mail, Phone, MapPin, Calendar, Briefcase, CreditCard as Edit3, Check, CircleAlert as AlertCircle } from 'lucide-react-native';
 import { useAppContext } from '@/context/AppContext';
 import { LoadingSpinner } from '@/components/LoadingSpinner';
 

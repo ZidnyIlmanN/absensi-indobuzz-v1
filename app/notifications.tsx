@@ -13,23 +13,7 @@ import { StatusBar } from 'expo-status-bar';
 import { LinearGradient } from 'expo-linear-gradient';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { router } from 'expo-router';
-import {
-  ArrowLeft,
-  Bell,
-  Mail,
-  MessageSquare,
-  Phone,
-  Settings,
-  Trash2,
-  CheckCircle,
-  Circle,
-  Clock,
-  Users,
-  Calendar,
-  AlertCircle,
-  Filter,
-  MoreVertical,
-} from 'lucide-react-native';
+import { ArrowLeft, Bell, Mail, MessageSquare, Phone, Settings, Trash2, CircleCheck as CheckCircle, Circle, Clock, Users, Calendar, CircleAlert as AlertCircle, Filter, MoveVertical as MoreVertical } from 'lucide-react-native';
 
 interface NotificationItem {
   id: string;
