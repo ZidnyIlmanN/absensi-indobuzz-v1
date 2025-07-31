@@ -34,6 +34,8 @@ import { useAppContext } from '@/context/AppContext';
 import { DynamicAttendanceCard } from '@/components/DynamicAttendanceCard';
 import { ActivityRecord } from '@/types';
 
+import { useCallback } from 'react';
+
 const { width } = Dimensions.get('window');
 
 export default function LiveAttendanceScreen() {
@@ -42,6 +44,7 @@ export default function LiveAttendanceScreen() {
   const [currentTime, setCurrentTime] = useState(new Date());
   const [refreshing, setRefreshing] = useState(false);
 
+  const calculateRealTimeTotals = useCallback(() => { // Move declaration before useEffect
   useEffect(() => {
     const timer = setInterval(() => {
       setCurrentTime(new Date());
@@ -54,9 +57,6 @@ export default function LiveAttendanceScreen() {
 
     return () => clearInterval(timer);
   }, [state.currentAttendance?.clockIn, calculateRealTimeTotals]); // Add calculateRealTimeTotals
-
-  // Calculate real-time totals based on activities and current status
-  const calculateRealTimeTotals = useCallback(() => {
     if (!state.currentAttendance?.clockIn) return;
 
     const now = new Date();
@@ -260,7 +260,7 @@ export default function LiveAttendanceScreen() {
       
       {/* Header */}
       <LinearGradient
-        colors={['#667eea', '#764ba2']}
+        colors={['#4A90E2', '#357ABD']}
         style={[styles.header, { paddingTop: insets.top + 20 }]}
       >
         <View style={styles.headerContent}>
@@ -305,104 +305,15 @@ export default function LiveAttendanceScreen() {
         refreshControl={
           <RefreshControl refreshing={refreshing} onRefresh={onRefresh} />
         }
+        contentContainerStyle={styles.scrollViewContent}
       >
         {/* Dynamic Attendance Card */}
         <DynamicAttendanceCard />
 
-        {/* Quick Stats */}
-        <View style={styles.section}>
-          <Text style={styles.sectionTitle}>Today's Overview</Text>
-          <View style={styles.statsGrid}>
-            {quickStats.map((stat, index) => (
-              <View key={index} style={[styles.statCard, { backgroundColor: stat.color }]}>
-                <View style={styles.statIcon}>
-                  {stat.icon}
-                </View>
-                <Text style={styles.statValue}>{stat.value}</Text>
-                <Text style={styles.statLabel}>{stat.label}</Text>
-              </View>
-            ))}
-          </View>
-        </View>
-
-        {/* Activity Timeline */}
-        <View style={styles.section}>
-          <Text style={styles.sectionTitle}>Today's Activity</Text>
-          <View style={styles.timelineContainer}>
-            {/* Always show clock in if working */}
-            {state.currentAttendance?.clockIn && (
-              <View style={styles.timelineItem}>
-                <View style={[styles.timelineDot, { backgroundColor: '#4CAF50' }]} />
-                <View style={styles.timelineContent}>
-                  <Text style={styles.timelineTitle}>Clock In</Text>
-                  <Text style={styles.timelineTime}>
-                    {state.currentAttendance.clockIn.toLocaleTimeString([], { 
-                      hour: '2-digit', 
-                      minute: '2-digit' 
-                    })}
-                  </Text>
-                  <Text style={styles.timelineLocation}>PT. INDOBUZZ REPUBLIK DIGITAL</Text>
-                </View>
-              </View>
-            )}
-
-            {/* Show all activities in reverse chronological order */}
-            {state.todayActivities.map((activity) => {
-              const displayInfo = getActivityDisplayInfo(activity);
-              return (
-                <View key={activity.id} style={styles.timelineItem}>
-                  <View style={[styles.timelineDot, { backgroundColor: displayInfo.color }]} />
-                  <View style={styles.timelineContent}>
-                    <View style={styles.timelineTitleRow}>
-                      {displayInfo.icon}
-                      <Text style={styles.timelineTitle}>{displayInfo.title}</Text>
-                    </View>
-                    <Text style={styles.timelineTime}>
-                      {activity.timestamp.toLocaleTimeString([], { 
-                        hour: '2-digit', 
-                        minute: '2-digit' 
-                      })}
-                    </Text>
-                    <Text style={styles.timelineLocation}>
-                      {activity.location?.address || 'PT. INDOBUZZ REPUBLIK DIGITAL'}
-                    </Text>
-                    {activity.notes && (
-                      <Text style={styles.timelineNotes}>{activity.notes}</Text>
-                    )}
-                  </View>
-                </View>
-              );
-            })}
-            {/* Show current status if working */}
-            {state.isWorking && state.currentStatus !== 'working' && (
-              <View style={styles.timelineItem}>
-                <View style={[styles.timelineDot, { backgroundColor: '#FF9800' }]} />
-                <View style={styles.timelineContent}>
-                  <Text style={styles.timelineTitle}>
-                    Currently {state.currentStatus === 'break' ? 'On Break' : 
-                               state.currentStatus === 'overtime' ? 'In Overtime' :
-                               state.currentStatus === 'client_visit' ? 'On Client Visit' : 'Working'}
-                  </Text>
-                  <Text style={styles.timelineTime}>Active now</Text>
-                  <Text style={styles.timelineLocation}>Live session</Text>
-                </View>
-              </View>
-            )}
-
-            {/* Show empty state if no activities */}
-            {!state.currentAttendance && state.todayActivities.length === 0 && (
-              <View style={styles.emptyState}>
-                <Activity size={32} color="#E0E0E0" />
-                <Text style={styles.emptyStateText}>No activities today</Text>
-                <Text style={styles.emptyStateSubtext}>Clock in to start tracking your day</Text>
-              </View>
-            )}
-          </View>
-        </View>
 
         {/* Quick Actions */}
         <View style={styles.section}>
-          <Text style={styles.sectionTitle}>Quick Actions</Text>
+          <Text style={styles.sectionTitle}>Others</Text>
           <View style={styles.quickActionsGrid}>
             {quickActions.map((action) => (
               <TouchableOpacity
@@ -502,6 +413,10 @@ const styles = StyleSheet.create({
   content: {
     flex: 1,
     paddingHorizontal: 20,
+  },
+  scrollViewContent: {
+    paddingTop: 55,
+    paddingBottom: 55,
   },
   section: {
     marginBottom: 24,
