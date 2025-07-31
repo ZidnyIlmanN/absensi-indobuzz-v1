@@ -55,7 +55,7 @@ export function DynamicAttendanceCard() {
         state: 'ready',
         title: 'Ready to Start',
         subtitle: 'Tap to begin your workday with selfie verification',
-        colors: ['#667eea', '#764ba2'] as readonly ColorValue[],
+        colors: ['#4A90E2', '#357ABD'] as readonly ColorValue[],
         icon: <LogIn size={24} color="white" />,
         buttonText: 'Clock In',
         buttonAction: handleClockIn,
@@ -63,16 +63,21 @@ export function DynamicAttendanceCard() {
     }
 
     switch (state.currentStatus) {
-      case 'working':
+      case 'working': {
+        // Check if break has already been taken
+        const hasTakenBreak = state.todayActivities.some(
+          (act) => act.type === 'break_start' || act.type === 'break_end'
+        );
         return {
           state: 'working',
           title: 'Currently Working',
           subtitle: `Started at ${state.currentAttendance?.clockIn.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}`,
           colors: ['#4CAF50', '#45A049'] as readonly ColorValue[],
           icon: <Activity size={24} color="white" />,
-          buttonText: 'Start Break',
-          buttonAction: () => handleStateChange('break'),
+          buttonText: hasTakenBreak ? '' : 'Start Break',
+          buttonAction: hasTakenBreak ? undefined : () => handleStateChange('break'),
         };
+      }
       case 'break':
         return {
           state: 'break',
@@ -213,19 +218,21 @@ export function DynamicAttendanceCard() {
 
         {/* Action Buttons */}
         <View style={styles.actionButtons}>
-          <TouchableOpacity
-            style={styles.primaryButton}
-            onPress={config.buttonAction}
-            disabled={isLoading}
-            activeOpacity={0.8}
-          >
-            <View style={styles.buttonContent}>
+          {config.buttonText ? (
+            <TouchableOpacity
+              style={styles.primaryButton}
+              onPress={config.buttonAction}
+              disabled={isLoading}
+              activeOpacity={0.8}
+            >
+              <View style={styles.buttonContent}>
 
-              <Text style={styles.buttonText}>
-                {isLoading ? 'Processing...' : config.buttonText}
-              </Text>
-            </View>
-          </TouchableOpacity>
+                <Text style={styles.buttonText}>
+                  {isLoading ? 'Processing...' : config.buttonText}
+                </Text>
+              </View>
+            </TouchableOpacity>
+          ) : null}
 
           {/* Secondary Actions */}
           {state.isWorking && (
@@ -376,7 +383,6 @@ const styles = StyleSheet.create({
     fontSize: 16,
     fontWeight: '600',
     color: '#4A90E2',
-    marginLeft: 8,
   },
   secondaryActions: {
     flexDirection: 'row',
