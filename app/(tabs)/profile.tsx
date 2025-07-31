@@ -12,6 +12,7 @@ import {
 import { StatusBar } from 'expo-status-bar';
 import { LinearGradient } from 'expo-linear-gradient';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import { useRouter } from 'expo-router';
 import { User, Settings, Bell, Shield, CircleHelp as HelpCircle, LogOut, CreditCard as Edit, Camera, MapPin, Phone, Mail, Calendar, Clock, ChevronRight } from 'lucide-react-native';
 
 const profileData = {
@@ -31,6 +32,7 @@ const profileData = {
 
 export default function ProfileScreen() {
   const insets = useSafeAreaInsets();
+  const router = useRouter();
   const [profileImage, setProfileImage] = useState(profileData.avatar);
   const [refreshing, setRefreshing] = useState(false);
 
@@ -42,7 +44,7 @@ export default function ProfileScreen() {
   };
 
   const handleEditProfile = () => {
-    Alert.alert('Edit Profile', 'Profile editing feature coming soon!');
+    router.push('/edit-profile');
   };
 
   const handleChangePhoto = () => {
@@ -73,25 +75,25 @@ export default function ProfileScreen() {
       icon: <Settings size={20} color="#4A90E2" />,
       title: 'Settings',
       subtitle: 'App preferences and configurations',
-      onPress: () => Alert.alert('Settings', 'Settings feature coming soon!'),
+      onPress: () => router.push('/settings'),
     },
     {
       icon: <Bell size={20} color="#FF9800" />,
       title: 'Notifications',
       subtitle: 'Manage notification preferences',
-      onPress: () => Alert.alert('Notifications', 'Notification settings coming soon!'),
+      onPress: () => router.push('/notifications'),
     },
     {
       icon: <Shield size={20} color="#4CAF50" />,
       title: 'Privacy & Security',
       subtitle: 'Control your privacy settings',
-      onPress: () => Alert.alert('Privacy', 'Privacy settings coming soon!'),
+      onPress: () => router.push('/privacy'),
     },
     {
       icon: <HelpCircle size={20} color="#9C27B0" />,
       title: 'Help & Support',
       subtitle: 'Get help and contact support',
-      onPress: () => Alert.alert('Help', 'Help & Support coming soon!'),
+      onPress: () => router.push('/help'),
     },
   ];
 
