@@ -35,31 +35,32 @@ const { width } = Dimensions.get('window');
 
 export default function HomeScreen() {
   const insets = useSafeAreaInsets();
-  const { state, dispatch } = useAppContext();
+  const { 
+    user, 
+    currentAttendance, 
+    isWorking, 
+    workHours, 
+    clockIn, 
+    clockOut,
+    isLoading,
+    refreshData 
+  } = useAppContext();
   const [currentTime, setCurrentTime] = useState(new Date());
-  const [isLoading, setIsLoading] = useState(false);
+  const [isProcessing, setIsProcessing] = useState(false);
   const [isOnline, setIsOnline] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
 
   useEffect(() => {
     const timer = setInterval(() => {
       setCurrentTime(new Date());
-      if (state.currentAttendance?.clockIn) {
-        const diff = new Date().getTime() - state.currentAttendance.clockIn.getTime();
-        const hours = Math.floor(diff / (1000 * 60 * 60));
-        const minutes = Math.floor((diff % (1000 * 60 * 60)) / (1000 * 60));
-        const workHours = `${hours.toString().padStart(2, '0')}:${minutes.toString().padStart(2, '0')}`;
-        dispatch({ type: 'SET_WORK_HOURS', payload: workHours });
-      }
     }, 1000);
 
     return () => clearInterval(timer);
-  }, [state.currentAttendance?.clockIn]); // Remove dispatch from dependencies
+  }, []);
 
   const onRefresh = async () => {
     setRefreshing(true);
-    // Simulate API call
-    await new Promise(resolve => setTimeout(resolve, 1000));
+    await refreshData();
     setRefreshing(false);
   };
 
@@ -80,17 +81,7 @@ export default function HomeScreen() {
         { text: 'Cancel', style: 'cancel' },
         {
           text: 'Take Selfie',
-          onPress: () => {
-            setIsLoading(true);
-            // Simulate API call
-            setTimeout(() => {
-              setIsLoading(false);
-              dispatch({ type: 'SET_WORKING_STATUS', payload: false });
-              dispatch({ type: 'SET_ATTENDANCE', payload: null });
-              dispatch({ type: 'SET_WORK_HOURS', payload: '00:00' });
-              Alert.alert('Success', 'You have successfully clocked out!');
-            }, 1500);
-          },
+          onPress: () => router.push('/clock-out/selfie'),
         },
       ]
     );
@@ -127,7 +118,7 @@ export default function HomeScreen() {
           <View style={styles.headerContent}>
             <View>
               <Text style={styles.greeting}>Good Morning,</Text>
-              <Text style={styles.userName}>Employee Name</Text>
+              <Text style={styles.userName}>{user?.name || 'Employee'}</Text>
             </View>
             <View style={styles.headerRight}>
 
@@ -160,12 +151,12 @@ export default function HomeScreen() {
         >
           {/* Attendance Card */}
           <AttendanceCard
-            isWorking={state.isWorking}
-            workHours={state.workHours}
+            isWorking={isWorking}
+            workHours={workHours}
             onClockIn={handleClockIn}
             onClockOut={handleClockOut}
-            clockInTime={state.currentAttendance?.clockIn || null}
-            isLoading={isLoading}
+            clockInTime={currentAttendance?.clockIn || null}
+            isLoading={isProcessing}
           />
 
           {/* Quick Actions */}
@@ -204,13 +195,13 @@ export default function HomeScreen() {
             <View style={styles.statsGrid}>
               <StatsCard
                 title="Work Hours"
-                value={state.workHours}
+                value={workHours}
                 icon={<Clock size={20} color="#4A90E2" />}
                 color="#E3F2FD"
               />
               <StatsCard
                 title="Status"
-                value={state.isWorking ? "Working" : "Off"}
+                value={isWorking ? "Working" : "Off"}
                 icon={<TrendingUp size={20} color="#4CAF50" />}
                 color="#E8F5E8"
               />
@@ -263,10 +254,10 @@ export default function HomeScreen() {
         </ScrollView>
 
         {/* Loading Overlay */}
-        {isLoading && (
+        {isProcessing && (
           <LoadingSpinner 
             overlay
-            text={state.isWorking ? "Clocking out..." : "Clocking in..."}
+            text={isWorking ? "Clocking out..." : "Clocking in..."}
           />
         )}
       </View>

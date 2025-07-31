@@ -1,8 +1,13 @@
 import React, { createContext, useContext, useReducer, ReactNode } from 'react';
-import { User, AttendanceRecord, Request, Notification, Employee } from '@/types';
+import { User, AttendanceRecord, Request, Notification, Employee, ActivityRecord } from '@/types';
+import { useAuth } from '@/hooks/useAuth';
+import { useAttendance } from '@/hooks/useAttendance';
+import { useNotifications } from '@/hooks/useNotifications';
+import { useRequests } from '@/hooks/useRequests';
 
 interface AppState {
   user: User | null;
+  isAuthenticated: boolean;
   currentAttendance: AttendanceRecord | null;
   isWorking: boolean;
   currentStatus: 'ready' | 'working' | 'break' | 'overtime' | 'client_visit';
@@ -13,125 +18,224 @@ interface AppState {
   todayActivities: ActivityRecord[];
   requests: Request[];
   notifications: Notification[];
+  unreadNotifications: number;
   employees: Employee[];
   isLoading: boolean;
   error: string | null;
 }
 
-type AppAction =
-  | { type: 'SET_USER'; payload: User }
-  | { type: 'SET_ATTENDANCE'; payload: AttendanceRecord | null }
-  | { type: 'SET_WORKING_STATUS'; payload: boolean }
-  | { type: 'SET_CURRENT_STATUS'; payload: 'ready' | 'working' | 'break' | 'overtime' | 'client_visit' }
-  | { type: 'SET_WORK_HOURS'; payload: string }
-  | { type: 'SET_BREAK_TIME'; payload: string }
-  | { type: 'SET_OVERTIME_HOURS'; payload: string }
-  | { type: 'SET_CLIENT_VISIT_TIME'; payload: string }
-  | { type: 'ADD_ACTIVITY'; payload: ActivityRecord }
-  | { type: 'SET_TODAY_ACTIVITIES'; payload: ActivityRecord[] }
-  | { type: 'ADD_REQUEST'; payload: Request }
-  | { type: 'UPDATE_REQUEST'; payload: Request }
-  | { type: 'SET_NOTIFICATIONS'; payload: Notification[] }
-  | { type: 'MARK_NOTIFICATION_READ'; payload: string }
-  | { type: 'SET_EMPLOYEES'; payload: Employee[] }
-  | { type: 'SET_LOADING'; payload: boolean }
-  | { type: 'SET_ERROR'; payload: string | null };
+interface AppContextType {
+  // Auth
+  user: User | null;
+  isAuthenticated: boolean;
+  signIn: (email: string, password: string) => Promise<{ user: User | null; error: string | null }>;
+  signUp: (email: string, password: string, name: string) => Promise<{ user: User | null; error: string | null }>;
+  signOut: () => Promise<{ error: string | null }>;
+  updateProfile: (updates: Partial<User>) => Promise<{ error: string | null }>;
+  
+  // Attendance
+  currentAttendance: AttendanceRecord | null;
+  todayActivities: ActivityRecord[];
+  attendanceHistory: AttendanceRecord[];
+  clockIn: (location: { latitude: number; longitude: number; address: string }, selfieUrl?: string) => Promise<{ error: string | null }>;
+  clockOut: (selfieUrl?: string, notes?: string) => Promise<{ error: string | null }>;
+  addActivity: (type: ActivityRecord['type'], location?: { latitude: number; longitude: number; address: string }, notes?: string) => Promise<{ error: string | null }>;
+  updateAttendanceStatus: (status: AttendanceRecord['status']) => Promise<{ error: string | null }>;
+  
+  // Requests
+  requests: Request[];
+  createRequest: (type: Request['type'], title: string, description: string, options?: any) => Promise<{ error: string | null }>;
+  
+  // Notifications
+  notifications: Notification[];
+  unreadNotifications: number;
+  markNotificationAsRead: (id: string) => Promise<{ error: string | null }>;
+  markAllNotificationsAsRead: () => Promise<{ error: string | null }>;
+  deleteNotification: (id: string) => Promise<{ error: string | null }>;
+  
+  // UI State
+  isWorking: boolean;
+  currentStatus: 'ready' | 'working' | 'break' | 'overtime' | 'client_visit';
+  workHours: string;
+  breakTime: string;
+  overtimeHours: string;
+  clientVisitTime: string;
+  isLoading: boolean;
+  error: string | null;
+  
+  // Actions
+  refreshData: () => Promise<void>;
+}
 
-const initialState: AppState = {
-  user: {
-    id: 'EMP001',
-    name: 'John Doe',
-    email: 'john.doe@company.com',
-    phone: '+62 812-3456-7890',
-    position: 'Senior Software Engineer',
-    department: 'Engineering',
-    avatar: 'https://images.pexels.com/photos/614810/pexels-photo-614810.jpeg?auto=compress&cs=tinysrgb&w=200',
-    employeeId: 'EMP001',
-    joinDate: '2022-01-15',
-    location: 'Jakarta Office',
-    workSchedule: '09:00 - 18:00',
-  },
-  currentAttendance: null,
-  isWorking: false,
-  currentStatus: 'ready',
-  workHours: '00:00',
-  breakTime: '00:00',
-  overtimeHours: '00:00',
-  clientVisitTime: '00:00',
-  todayActivities: [],
-  requests: [],
-  notifications: [],
-  employees: [],
-  isLoading: false,
-  error: null,
-};
-
-const appReducer = (state: AppState, action: AppAction): AppState => {
-  switch (action.type) {
-    case 'SET_USER':
-      return { ...state, user: action.payload };
-    case 'SET_ATTENDANCE':
-      return { ...state, currentAttendance: action.payload };
-    case 'SET_WORKING_STATUS':
-      return { ...state, isWorking: action.payload };
-    case 'SET_CURRENT_STATUS':
-      return { ...state, currentStatus: action.payload };
-    case 'SET_WORK_HOURS':
-      return { ...state, workHours: action.payload };
-    case 'SET_BREAK_TIME':
-      return { ...state, breakTime: action.payload };
-    case 'SET_OVERTIME_HOURS':
-      return { ...state, overtimeHours: action.payload };
-    case 'SET_CLIENT_VISIT_TIME':
-      return { ...state, clientVisitTime: action.payload };
-    case 'ADD_ACTIVITY':
-      return { 
-        ...state, 
-        todayActivities: [...state.todayActivities, action.payload].sort(
-          (a, b) => b.timestamp.getTime() - a.timestamp.getTime()
-        )
-      };
-    case 'SET_TODAY_ACTIVITIES':
-      return { ...state, todayActivities: action.payload };
-    case 'ADD_REQUEST':
-      return { ...state, requests: [...state.requests, action.payload] };
-    case 'UPDATE_REQUEST':
-      return {
-        ...state,
-        requests: state.requests.map(req =>
-          req.id === action.payload.id ? action.payload : req
-        ),
-      };
-    case 'SET_NOTIFICATIONS':
-      return { ...state, notifications: action.payload };
-    case 'MARK_NOTIFICATION_READ':
-      return {
-        ...state,
-        notifications: state.notifications.map(notif =>
-          notif.id === action.payload ? { ...notif, read: true } : notif
-        ),
-      };
-    case 'SET_EMPLOYEES':
-      return { ...state, employees: action.payload };
-    case 'SET_LOADING':
-      return { ...state, isLoading: action.payload };
-    case 'SET_ERROR':
-      return { ...state, error: action.payload };
-    default:
-      return state;
-  }
-};
-
-const AppContext = createContext<{
-  state: AppState;
-  dispatch: React.Dispatch<AppAction>;
-} | null>(null);
+const AppContext = createContext<AppContextType | null>(null);
 
 export const AppProvider = ({ children }: { children: ReactNode }) => {
-  const [state, dispatch] = useReducer(appReducer, initialState);
+  // Auth hooks
+  const auth = useAuth();
+  
+  // Data hooks
+  const attendance = useAttendance(auth.user?.id || null);
+  const notifications = useNotifications(auth.user?.id || null);
+  const requests = useRequests(auth.user?.id || null);
+  
+  // UI state
+  const [uiState, setUiState] = useState({
+    workHours: '00:00',
+    breakTime: '00:00',
+    overtimeHours: '00:00',
+    clientVisitTime: '00:00',
+    currentStatus: 'ready' as const,
+  });
 
+  // Calculate real-time work hours
+  useEffect(() => {
+    if (!attendance.currentAttendance?.clockIn) return;
+
+    const timer = setInterval(() => {
+      const now = new Date();
+      const clockInTime = attendance.currentAttendance!.clockIn.getTime();
+      
+      let totalWorkTime = 0;
+      let totalBreakTime = 0;
+      let totalOvertimeTime = 0;
+      let totalClientVisitTime = 0;
+      
+      // Calculate time based on activities
+      const activities = [...attendance.todayActivities].sort((a, b) => a.timestamp.getTime() - b.timestamp.getTime());
+      
+      let currentActivityStart = clockInTime;
+      let currentActivityType: 'working' | 'break' | 'overtime' | 'client_visit' = 'working';
+      
+      // Process all completed activities
+      for (const activity of activities) {
+        const activityTime = activity.timestamp.getTime();
+        const duration = activityTime - currentActivityStart;
+        
+        // Add duration to appropriate category
+        switch (currentActivityType) {
+          case 'working':
+            totalWorkTime += duration;
+            break;
+          case 'break':
+            totalBreakTime += duration;
+            break;
+          case 'overtime':
+            totalOvertimeTime += duration;
+            break;
+          case 'client_visit':
+            totalClientVisitTime += duration;
+            break;
+        }
+        
+        // Update current activity type based on activity
+        switch (activity.type) {
+          case 'break_start':
+            currentActivityType = 'break';
+            break;
+          case 'break_end':
+          case 'overtime_end':
+          case 'client_visit_end':
+            currentActivityType = 'working';
+            break;
+          case 'overtime_start':
+            currentActivityType = 'overtime';
+            break;
+          case 'client_visit_start':
+            currentActivityType = 'client_visit';
+            break;
+        }
+        
+        currentActivityStart = activityTime;
+      }
+      
+      // Add current ongoing activity time
+      const currentDuration = now.getTime() - currentActivityStart;
+      switch (uiState.currentStatus) {
+        case 'working':
+          totalWorkTime += currentDuration;
+          break;
+        case 'break':
+          totalBreakTime += currentDuration;
+          break;
+        case 'overtime':
+          totalOvertimeTime += currentDuration;
+          break;
+        case 'client_visit':
+          totalClientVisitTime += currentDuration;
+          break;
+      }
+      
+      // Convert to readable format
+      const formatTime = (ms: number) => {
+        const hours = Math.floor(ms / (1000 * 60 * 60));
+        const minutes = Math.floor((ms % (1000 * 60 * 60)) / (1000 * 60));
+        return `${hours.toString().padStart(2, '0')}:${minutes.toString().padStart(2, '0')}`;
+      };
+      
+      setUiState(prev => ({
+        ...prev,
+        workHours: formatTime(totalWorkTime),
+        breakTime: formatTime(totalBreakTime),
+        overtimeHours: formatTime(totalOvertimeTime),
+        clientVisitTime: formatTime(totalClientVisitTime),
+      }));
+    }, 1000);
+
+    return () => clearInterval(timer);
+  }, [attendance.currentAttendance?.clockIn, attendance.todayActivities, uiState.currentStatus]);
+
+  const refreshData = async () => {
+    await Promise.all([
+      attendance.refreshData(),
+      notifications.refreshNotifications(),
+      requests.refreshRequests(),
+    ]);
+  };
+
+  const contextValue: AppContextType = {
+    // Auth
+    user: auth.user,
+    isAuthenticated: auth.isAuthenticated,
+    signIn: auth.signIn,
+    signUp: auth.signUp,
+    signOut: auth.signOut,
+    updateProfile: auth.updateProfile,
+    
+    // Attendance
+    currentAttendance: attendance.currentAttendance,
+    todayActivities: attendance.todayActivities,
+    attendanceHistory: attendance.attendanceHistory,
+    clockIn: attendance.clockIn,
+    clockOut: attendance.clockOut,
+    addActivity: attendance.addActivity,
+    updateAttendanceStatus: attendance.updateStatus,
+    
+    // Requests
+    requests: requests.requests,
+    createRequest: requests.createRequest,
+    
+    // Notifications
+    notifications: notifications.notifications,
+    unreadNotifications: notifications.unreadCount,
+    markNotificationAsRead: notifications.markAsRead,
+    markAllNotificationsAsRead: notifications.markAllAsRead,
+    deleteNotification: notifications.deleteNotification,
+    
+    // UI State
+    isWorking: !!attendance.currentAttendance && attendance.currentAttendance.status !== 'completed',
+    currentStatus: uiState.currentStatus,
+    workHours: uiState.workHours,
+    breakTime: uiState.breakTime,
+    overtimeHours: uiState.overtimeHours,
+    clientVisitTime: uiState.clientVisitTime,
+    isLoading: auth.isLoading || attendance.isLoading || notifications.isLoading || requests.isLoading,
+    error: auth.error || attendance.error || notifications.error || requests.error,
+    
+    // Actions
+    refreshData,
+  };
   return (
-    <AppContext.Provider value={{ state, dispatch }}>
+    <AppContext.Provider value={contextValue}>
       {children}
     </AppContext.Provider>
   );

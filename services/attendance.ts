@@ -1,0 +1,296 @@
+import { supabase, handleSupabaseError } from '@/lib/supabase';
+import { AttendanceRecord, ActivityRecord } from '@/types';
+
+export interface ClockInData {
+  userId: string;
+  location: {
+    latitude: number;
+    longitude: number;
+    address: string;
+  };
+  selfieUrl?: string;
+}
+
+export interface ClockOutData {
+  attendanceId: string;
+  selfieUrl?: string;
+  notes?: string;
+}
+
+export interface ActivityData {
+  attendanceId: string;
+  userId: string;
+  type: ActivityRecord['type'];
+  location?: {
+    latitude: number;
+    longitude: number;
+    address: string;
+  };
+  notes?: string;
+}
+
+export const attendanceService = {
+  // Clock in user
+  async clockIn(data: ClockInData): Promise<{ attendance: AttendanceRecord | null; error: string | null }> {
+    try {
+      const now = new Date();
+      const today = now.toISOString().split('T')[0];
+
+      // Check if user already clocked in today
+      const { data: existing } = await supabase
+        .from('attendance_records')
+        .select('*')
+        .eq('user_id', data.userId)
+        .eq('date', today)
+        .single();
+
+      if (existing) {
+        return { attendance: null, error: 'You have already clocked in today' };
+      }
+
+      // Create attendance record
+      const { data: attendance, error } = await supabase
+        .from('attendance_records')
+        .insert({
+          user_id: data.userId,
+          clock_in: now.toISOString(),
+          date: today,
+          location_lat: data.location.latitude,
+          location_lng: data.location.longitude,
+          location_address: data.location.address,
+          selfie_url: data.selfieUrl,
+          status: 'working',
+        })
+        .select()
+        .single();
+
+      if (error) {
+        return { attendance: null, error: handleSupabaseError(error) };
+      }
+
+      // Create clock in activity
+      await this.addActivity({
+        attendanceId: attendance.id,
+        userId: data.userId,
+        type: 'clock_in',
+        location: data.location,
+      });
+
+      return {
+        attendance: this.mapAttendanceRecord(attendance),
+        error: null,
+      };
+    } catch (error) {
+      return { attendance: null, error: handleSupabaseError(error) };
+    }
+  },
+
+  // Clock out user
+  async clockOut(data: ClockOutData): Promise<{ error: string | null }> {
+    try {
+      const now = new Date();
+
+      // Update attendance record
+      const { error: updateError } = await supabase
+        .from('attendance_records')
+        .update({
+          clock_out: now.toISOString(),
+          status: 'completed',
+          notes: data.notes,
+          updated_at: now.toISOString(),
+        })
+        .eq('id', data.attendanceId);
+
+      if (updateError) {
+        return { error: handleSupabaseError(updateError) };
+      }
+
+      // Get attendance record to add activity
+      const { data: attendance } = await supabase
+        .from('attendance_records')
+        .select('user_id, location_lat, location_lng, location_address')
+        .eq('id', data.attendanceId)
+        .single();
+
+      if (attendance) {
+        // Create clock out activity
+        await this.addActivity({
+          attendanceId: data.attendanceId,
+          userId: attendance.user_id,
+          type: 'clock_out',
+          location: {
+            latitude: attendance.location_lat,
+            longitude: attendance.location_lng,
+            address: attendance.location_address,
+          },
+        });
+      }
+
+      return { error: null };
+    } catch (error) {
+      return { error: handleSupabaseError(error) };
+    }
+  },
+
+  // Add activity record
+  async addActivity(data: ActivityData): Promise<{ error: string | null }> {
+    try {
+      const { error } = await supabase
+        .from('activity_records')
+        .insert({
+          attendance_id: data.attendanceId,
+          user_id: data.userId,
+          type: data.type,
+          timestamp: new Date().toISOString(),
+          location_lat: data.location?.latitude,
+          location_lng: data.location?.longitude,
+          location_address: data.location?.address,
+          notes: data.notes,
+        });
+
+      return { error: error ? handleSupabaseError(error) : null };
+    } catch (error) {
+      return { error: handleSupabaseError(error) };
+    }
+  },
+
+  // Get current attendance for user
+  async getCurrentAttendance(userId: string): Promise<{ attendance: AttendanceRecord | null; error: string | null }> {
+    try {
+      const today = new Date().toISOString().split('T')[0];
+
+      const { data, error } = await supabase
+        .from('attendance_records')
+        .select(`
+          *,
+          activity_records (*)
+        `)
+        .eq('user_id', userId)
+        .eq('date', today)
+        .eq('status', 'working')
+        .single();
+
+      if (error && error.code !== 'PGRST116') {
+        return { attendance: null, error: handleSupabaseError(error) };
+      }
+
+      if (!data) {
+        return { attendance: null, error: null };
+      }
+
+      return {
+        attendance: this.mapAttendanceRecord(data),
+        error: null,
+      };
+    } catch (error) {
+      return { attendance: null, error: handleSupabaseError(error) };
+    }
+  },
+
+  // Get attendance history
+  async getAttendanceHistory(userId: string, limit = 30): Promise<{ records: AttendanceRecord[]; error: string | null }> {
+    try {
+      const { data, error } = await supabase
+        .from('attendance_records')
+        .select(`
+          *,
+          activity_records (*)
+        `)
+        .eq('user_id', userId)
+        .order('date', { ascending: false })
+        .limit(limit);
+
+      if (error) {
+        return { records: [], error: handleSupabaseError(error) };
+      }
+
+      const records = data.map(record => this.mapAttendanceRecord(record));
+      return { records, error: null };
+    } catch (error) {
+      return { records: [], error: handleSupabaseError(error) };
+    }
+  },
+
+  // Get today's activities
+  async getTodayActivities(userId: string): Promise<{ activities: ActivityRecord[]; error: string | null }> {
+    try {
+      const today = new Date().toISOString().split('T')[0];
+
+      const { data, error } = await supabase
+        .from('activity_records')
+        .select('*')
+        .eq('user_id', userId)
+        .gte('timestamp', `${today}T00:00:00.000Z`)
+        .lt('timestamp', `${today}T23:59:59.999Z`)
+        .order('timestamp', { ascending: false });
+
+      if (error) {
+        return { activities: [], error: handleSupabaseError(error) };
+      }
+
+      const activities = data.map(activity => this.mapActivityRecord(activity));
+      return { activities, error: null };
+    } catch (error) {
+      return { activities: [], error: handleSupabaseError(error) };
+    }
+  },
+
+  // Update attendance status
+  async updateAttendanceStatus(
+    attendanceId: string,
+    status: AttendanceRecord['status']
+  ): Promise<{ error: string | null }> {
+    try {
+      const { error } = await supabase
+        .from('attendance_records')
+        .update({
+          status,
+          updated_at: new Date().toISOString(),
+        })
+        .eq('id', attendanceId);
+
+      return { error: error ? handleSupabaseError(error) : null };
+    } catch (error) {
+      return { error: handleSupabaseError(error) };
+    }
+  },
+
+  // Helper function to map database record to AttendanceRecord
+  mapAttendanceRecord(data: any): AttendanceRecord {
+    return {
+      id: data.id,
+      userId: data.user_id,
+      clockIn: new Date(data.clock_in),
+      clockOut: data.clock_out ? new Date(data.clock_out) : undefined,
+      date: data.date,
+      workHours: data.work_hours || 0,
+      breakTime: data.break_time || 0,
+      overtimeHours: data.overtime_hours || 0,
+      clientVisitTime: data.client_visit_time || 0,
+      status: data.status,
+      location: {
+        latitude: parseFloat(data.location_lat),
+        longitude: parseFloat(data.location_lng),
+        address: data.location_address,
+      },
+      selfieUrl: data.selfie_url,
+      notes: data.notes,
+      activities: data.activity_records ? data.activity_records.map((act: any) => this.mapActivityRecord(act)) : [],
+    };
+  },
+
+  // Helper function to map database record to ActivityRecord
+  mapActivityRecord(data: any): ActivityRecord {
+    return {
+      id: data.id,
+      type: data.type,
+      timestamp: new Date(data.timestamp),
+      location: data.location_lat && data.location_lng ? {
+        latitude: parseFloat(data.location_lat),
+        longitude: parseFloat(data.location_lng),
+        address: data.location_address,
+      } : undefined,
+      notes: data.notes,
+    };
+  },
+};
