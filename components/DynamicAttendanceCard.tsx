@@ -29,11 +29,11 @@ import { ActivityRecord } from '@/types';
 const { width } = Dimensions.get('window');
 
 export function DynamicAttendanceCard() {
-  const { state, dispatch } = useAppContext();
+  const { state, dispatch, clockIn, clockOut, addActivity } = useAppContext();
   const [isLoading, setIsLoading] = useState(false);
 
   // Helper function to add activity and update times
-  const addActivity = (type: ActivityRecord['type'], notes?: string) => {
+  const addActivityLocal = (type: ActivityRecord['type'], notes?: string) => {
     const activity: ActivityRecord = {
       id: Date.now().toString(),
       type,
@@ -49,6 +49,7 @@ export function DynamicAttendanceCard() {
     dispatch({ type: 'ADD_ACTIVITY', payload: activity });
     return activity;
   };
+  
   const getCardConfig = () => {
     if (!state.isWorking) {
       return {
@@ -151,20 +152,20 @@ export function DynamicAttendanceCard() {
     
     // End current activity
     if (currentState === 'break') {
-      addActivity('break_end');
+      addActivityLocal('break_end');
     } else if (currentState === 'overtime') {
-      addActivity('overtime_end');
+      addActivityLocal('overtime_end');
     } else if (currentState === 'client_visit') {
-      addActivity('client_visit_end');
+      addActivityLocal('client_visit_end');
     }
     
     // Start new activity
     if (newState === 'break') {
-      addActivity('break_start');
+      addActivityLocal('break_start');
     } else if (newState === 'overtime') {
-      addActivity('overtime_start');
+      addActivityLocal('overtime_start');
     } else if (newState === 'client_visit') {
-      addActivity('client_visit_start');
+      addActivityLocal('client_visit_start');
     }
     
     setTimeout(() => {
@@ -182,10 +183,6 @@ export function DynamicAttendanceCard() {
       Alert.alert('Status Updated', stateMessages[newState] || 'Status changed');
     }, 1000);
   };
-  interface CardConfig {
-  colors: readonly [ColorValue, ColorValue, ...ColorValue[]];
-  // ... other properties
-}
 
   const config = getCardConfig();
 

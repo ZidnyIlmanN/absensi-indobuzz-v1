@@ -15,47 +15,11 @@ import { LinearGradient } from 'expo-linear-gradient';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Calendar, Clock, DollarSign, Plus, FileText, CircleCheck as CheckCircle, Circle as XCircle, CircleAlert as AlertCircle } from 'lucide-react-native';
 import { EmptyState } from '@/components/EmptyState';
-
-interface Request {
-  id: string;
-  type: 'leave' | 'permission' | 'reimbursement';
-  title: string;
-  description: string;
-  date: string;
-  status: 'pending' | 'approved' | 'rejected';
-  amount?: number;
-}
-
-const requests: Request[] = [
-  {
-    id: '1',
-    type: 'leave',
-    title: 'Annual Leave',
-    description: 'Family vacation to Bali',
-    date: '2024-02-15 to 2024-02-20',
-    status: 'approved',
-  },
-  {
-    id: '2',
-    type: 'permission',
-    title: 'Doctor Appointment',
-    description: 'Regular health checkup',
-    date: '2024-02-10 14:00',
-    status: 'pending',
-  },
-  {
-    id: '3',
-    type: 'reimbursement',
-    title: 'Travel Expense',
-    description: 'Client meeting transportation',
-    date: '2024-02-08',
-    status: 'rejected',
-    amount: 150000,
-  },
-];
+import { useAppContext } from '@/context/AppContext';
 
 export default function RequestScreen() {
   const insets = useSafeAreaInsets();
+  const { state, createRequest } = useAppContext();
   const [modalVisible, setModalVisible] = useState(false);
   const [selectedType, setSelectedType] = useState<'leave' | 'permission' | 'reimbursement'>('leave');
   const [title, setTitle] = useState('');
@@ -136,15 +100,24 @@ export default function RequestScreen() {
 
     setIsSubmitting(true);
     
-    // Simulate API call
-    setTimeout(() => {
+    const options: any = {};
+    if (selectedType === 'reimbursement') {
+      options.amount = parseFloat(amount);
+    }
+    
+    createRequest(selectedType, title.trim(), description.trim(), options).then(({ error }) => {
       setIsSubmitting(false);
-      Alert.alert('Success', 'Your request has been submitted successfully!');
-      setModalVisible(false);
-      setTitle('');
-      setDescription('');
-      setAmount('');
-    }, 1500);
+      
+      if (error) {
+        Alert.alert('Error', error);
+      } else {
+        Alert.alert('Success', 'Your request has been submitted successfully!');
+        setModalVisible(false);
+        setTitle('');
+        setDescription('');
+        setAmount('');
+      }
+    });
   };
 
   const requestTypes = [
@@ -166,7 +139,7 @@ export default function RequestScreen() {
           <View>
             <Text style={styles.headerTitle}>Requests</Text>
             <Text style={styles.headerSubtitle}>
-              {requests.filter(r => r.status === 'pending').length} pending requests
+              {state.requests.filter(r => r.status === 'pending').length} pending requests
             </Text>
           </View>
           <TouchableOpacity
@@ -188,19 +161,19 @@ export default function RequestScreen() {
         {/* Stats */}
         <View style={styles.statsContainer}>
           <View style={styles.statCard}>
-            <Text style={styles.statValue}>{requests.filter(r => r.status === 'pending').length}</Text>
+            <Text style={styles.statValue}>{state.requests.filter(r => r.status === 'pending').length}</Text>
             <Text style={styles.statLabel}>Pending</Text>
             <View style={[styles.statIndicator, { backgroundColor: '#FF9800' }]} />
           </View>
           
           <View style={styles.statCard}>
-            <Text style={styles.statValue}>{requests.filter(r => r.status === 'approved').length}</Text>
+            <Text style={styles.statValue}>{state.requests.filter(r => r.status === 'approved').length}</Text>
             <Text style={styles.statLabel}>Approved</Text>
             <View style={[styles.statIndicator, { backgroundColor: '#4CAF50' }]} />
           </View>
           
           <View style={styles.statCard}>
-            <Text style={styles.statValue}>{requests.filter(r => r.status === 'rejected').length}</Text>
+            <Text style={styles.statValue}>{state.requests.filter(r => r.status === 'rejected').length}</Text>
             <Text style={styles.statLabel}>Rejected</Text>
             <View style={[styles.statIndicator, { backgroundColor: '#F44336' }]} />
           </View>
@@ -210,7 +183,7 @@ export default function RequestScreen() {
         <View style={styles.section}>
           <Text style={styles.sectionTitle}>Recent Requests</Text>
           
-          {requests.length === 0 ? (
+          {state.requests.length === 0 ? (
             <EmptyState
               icon={<FileText size={48} color="#E0E0E0" />}
               title="No requests yet"
@@ -219,7 +192,7 @@ export default function RequestScreen() {
               onAction={() => setModalVisible(true)}
             />
           ) : (
-            requests.map((request) => (
+            state.requests.map((request) => (
             <TouchableOpacity
               key={request.id}
               style={styles.requestCard}
@@ -233,7 +206,12 @@ export default function RequestScreen() {
                 <View style={styles.requestInfo}>
                   <Text style={styles.requestTitle}>{request.title}</Text>
                   <Text style={styles.requestDescription}>{request.description}</Text>
-                  <Text style={styles.requestDate}>{request.date}</Text>
+                  <Text style={styles.requestDate}>
+                    {request.startDate && request.endDate 
+                      ? `${request.startDate} to ${request.endDate}`
+                      : request.submittedAt.toLocaleDateString()
+                    }
+                  </Text>
                   {request.amount && (
                     <Text style={styles.requestAmount}>
                       Rp {request.amount.toLocaleString('id-ID')}

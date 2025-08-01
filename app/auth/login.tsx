@@ -19,11 +19,17 @@ import { LoadingSpinner } from '@/components/LoadingSpinner';
 
 export default function LoginScreen() {
   const insets = useSafeAreaInsets();
-  const { signIn, isLoading } = useAppContext();
+  const { signIn } = useAppContext();
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [showPassword, setShowPassword] = useState(false);
   const [isSigningIn, setIsSigningIn] = useState(false);
+
+  // Demo credentials for testing
+  React.useEffect(() => {
+    setEmail('demo@company.com');
+    setPassword('demo123');
+  }, []);
 
   const handleLogin = async () => {
     if (!email.trim() || !password.trim()) {
@@ -38,7 +44,7 @@ export default function LoginScreen() {
     if (error) {
       Alert.alert('Login Failed', error);
     } else if (user) {
-      router.replace('/(tabs)');
+      router.replace('/splash-to-main');
     }
     
     setIsSigningIn(false);
@@ -130,6 +136,13 @@ export default function LoginScreen() {
                 <Text style={styles.signUpLink}>Sign Up</Text>
               </TouchableOpacity>
             </View>
+
+            {/* Demo Info */}
+            <View style={styles.demoInfo}>
+              <Text style={styles.demoText}>Demo Credentials:</Text>
+              <Text style={styles.demoCredentials}>Email: demo@company.com</Text>
+              <Text style={styles.demoCredentials}>Password: demo123</Text>
+            </View>
           </View>
         </View>
       </LinearGradient>
@@ -220,5 +233,22 @@ const styles = StyleSheet.create({
     fontSize: 14,
     color: 'white',
     fontWeight: '600',
+  },
+  demoInfo: {
+    marginTop: 24,
+    padding: 16,
+    backgroundColor: 'rgba(255, 255, 255, 0.1)',
+    borderRadius: 8,
+    alignItems: 'center',
+  },
+  demoText: {
+    fontSize: 12,
+    color: 'rgba(255, 255, 255, 0.9)',
+    fontWeight: '600',
+    marginBottom: 4,
+  },
+  demoCredentials: {
+    fontSize: 11,
+    color: 'rgba(255, 255, 255, 0.8)',
   },
 });

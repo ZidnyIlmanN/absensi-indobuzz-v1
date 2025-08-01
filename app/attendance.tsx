@@ -18,7 +18,7 @@ import { LoadingSpinner } from '@/components/LoadingSpinner';
 
 export default function AttendanceScreen() {
   const insets = useSafeAreaInsets();
-  const { state, dispatch } = useAppContext();
+  const { state, clockIn, clockOut } = useAppContext();
   const [refreshing, setRefreshing] = useState(false);
   const [currentTime, setCurrentTime] = useState(new Date());
   const [isLoading, setIsLoading] = useState(false);
@@ -46,31 +46,7 @@ export default function AttendanceScreen() {
         { text: 'Cancel', style: 'cancel' },
         {
           text: 'Take Selfie',
-          onPress: async () => {
-            setIsLoading(true);
-            // Simulate camera and API call
-            setTimeout(() => {
-              setIsLoading(false);
-              dispatch({ type: 'SET_WORKING_STATUS', payload: true });
-              const now = new Date();
-              const attendance = {
-                id: Date.now().toString(),
-                userId: state.user?.id || '',
-                clockIn: now,
-                date: now.toISOString().split('T')[0],
-                workHours: 0,
-                status: 'working' as const,
-                location: {
-                  latitude: -6.2088,
-                  longitude: 106.8456,
-                  address: 'Jakarta Office',
-                },
-                selfieUrl: 'https://images.pexels.com/photos/614810/pexels-photo-614810.jpeg',
-              };
-              dispatch({ type: 'SET_ATTENDANCE', payload: attendance });
-              Alert.alert('Success', 'You have successfully clocked in!');
-            }, 2000);
-          },
+          onPress: () => router.push('/clock-in'),
         },
       ]
     );
@@ -84,17 +60,7 @@ export default function AttendanceScreen() {
         { text: 'Cancel', style: 'cancel' },
         {
           text: 'Take Selfie',
-          onPress: async () => {
-            setIsLoading(true);
-            // Simulate camera and API call
-            setTimeout(() => {
-              setIsLoading(false);
-              dispatch({ type: 'SET_WORKING_STATUS', payload: false });
-              dispatch({ type: 'SET_ATTENDANCE', payload: null });
-              dispatch({ type: 'SET_WORK_HOURS', payload: '00:00' });
-              Alert.alert('Success', 'You have successfully clocked out!');
-            }, 2000);
-          },
+          onPress: () => router.push('/clock-out/selfie'),
         },
       ]
     );

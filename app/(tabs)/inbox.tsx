@@ -12,67 +12,11 @@ import { LinearGradient } from 'expo-linear-gradient';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Bell, Calendar, CircleAlert as AlertCircle, CircleCheck as CheckCircle, Clock, Users, MessageSquare, Filter } from 'lucide-react-native';
 import { EmptyState } from '@/components/EmptyState';
-
-interface Notification {
-  id: string;
-  type: 'announcement' | 'reminder' | 'approval' | 'system';
-  title: string;
-  message: string;
-  timestamp: string;
-  read: boolean;
-  priority: 'high' | 'medium' | 'low';
-}
-
-const notifications: Notification[] = [
-  {
-    id: '1',
-    type: 'announcement',
-    title: 'Company Outing 2024',
-    message: 'Annual company outing to Bandung on March 15-16. Register now!',
-    timestamp: '2024-02-10 09:30',
-    read: false,
-    priority: 'high',
-  },
-  {
-    id: '2',
-    type: 'reminder',
-    title: 'Clock In Reminder',
-    message: "Don't forget to clock in today. Your shift starts at 09:00 AM.",
-    timestamp: '2024-02-10 08:45',
-    read: false,
-    priority: 'medium',
-  },
-  {
-    id: '3',
-    type: 'approval',
-    title: 'Leave Request Approved',
-    message: 'Your annual leave request for Feb 15-20 has been approved.',
-    timestamp: '2024-02-09 14:20',
-    read: true,
-    priority: 'medium',
-  },
-  {
-    id: '4',
-    type: 'system',
-    title: 'System Maintenance',
-    message: 'The system will undergo maintenance tonight from 11 PM to 2 AM.',
-    timestamp: '2024-02-09 10:15',
-    read: true,
-    priority: 'low',
-  },
-  {
-    id: '5',
-    type: 'announcement',
-    title: 'New Policy Update',
-    message: 'Updated remote work policy effective immediately. Please review.',
-    timestamp: '2024-02-08 16:30',
-    read: false,
-    priority: 'high',
-  },
-];
+import { useAppContext } from '@/context/AppContext';
 
 export default function InboxScreen() {
   const insets = useSafeAreaInsets();
+  const { state, markNotificationAsRead } = useAppContext();
   const [filter, setFilter] = useState<'all' | 'unread' | 'announcements'>('all');
   const [refreshing, setRefreshing] = useState(false);
 
@@ -126,7 +70,7 @@ export default function InboxScreen() {
     }
   };
 
-  const filteredNotifications = notifications.filter(notification => {
+  const filteredNotifications = state.notifications.filter(notification => {
     switch (filter) {
       case 'unread':
         return !notification.read;
@@ -137,8 +81,13 @@ export default function InboxScreen() {
     }
   });
 
-  const unreadCount = notifications.filter(n => !n.read).length;
+  const unreadCount = state.unreadNotifications;
 
+  const handleNotificationPress = async (notification: any) => {
+    if (!notification.read) {
+      await markNotificationAsRead(notification.id);
+    }
+  };
   return (
     <View style={styles.container}>
       <StatusBar style="light" />
@@ -175,7 +124,7 @@ export default function InboxScreen() {
             onPress={() => setFilter('all')}
           >
             <Text style={[styles.filterTabText, filter === 'all' && styles.filterTabTextActive]}>
-              All ({notifications.length})
+              All ({state.notifications.length})
             </Text>
           </TouchableOpacity>
           
@@ -218,6 +167,7 @@ export default function InboxScreen() {
                 styles.notificationCard,
                 !notification.read && styles.unreadCard
               ]}
+              onPress={() => handleNotificationPress(notification)}
               activeOpacity={0.7}
             >
               <View style={styles.notificationHeader}>
@@ -250,7 +200,7 @@ export default function InboxScreen() {
                   </Text>
                   
                   <Text style={styles.notificationTimestamp}>
-                    {new Date(notification.timestamp).toLocaleDateString('en-US', {
+                    {notification.timestamp.toLocaleDateString('en-US', {
                       month: 'short',
                       day: 'numeric',
                       hour: '2-digit',

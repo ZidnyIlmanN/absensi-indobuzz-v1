@@ -28,7 +28,7 @@ export default function SplashScreen() {
 
     // Navigate to main app after 2.5 seconds
     const timer = setTimeout(() => {
-      router.replace('/(tabs)');
+      router.replace('/auth/login');
     }, 2500);
 
     return () => clearTimeout(timer);

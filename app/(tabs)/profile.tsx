@@ -14,26 +14,13 @@ import { LinearGradient } from 'expo-linear-gradient';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useRouter } from 'expo-router';
 import { User, Settings, Bell, Shield, CircleHelp as HelpCircle, LogOut, CreditCard as Edit, Camera, MapPin, Phone, Mail, Calendar, Clock, ChevronRight } from 'lucide-react-native';
-
-const profileData = {
-  id: 'EMP001',
-  name: 'John Doe',
-  email: 'john.doe@company.com',
-  phone: '+62 812-3456-7890',
-  position: 'Senior Software Engineer',
-  department: 'Engineering',
-  joinDate: '2022-01-15',
-  location: 'Jakarta Office',
-  avatar: 'https://images.pexels.com/photos/614810/pexels-photo-614810.jpeg?auto=compress&cs=tinysrgb&w=200',
-  workSchedule: '09:00 - 18:00',
-  totalWorkHours: '1,234 hours',
-  totalDays: '156 days',
-};
+import { useAppContext } from '@/context/AppContext';
 
 export default function ProfileScreen() {
   const insets = useSafeAreaInsets();
   const router = useRouter();
-  const [profileImage, setProfileImage] = useState(profileData.avatar);
+  const { state, signOut } = useAppContext();
+  const [profileImage, setProfileImage] = useState(state.user?.avatar || 'https://images.pexels.com/photos/614810/pexels-photo-614810.jpeg?auto=compress&cs=tinysrgb&w=200');
   const [refreshing, setRefreshing] = useState(false);
 
   const onRefresh = async () => {
@@ -65,7 +52,18 @@ export default function ProfileScreen() {
       'Are you sure you want to logout?',
       [
         { text: 'Cancel', style: 'cancel' },
-        { text: 'Logout', style: 'destructive', onPress: () => Alert.alert('Info', 'Logout functionality coming soon!') },
+        { 
+          text: 'Logout', 
+          style: 'destructive', 
+          onPress: async () => {
+            const { error } = await signOut();
+            if (error) {
+              Alert.alert('Error', 'Failed to logout. Please try again.');
+            } else {
+              router.replace('/auth/login');
+            }
+          }
+        },
       ]
     );
   };
@@ -134,10 +132,10 @@ export default function ProfileScreen() {
           </View>
           
           <View style={styles.profileInfo}>
-            <Text style={styles.profileName}>{profileData.name}</Text>
-            <Text style={styles.profilePosition}>{profileData.position}</Text>
-            <Text style={styles.profileDepartment}>{profileData.department}</Text>
-            <Text style={styles.employeeId}>ID: {profileData.id}</Text>
+            <Text style={styles.profileName}>{state.user?.name || 'Employee'}</Text>
+            <Text style={styles.profilePosition}>{state.user?.position || 'Position'}</Text>
+            <Text style={styles.profileDepartment}>{state.user?.department || 'Department'}</Text>
+            <Text style={styles.employeeId}>ID: {state.user?.employeeId || 'N/A'}</Text>
           </View>
         </View>
 
@@ -152,7 +150,7 @@ export default function ProfileScreen() {
               </View>
               <View style={styles.infoContent}>
                 <Text style={styles.infoLabel}>Email</Text>
-                <Text style={styles.infoValue}>{profileData.email}</Text>
+                <Text style={styles.infoValue}>{state.user?.email || 'N/A'}</Text>
               </View>
             </View>
             
@@ -162,7 +160,7 @@ export default function ProfileScreen() {
               </View>
               <View style={styles.infoContent}>
                 <Text style={styles.infoLabel}>Phone</Text>
-                <Text style={styles.infoValue}>{profileData.phone}</Text>
+                <Text style={styles.infoValue}>{state.user?.phone || 'N/A'}</Text>
               </View>
             </View>
             
@@ -172,7 +170,7 @@ export default function ProfileScreen() {
               </View>
               <View style={styles.infoContent}>
                 <Text style={styles.infoLabel}>Location</Text>
-                <Text style={styles.infoValue}>{profileData.location}</Text>
+                <Text style={styles.infoValue}>{state.user?.location || 'N/A'}</Text>
               </View>
             </View>
             
@@ -183,11 +181,11 @@ export default function ProfileScreen() {
               <View style={styles.infoContent}>
                 <Text style={styles.infoLabel}>Join Date</Text>
                 <Text style={styles.infoValue}>
-                  {new Date(profileData.joinDate).toLocaleDateString('en-US', {
+                  {state.user?.joinDate ? new Date(state.user.joinDate).toLocaleDateString('en-US', {
                     year: 'numeric',
                     month: 'long',
                     day: 'numeric',
-                  })}
+                  }) : 'N/A'}
                 </Text>
               </View>
             </View>
@@ -203,7 +201,7 @@ export default function ProfileScreen() {
               <View style={styles.statIcon}>
                 <Clock size={20} color="#4A90E2" />
               </View>
-              <Text style={styles.statValue}>{profileData.totalWorkHours}</Text>
+              <Text style={styles.statValue}>1,234 hours</Text>
               <Text style={styles.statLabel}>Total Hours</Text>
             </View>
             
@@ -211,7 +209,7 @@ export default function ProfileScreen() {
               <View style={styles.statIcon}>
                 <Calendar size={20} color="#4CAF50" />
               </View>
-              <Text style={styles.statValue}>{profileData.totalDays}</Text>
+              <Text style={styles.statValue}>156 days</Text>
               <Text style={styles.statLabel}>Total Days</Text>
             </View>
           </View>
@@ -223,7 +221,7 @@ export default function ProfileScreen() {
               </View>
               <View style={styles.infoContent}>
                 <Text style={styles.infoLabel}>Work Schedule</Text>
-                <Text style={styles.infoValue}>{profileData.workSchedule}</Text>
+                <Text style={styles.infoValue}>{state.user?.workSchedule || '09:00 - 18:00'}</Text>
               </View>
             </View>
           </View>

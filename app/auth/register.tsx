@@ -77,7 +77,7 @@ export default function RegisterScreen() {
       Alert.alert(
         'Success',
         'Account created successfully! You can now start using the app.',
-        [{ text: 'OK', onPress: () => router.replace('/(tabs)') }]
+        [{ text: 'OK', onPress: () => router.replace('/splash-to-main') }]
       );
     }
     

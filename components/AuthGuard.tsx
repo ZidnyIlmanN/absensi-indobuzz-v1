@@ -9,25 +9,26 @@ interface AuthGuardProps {
 }
 
 export function AuthGuard({ children }: AuthGuardProps) {
-  const { user, isAuthenticated, isLoading } = useAppContext();
+  const { state } = useAppContext();
   const segments = useSegments();
 
   useEffect(() => {
-    if (isLoading) return;
+    if (state.isLoading) return;
 
     const inAuthGroup = segments[0] === 'auth';
     const inSplash = segments[0] === 'splash';
+    const inSplashToMain = segments[0] === 'splash-to-main';
 
-    if (!isAuthenticated && !inAuthGroup && !inSplash) {
+    if (!state.isAuthenticated && !inAuthGroup && !inSplash && !inSplashToMain) {
       // Redirect to login if not authenticated
       router.replace('/auth/login');
-    } else if (isAuthenticated && inAuthGroup) {
+    } else if (state.isAuthenticated && inAuthGroup) {
       // Redirect to main app if authenticated and in auth screens
-      router.replace('/(tabs)');
+      router.replace('/splash-to-main');
     }
-  }, [user, isAuthenticated, isLoading, segments]);
+  }, [state.user, state.isAuthenticated, state.isLoading, segments]);
 
-  if (isLoading) {
+  if (state.isLoading) {
     return (
       <View style={styles.loadingContainer}>
         <LoadingSpinner text="Loading..." />

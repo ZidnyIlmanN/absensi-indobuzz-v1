@@ -1,5 +1,6 @@
 import { supabase, handleSupabaseError } from '@/lib/supabase';
 import { User } from '@/types';
+import { demoDataService } from '@/services/demo-data';
 
 export interface AuthCredentials {
   email: string;
@@ -33,6 +34,12 @@ export const authService = {
       if (data.user) {
         // Get the created profile
         const profile = await this.getProfile(data.user.id);
+        
+        // Setup demo data for new users
+        if (profile) {
+          await demoDataService.setupDemoData(data.user.id);
+        }
+        
         return { user: profile, error: null };
       }
 
@@ -56,6 +63,14 @@ export const authService = {
 
       if (data.user) {
         const profile = await this.getProfile(data.user.id);
+        
+        // Setup demo data if profile doesn't exist
+        if (!profile) {
+          await demoDataService.createDemoProfile(data.user.id);
+          const newProfile = await this.getProfile(data.user.id);
+          return { user: newProfile, error: null };
+        }
+        
         return { user: profile, error: null };
       }
 

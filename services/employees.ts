@@ -7,22 +7,21 @@ export const employeesService = {
     try {
       const { data, error } = await supabase
         .from('profiles')
-        .select(`
-          *,
-          attendance_records!inner (
-            status,
-            clock_in,
-            date
-          )
-        `)
-        .eq('attendance_records.date', new Date().toISOString().split('T')[0])
+        .select('*')
         .order('name');
 
       if (error) {
         return { employees: [], error: handleSupabaseError(error) };
       }
 
-      const employees = data.map(profile => this.mapEmployeeRecord(profile));
+      // Get today's attendance for all employees
+      const today = new Date().toISOString().split('T')[0];
+      const { data: attendanceData } = await supabase
+        .from('attendance_records')
+        .select('user_id, status, clock_in')
+        .eq('date', today);
+
+      const employees = data.map(profile => this.mapEmployeeRecord(profile, attendanceData));
       return { employees, error: null };
     } catch (error) {
       return { employees: [], error: handleSupabaseError(error) };
@@ -34,14 +33,7 @@ export const employeesService = {
     try {
       const { data, error } = await supabase
         .from('profiles')
-        .select(`
-          *,
-          attendance_records (
-            status,
-            clock_in,
-            date
-          )
-        `)
+        .select('*')
         .eq('department', department)
         .order('name');
 
@@ -49,7 +41,13 @@ export const employeesService = {
         return { employees: [], error: handleSupabaseError(error) };
       }
 
-      const employees = data.map(profile => this.mapEmployeeRecord(profile));
+      const today = new Date().toISOString().split('T')[0];
+      const { data: attendanceData } = await supabase
+        .from('attendance_records')
+        .select('user_id, status, clock_in')
+        .eq('date', today);
+
+      const employees = data.map(profile => this.mapEmployeeRecord(profile, attendanceData));
       return { employees, error: null };
     } catch (error) {
       return { employees: [], error: handleSupabaseError(error) };
@@ -61,14 +59,7 @@ export const employeesService = {
     try {
       const { data, error } = await supabase
         .from('profiles')
-        .select(`
-          *,
-          attendance_records (
-            status,
-            clock_in,
-            date
-          )
-        `)
+        .select('*')
         .or(`name.ilike.%${query}%,position.ilike.%${query}%,department.ilike.%${query}%,employee_id.ilike.%${query}%`)
         .order('name');
 
@@ -76,7 +67,13 @@ export const employeesService = {
         return { employees: [], error: handleSupabaseError(error) };
       }
 
-      const employees = data.map(profile => this.mapEmployeeRecord(profile));
+      const today = new Date().toISOString().split('T')[0];
+      const { data: attendanceData } = await supabase
+        .from('attendance_records')
+        .select('user_id, status, clock_in')
+        .eq('date', today);
+
+      const employees = data.map(profile => this.mapEmployeeRecord(profile, attendanceData));
       return { employees, error: null };
     } catch (error) {
       return { employees: [], error: handleSupabaseError(error) };
@@ -88,14 +85,7 @@ export const employeesService = {
     try {
       const { data, error } = await supabase
         .from('profiles')
-        .select(`
-          *,
-          attendance_records (
-            status,
-            clock_in,
-            date
-          )
-        `)
+        .select('*')
         .eq('id', employeeId)
         .single();
 
@@ -103,8 +93,14 @@ export const employeesService = {
         return { employee: null, error: handleSupabaseError(error) };
       }
 
+      const today = new Date().toISOString().split('T')[0];
+      const { data: attendanceData } = await supabase
+        .from('attendance_records')
+        .select('user_id, status, clock_in')
+        .eq('date', today)
+        .eq('user_id', employeeId);
       return {
-        employee: this.mapEmployeeRecord(data),
+        employee: this.mapEmployeeRecord(data, attendanceData),
         error: null,
       };
     } catch (error) {
@@ -113,9 +109,9 @@ export const employeesService = {
   },
 
   // Helper function to map database record to Employee
-  mapEmployeeRecord(data: any): Employee {
-    const todayAttendance = data.attendance_records?.find((record: any) => 
-      record.date === new Date().toISOString().split('T')[0]
+  mapEmployeeRecord(data: any, attendanceData?: any[]): Employee {
+    const todayAttendance = attendanceData?.find((record: any) => 
+      record.user_id === data.id
     );
 
     let status: Employee['status'] = 'offline';
@@ -144,23 +140,20 @@ export const employeesService = {
       phone: data.phone || '',
       email: data.email,
       currentAttendance: todayAttendance ? {
-        id: todayAttendance.id,
+        id: 'temp-id',
         userId: data.id,
         clockIn: new Date(todayAttendance.clock_in),
-        clockOut: todayAttendance.clock_out ? new Date(todayAttendance.clock_out) : undefined,
-        date: todayAttendance.date,
-        workHours: todayAttendance.work_hours || 0,
-        breakTime: todayAttendance.break_time || 0,
-        overtimeHours: todayAttendance.overtime_hours || 0,
-        clientVisitTime: todayAttendance.client_visit_time || 0,
+        date: new Date().toISOString().split('T')[0],
+        workHours: 0,
+        breakTime: 0,
+        overtimeHours: 0,
+        clientVisitTime: 0,
         status: todayAttendance.status,
         location: {
-          latitude: parseFloat(todayAttendance.location_lat || '0'),
-          longitude: parseFloat(todayAttendance.location_lng || '0'),
-          address: todayAttendance.location_address || '',
+          latitude: -6.2088,
+          longitude: 106.8456,
+          address: 'Jakarta Office',
         },
-        selfieUrl: todayAttendance.selfie_url,
-        notes: todayAttendance.notes,
         activities: [],
       } : undefined,
     };

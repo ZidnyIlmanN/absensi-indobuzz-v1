@@ -39,7 +39,7 @@ interface FormErrors {
 
 export default function EditProfileScreen() {
   const insets = useSafeAreaInsets();
-  const { state, dispatch } = useAppContext();
+  const { state, updateProfile } = useAppContext();
   const [isLoading, setIsLoading] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
   const [profileImage, setProfileImage] = useState(state.user?.avatar || '');
@@ -130,25 +130,24 @@ export default function EditProfileScreen() {
     setIsSaving(true);
     
     try {
-      // Simulate API call
-      await new Promise(resolve => setTimeout(resolve, 2000));
-      
-      // Update user data in context
       const updatedUser = {
-        ...state.user!,
         ...formData,
         avatar: profileImage,
       };
       
-      dispatch({ type: 'SET_USER', payload: updatedUser });
+      const { error } = await updateProfile(updatedUser);
       
-      setHasChanges(false);
-      setShowSuccess(true);
-      
-      setTimeout(() => {
-        setShowSuccess(false);
-        router.back();
-      }, 2000);
+      if (error) {
+        Alert.alert('Error', error);
+      } else {
+        setHasChanges(false);
+        setShowSuccess(true);
+        
+        setTimeout(() => {
+          setShowSuccess(false);
+          router.back();
+        }, 2000);
+      }
       
     } catch (error) {
       Alert.alert('Error', 'Failed to save profile. Please try again.');

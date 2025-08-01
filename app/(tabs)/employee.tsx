@@ -24,70 +24,41 @@ import {
 } from 'lucide-react-native';
 import { EmptyState } from '@/components/EmptyState';
 import { LoadingSpinner } from '@/components/LoadingSpinner';
-
-interface Employee {
-  id: string;
-  name: string;
-  position: string;
-  department: string;
-  avatar: string;
-  status: 'online' | 'offline' | 'break';
-  workHours: string;
-  location: string;
-  phone: string;
-  email: string;
-}
-
-const employees: Employee[] = [
-  {
-    id: '1',
-    name: 'John Doe',
-    position: 'Software Engineer',
-    department: 'Engineering',
-    avatar: 'https://images.pexels.com/photos/614810/pexels-photo-614810.jpeg?auto=compress&cs=tinysrgb&w=150',
-    status: 'online',
-    workHours: '08:30 - 17:30',
-    location: 'Jakarta Office',
-    phone: '+62 812-3456-7890',
-    email: 'john.doe@company.com',
-  },
-  {
-    id: '2',
-    name: 'Jane Smith',
-    position: 'Product Manager',
-    department: 'Product',
-    avatar: 'https://images.pexels.com/photos/415829/pexels-photo-415829.jpeg?auto=compress&cs=tinysrgb&w=150',
-    status: 'break',
-    workHours: '09:00 - 18:00',
-    location: 'Remote',
-    phone: '+62 813-4567-8901',
-    email: 'jane.smith@company.com',
-  },
-  {
-    id: '3',
-    name: 'Mike Johnson',
-    position: 'UI/UX Designer',
-    department: 'Design',
-    avatar: 'https://images.pexels.com/photos/1222271/pexels-photo-1222271.jpeg?auto=compress&cs=tinysrgb&w=150',
-    status: 'offline',
-    workHours: '08:00 - 17:00',
-    location: 'Bandung Office',
-    phone: '+62 814-5678-9012',
-    email: 'mike.johnson@company.com',
-  },
-];
+import { employeesService } from '@/services/employees';
+import { Employee } from '@/types';
 
 export default function EmployeeScreen() {
   const insets = useSafeAreaInsets();
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedFilter, setSelectedFilter] = useState('all');
-  const [isLoading, setIsLoading] = useState(false);
+  const [employees, setEmployees] = useState<Employee[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
+
+  // Load employees on component mount
+  React.useEffect(() => {
+    loadEmployees();
+  }, []);
+
+  const loadEmployees = async () => {
+    setIsLoading(true);
+    try {
+      const { employees: employeeData, error } = await employeesService.getAllEmployees();
+      if (error) {
+        console.error('Failed to load employees:', error);
+      } else {
+        setEmployees(employeeData);
+      }
+    } catch (error) {
+      console.error('Error loading employees:', error);
+    } finally {
+      setIsLoading(false);
+    }
+  };
 
   const onRefresh = async () => {
     setRefreshing(true);
-    // Simulate API call
-    await new Promise(resolve => setTimeout(resolve, 1000));
+    await loadEmployees();
     setRefreshing(false);
   };
 
@@ -216,7 +187,7 @@ export default function EmployeeScreen() {
             >
               <View style={styles.employeeHeader}>
                 <View style={styles.avatarContainer}>
-                  <Image source={{ uri: employee.avatar }} style={styles.avatar} />
+                  <Image source={{ uri: employee.avatar || 'https://images.pexels.com/photos/614810/pexels-photo-614810.jpeg?auto=compress&cs=tinysrgb&w=150' }} style={styles.avatar} />
                   <View
                     style={[
                       styles.statusIndicator,

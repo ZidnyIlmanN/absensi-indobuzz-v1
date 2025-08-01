@@ -74,7 +74,57 @@ export default function SelfieScreen() {
       // Simulate API call for face verification
       await new Promise(resolve => setTimeout(resolve, 2000));
 
-      // Create attendance record
+      // Clock in with location and selfie
+      const { error } = await clockIn(
+        {
+          latitude: -6.2088,
+          longitude: 106.8456,
+          address: 'PT. INDOBUZZ REPUBLIK DIGITAL',
+        },
+        capturedImage
+      );
+
+      if (error) {
+        throw new Error(error);
+      }
+
+      // Update UI state
+      dispatch({ type: 'SET_WORKING_STATUS', payload: true });
+      dispatch({ type: 'SET_CURRENT_STATUS', payload: 'working' });
+      
+      // Navigate back to live attendance
+      router.replace('/live-attendance');
+      
+      Alert.alert(
+        'Success!',
+        'You have successfully clocked in. Have a great workday!',
+        [{ text: 'OK' }]
+      );
+    } catch (error) {
+      console.error('Error submitting attendance:', error);
+      Alert.alert(
+        'Clock In Failed',
+        error instanceof Error ? error.message : 'Please try again.',
+        [{ text: 'OK' }]
+      );
+    } finally {
+      setIsProcessing(false);
+    }
+  };
+
+  const handleSubmitOld = async () => {
+    if (!capturedImage) {
+      Alert.alert('Photo Required', 'Please take a selfie to continue.');
+      return;
+    }
+
+    setIsProcessing(true);
+
+    try {
+      // Simulate API call for face verification
+      await new Promise(resolve => setTimeout(resolve, 2000));
+
+      // Create attendance record (old implementation)
       const now = new Date();
       const attendance = {
         id: Date.now().toString(),

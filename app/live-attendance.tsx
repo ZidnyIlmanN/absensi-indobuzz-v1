@@ -34,117 +34,21 @@ import { useAppContext } from '@/context/AppContext';
 import { DynamicAttendanceCard } from '@/components/DynamicAttendanceCard';
 import { ActivityRecord } from '@/types';
 
-import { useCallback } from 'react';
-
 const { width } = Dimensions.get('window');
 
 export default function LiveAttendanceScreen() {
   const insets = useSafeAreaInsets();
-  const { state, dispatch } = useAppContext();
+  const { state } = useAppContext();
   const [currentTime, setCurrentTime] = useState(new Date());
   const [refreshing, setRefreshing] = useState(false);
 
-  const calculateRealTimeTotals = useCallback(() => { // Move declaration before useEffect
   useEffect(() => {
     const timer = setInterval(() => {
       setCurrentTime(new Date());
-      
-      // Real-time calculation of work hours, break time, overtime, and client visit time
-      if (state.currentAttendance?.clockIn) {
-        calculateRealTimeTotals();
-      }
     }, 1000);
 
     return () => clearInterval(timer);
-  }, [state.currentAttendance?.clockIn, calculateRealTimeTotals]); // Add calculateRealTimeTotals
-    if (!state.currentAttendance?.clockIn) return;
-
-    const now = new Date();
-    const clockInTime = state.currentAttendance.clockIn.getTime();
-    
-    let totalWorkTime = 0;
-    let totalBreakTime = 0;
-    let totalOvertimeTime = 0;
-    let totalClientVisitTime = 0;
-    
-    // Calculate time based on activities
-    const activities = [...state.todayActivities].sort((a, b) => a.timestamp.getTime() - b.timestamp.getTime());
-    
-    let currentActivityStart = clockInTime;
-    let currentActivityType: 'working' | 'break' | 'overtime' | 'client_visit' = 'working';
-    
-    // Process all completed activities
-    for (let i = 0; i < activities.length; i++) {
-      const activity = activities[i];
-      const activityTime = activity.timestamp.getTime();
-      const duration = activityTime - currentActivityStart;
-      
-      // Add duration to appropriate category
-      switch (currentActivityType) {
-        case 'working':
-          totalWorkTime += duration;
-          break;
-        case 'break':
-          totalBreakTime += duration;
-          break;
-        case 'overtime':
-          totalOvertimeTime += duration;
-          break;
-        case 'client_visit':
-          totalClientVisitTime += duration;
-          break;
-      }
-      
-      // Update current activity type based on activity
-      switch (activity.type) {
-        case 'break_start':
-          currentActivityType = 'break';
-          break;
-        case 'break_end':
-        case 'overtime_end':
-        case 'client_visit_end':
-          currentActivityType = 'working';
-          break;
-        case 'overtime_start':
-          currentActivityType = 'overtime';
-          break;
-        case 'client_visit_start':
-          currentActivityType = 'client_visit';
-          break;
-      }
-      
-      currentActivityStart = activityTime;
-    }
-    
-    // Add current ongoing activity time
-    const currentDuration = now.getTime() - currentActivityStart;
-    switch (state.currentStatus) {
-      case 'working':
-        totalWorkTime += currentDuration;
-        break;
-      case 'break':
-        totalBreakTime += currentDuration;
-        break;
-      case 'overtime':
-        totalOvertimeTime += currentDuration;
-        break;
-      case 'client_visit':
-        totalClientVisitTime += currentDuration;
-        break;
-    }
-    
-    // Convert to readable format and dispatch updates
-    const formatTime = (ms: number) => {
-      const hours = Math.floor(ms / (1000 * 60 * 60));
-      const minutes = Math.floor((ms % (1000 * 60 * 60)) / (1000 * 60));
-      return `${hours.toString().padStart(2, '0')}:${minutes.toString().padStart(2, '0')}`;
-    };
-    
-    dispatch({ type: 'SET_WORK_HOURS', payload: formatTime(totalWorkTime) });
-    dispatch({ type: 'SET_BREAK_TIME', payload: formatTime(totalBreakTime) });
-    dispatch({ type: 'SET_OVERTIME_HOURS', payload: formatTime(totalOvertimeTime) });
-    dispatch({ type: 'SET_CLIENT_VISIT_TIME', payload: formatTime(totalClientVisitTime) });
-  }, [state.currentAttendance?.clockIn, state.todayActivities, state.currentStatus, dispatch]);
+  }, []);
 
   const onRefresh = async () => {
     setRefreshing(true);
@@ -309,7 +213,6 @@ export default function LiveAttendanceScreen() {
       >
         {/* Dynamic Attendance Card */}
         <DynamicAttendanceCard />
-
 
         {/* Quick Actions */}
         <View style={styles.section}>
