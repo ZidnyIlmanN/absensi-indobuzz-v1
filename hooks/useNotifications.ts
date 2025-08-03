@@ -18,7 +18,10 @@ export function useNotifications(userId: string | null) {
   });
 
   const loadNotifications = useCallback(async () => {
-    if (!userId) return;
+    if (!userId) {
+      setNotificationsState(prev => ({ ...prev, isLoading: false }));
+      return;
+    }
 
     setNotificationsState(prev => ({ ...prev, isLoading: true, error: null }));
 
@@ -47,56 +50,53 @@ export function useNotifications(userId: string | null) {
     }
   }, [userId]);
 
-  const markAsRead = async (notificationId: string) => {
-    const { error } = await notificationsService.markAsRead(notificationId);
-    
-    if (!error) {
-      setNotificationsState(prev => ({
-        ...prev,
-        notifications: prev.notifications.map(n =>
-          n.id === notificationId ? { ...n, read: true } : n
-        ),
-        unreadCount: Math.max(0, prev.unreadCount - 1),
-      }));
-    }
-
-    return { error };
-  };
-
-  const markAllAsRead = async () => {
-    if (!userId) return { error: 'No user logged in' };
-
-    const { error } = await notificationsService.markAllAsRead(userId);
-    
-    if (!error) {
-      setNotificationsState(prev => ({
-        ...prev,
-        notifications: prev.notifications.map(n => ({ ...n, read: true })),
-        unreadCount: 0,
-      }));
-    }
-
-    return { error };
-  };
-
-  const deleteNotification = async (notificationId: string) => {
-    const { error } = await notificationsService.deleteNotification(notificationId);
-    
-    if (!error) {
-      setNotificationsState(prev => {
-        const notification = prev.notifications.find(n => n.id === notificationId);
-        const wasUnread = notification && !notification.read;
-        
-        return {
+  function markAsRead(notificationId: string) {
+    return notificationsService.markAsRead(notificationId).then(({ error }) => {
+      if (!error) {
+        setNotificationsState(prev => ({
           ...prev,
-          notifications: prev.notifications.filter(n => n.id !== notificationId),
-          unreadCount: wasUnread ? Math.max(0, prev.unreadCount - 1) : prev.unreadCount,
-        };
-      });
-    }
+          notifications: prev.notifications.map(n =>
+            n.id === notificationId ? { ...n, read: true } : n
+          ),
+          unreadCount: Math.max(0, prev.unreadCount - 1),
+        }));
+      }
+      return { error };
+    });
+  }
 
-    return { error };
-  };
+  function markAllAsRead() {
+    if (!userId) return Promise.resolve({ error: 'No user logged in' });
+
+    return notificationsService.markAllAsRead(userId).then(({ error }) => {
+      if (!error) {
+        setNotificationsState(prev => ({
+          ...prev,
+          notifications: prev.notifications.map(n => ({ ...n, read: true })),
+          unreadCount: 0,
+        }));
+      }
+      return { error };
+    });
+  }
+
+  function deleteNotification(notificationId: string) {
+    return notificationsService.deleteNotification(notificationId).then(({ error }) => {
+      if (!error) {
+        setNotificationsState(prev => {
+          const notification = prev.notifications.find(n => n.id === notificationId);
+          const wasUnread = notification && !notification.read;
+          
+          return {
+            ...prev,
+            notifications: prev.notifications.filter(n => n.id !== notificationId),
+            unreadCount: wasUnread ? Math.max(0, prev.unreadCount - 1) : prev.unreadCount,
+          };
+        });
+      }
+      return { error };
+    });
+  }
 
   const addNotification = useCallback((notification: Notification) => {
     setNotificationsState(prev => ({
@@ -107,14 +107,16 @@ export function useNotifications(userId: string | null) {
   }, []);
 
   useEffect(() => {
-    if (userId) {
-      loadNotifications();
-
-      // Subscribe to real-time notifications
-      const unsubscribe = notificationsService.subscribeToNotifications(userId, addNotification);
-      
-      return unsubscribe;
+    if (!userId) {
+      setNotificationsState(prev => ({ ...prev, isLoading: false }));
+      return;
     }
+    loadNotifications();
+
+    // Subscribe to real-time notifications
+    const unsubscribe = notificationsService.subscribeToNotifications(userId, addNotification);
+    
+    return unsubscribe;
   }, [userId, loadNotifications, addNotification]);
 
   return {

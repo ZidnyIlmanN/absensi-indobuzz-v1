@@ -16,7 +16,10 @@ export function useRequests(userId: string | null) {
   });
 
   const loadRequests = useCallback(async () => {
-    if (!userId) return;
+    if (!userId) {
+      setRequestsState(prev => ({ ...prev, isLoading: false }));
+      return;
+    }
 
     setRequestsState(prev => ({ ...prev, isLoading: true, error: null }));
 
@@ -82,9 +85,11 @@ export function useRequests(userId: string | null) {
   };
 
   useEffect(() => {
-    if (userId) {
-      loadRequests();
+    if (!userId) {
+      setRequestsState(prev => ({ ...prev, isLoading: false }));
+      return;
     }
+    loadRequests();
   }, [userId, loadRequests]);
 
   return {

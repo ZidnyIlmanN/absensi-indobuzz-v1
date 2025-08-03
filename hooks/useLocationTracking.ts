@@ -56,6 +56,15 @@ export function useLocationTracking(options: UseLocationTrackingOptions = {}) {
       if (result.currentLocation && !result.error) {
         const location = result.currentLocation;
         
+        // Validate coordinates to avoid invalid location data
+        if (
+          location.latitude === 0 && location.longitude === 0 ||
+          location.latitude > 90 || location.latitude < -90 ||
+          location.longitude > 180 || location.longitude < -180
+        ) {
+          throw new Error('Invalid GPS coordinates received');
+        }
+
         const newState: LocationState = {
           currentLocation: location,
           isWithinOfficeRange: result.isWithinRange,
@@ -100,7 +109,7 @@ export function useLocationTracking(options: UseLocationTrackingOptions = {}) {
     updateLocation(false);
 
     // Set up real-time tracking if enabled
-    let interval: NodeJS.Timeout | null = null;
+    let interval: ReturnType<typeof setInterval> | null = null;
     
     if (enableRealTimeTracking) {
       console.log(`Starting real-time location tracking (${trackingInterval}ms interval)`);

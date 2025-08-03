@@ -26,26 +26,21 @@ export function useEmployees() {
         return;
       }
 
-      setEmployeesState({
+      setEmployeesState(prev => ({
+        ...prev,
         employees,
         isLoading: false,
-        error: null,
-      });
+      }));
     } catch (error) {
       setEmployeesState(prev => ({
         ...prev,
-        error: 'Failed to load employees',
+        error: 'Failed to load employees data',
         isLoading: false,
       }));
     }
   }, []);
 
-  const searchEmployees = async (query: string) => {
-    if (!query.trim()) {
-      await loadEmployees();
-      return;
-    }
-
+  const searchEmployees = useCallback(async (query: string) => {
     setEmployeesState(prev => ({ ...prev, isLoading: true, error: null }));
 
     try {
@@ -56,11 +51,11 @@ export function useEmployees() {
         return;
       }
 
-      setEmployeesState({
+      setEmployeesState(prev => ({
+        ...prev,
         employees,
         isLoading: false,
-        error: null,
-      });
+      }));
     } catch (error) {
       setEmployeesState(prev => ({
         ...prev,
@@ -68,32 +63,11 @@ export function useEmployees() {
         isLoading: false,
       }));
     }
-  };
+  }, []);
 
-  const getEmployeesByDepartment = async (department: string) => {
-    setEmployeesState(prev => ({ ...prev, isLoading: true, error: null }));
-
-    try {
-      const { employees, error } = await employeesService.getEmployeesByDepartment(department);
-      
-      if (error) {
-        setEmployeesState(prev => ({ ...prev, error, isLoading: false }));
-        return;
-      }
-
-      setEmployeesState({
-        employees,
-        isLoading: false,
-        error: null,
-      });
-    } catch (error) {
-      setEmployeesState(prev => ({
-        ...prev,
-        error: 'Failed to load employees by department',
-        isLoading: false,
-      }));
-    }
-  };
+  const refreshEmployees = useCallback(async () => {
+    await loadEmployees();
+  }, [loadEmployees]);
 
   useEffect(() => {
     loadEmployees();
@@ -102,7 +76,6 @@ export function useEmployees() {
   return {
     ...employeesState,
     searchEmployees,
-    getEmployeesByDepartment,
-    refreshEmployees: loadEmployees,
+    refreshEmployees,
   };
 }
