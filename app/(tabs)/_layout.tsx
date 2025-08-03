@@ -1,8 +1,10 @@
+import React from 'react';
+import { AuthGuard } from '@/components/AuthGuard';
 import { Tabs } from 'expo-router';
-import { Chrome as Home, Users, FileText, MessageCircle, User } from 'lucide-react-native';
+import { Home, Users, FileText, MessageCircle, User } from 'lucide-react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
-export default function TabLayout() {
+function TabLayout() {
   const insets = useSafeAreaInsets();
 
   return (
@@ -67,9 +69,16 @@ export default function TabLayout() {
           tabBarIcon: ({ size, color }) => (
             <User size={size} color={color} />
           ),
-        }
-        }
+        }}
+      />
     </Tabs>
-  )
+  );
+}
+
+export default function ProtectedTabLayout() {
+  return (
+    <AuthGuard>
+      <TabLayout />
+    </AuthGuard>
   );
 }

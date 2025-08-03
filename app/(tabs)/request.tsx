@@ -15,11 +15,47 @@ import { LinearGradient } from 'expo-linear-gradient';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Calendar, Clock, DollarSign, Plus, FileText, CircleCheck as CheckCircle, Circle as XCircle, CircleAlert as AlertCircle } from 'lucide-react-native';
 import { EmptyState } from '@/components/EmptyState';
-import { useAppContext } from '@/context/AppContext';
+
+interface Request {
+  id: string;
+  type: 'leave' | 'permission' | 'reimbursement';
+  title: string;
+  description: string;
+  date: string;
+  status: 'pending' | 'approved' | 'rejected';
+  amount?: number;
+}
+
+const requests: Request[] = [
+  {
+    id: '1',
+    type: 'leave',
+    title: 'Annual Leave',
+    description: 'Family vacation to Bali',
+    date: '2024-02-15 to 2024-02-20',
+    status: 'approved',
+  },
+  {
+    id: '2',
+    type: 'permission',
+    title: 'Doctor Appointment',
+    description: 'Regular health checkup',
+    date: '2024-02-10 14:00',
+    status: 'pending',
+  },
+  {
+    id: '3',
+    type: 'reimbursement',
+    title: 'Travel Expense',
+    description: 'Client meeting transportation',
+    date: '2024-02-08',
+    status: 'rejected',
+    amount: 150000,
+  },
+];
 
 export default function RequestScreen() {
   const insets = useSafeAreaInsets();
-  const { state, createRequest } = useAppContext();
   const [modalVisible, setModalVisible] = useState(false);
   const [selectedType, setSelectedType] = useState<'leave' | 'permission' | 'reimbursement'>('leave');
   const [title, setTitle] = useState('');
@@ -100,24 +136,15 @@ export default function RequestScreen() {
 
     setIsSubmitting(true);
     
-    const options: any = {};
-    if (selectedType === 'reimbursement') {
-      options.amount = parseFloat(amount);
-    }
-    
-    createRequest(selectedType, title.trim(), description.trim(), options).then(({ error }) => {
+    // Simulate API call
+    setTimeout(() => {
       setIsSubmitting(false);
-      
-      if (error) {
-        Alert.alert('Error', error);
-      } else {
-        Alert.alert('Success', 'Your request has been submitted successfully!');
-        setModalVisible(false);
-        setTitle('');
-        setDescription('');
-        setAmount('');
-      }
-    });
+      Alert.alert('Success', 'Your request has been submitted successfully!');
+      setModalVisible(false);
+      setTitle('');
+      setDescription('');
+      setAmount('');
+    }, 1500);
   };
 
   const requestTypes = [
@@ -139,7 +166,7 @@ export default function RequestScreen() {
           <View>
             <Text style={styles.headerTitle}>Requests</Text>
             <Text style={styles.headerSubtitle}>
-              {state.requests.filter(r => r.status === 'pending').length} pending requests
+              {requests.filter(r => r.status === 'pending').length} pending requests
             </Text>
           </View>
           <TouchableOpacity
@@ -161,19 +188,19 @@ export default function RequestScreen() {
         {/* Stats */}
         <View style={styles.statsContainer}>
           <View style={styles.statCard}>
-            <Text style={styles.statValue}>{state.requests.filter(r => r.status === 'pending').length}</Text>
+            <Text style={styles.statValue}>{requests.filter(r => r.status === 'pending').length}</Text>
             <Text style={styles.statLabel}>Pending</Text>
             <View style={[styles.statIndicator, { backgroundColor: '#FF9800' }]} />
           </View>
           
           <View style={styles.statCard}>
-            <Text style={styles.statValue}>{state.requests.filter(r => r.status === 'approved').length}</Text>
+            <Text style={styles.statValue}>{requests.filter(r => r.status === 'approved').length}</Text>
             <Text style={styles.statLabel}>Approved</Text>
             <View style={[styles.statIndicator, { backgroundColor: '#4CAF50' }]} />
           </View>
           
           <View style={styles.statCard}>
-            <Text style={styles.statValue}>{state.requests.filter(r => r.status === 'rejected').length}</Text>
+            <Text style={styles.statValue}>{requests.filter(r => r.status === 'rejected').length}</Text>
             <Text style={styles.statLabel}>Rejected</Text>
             <View style={[styles.statIndicator, { backgroundColor: '#F44336' }]} />
           </View>
@@ -183,7 +210,7 @@ export default function RequestScreen() {
         <View style={styles.section}>
           <Text style={styles.sectionTitle}>Recent Requests</Text>
           
-          {state.requests.length === 0 ? (
+          {requests.length === 0 ? (
             <EmptyState
               icon={<FileText size={48} color="#E0E0E0" />}
               title="No requests yet"
@@ -192,7 +219,7 @@ export default function RequestScreen() {
               onAction={() => setModalVisible(true)}
             />
           ) : (
-            state.requests.map((request) => (
+            requests.map((request) => (
             <TouchableOpacity
               key={request.id}
               style={styles.requestCard}
@@ -206,12 +233,7 @@ export default function RequestScreen() {
                 <View style={styles.requestInfo}>
                   <Text style={styles.requestTitle}>{request.title}</Text>
                   <Text style={styles.requestDescription}>{request.description}</Text>
-                  <Text style={styles.requestDate}>
-                    {request.startDate && request.endDate 
-                      ? `${request.startDate} to ${request.endDate}`
-                      : request.submittedAt.toLocaleDateString()
-                    }
-                  </Text>
+                  <Text style={styles.requestDate}>{request.date}</Text>
                   {request.amount && (
                     <Text style={styles.requestAmount}>
                       Rp {request.amount.toLocaleString('id-ID')}
@@ -396,10 +418,8 @@ const styles = StyleSheet.create({
     marginHorizontal: 4,
     alignItems: 'center',
     elevation: 2,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 1 },
-    shadowOpacity: 0.1,
-    shadowRadius: 3,
+    borderWidth: 1,
+    borderColor: '#E0E0E0',
     position: 'relative',
   },
   statValue: {
@@ -435,10 +455,8 @@ const styles = StyleSheet.create({
     padding: 16,
     marginBottom: 12,
     elevation: 2,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 1 },
-    shadowOpacity: 0.1,
-    shadowRadius: 3,
+    borderWidth: 1,
+    borderColor: '#E0E0E0',
   },
   requestHeader: {
     flexDirection: 'row',

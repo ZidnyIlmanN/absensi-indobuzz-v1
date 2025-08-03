@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useCallback } from 'react';
 import {
   View,
   Text,
@@ -24,43 +24,29 @@ import {
 } from 'lucide-react-native';
 import { EmptyState } from '@/components/EmptyState';
 import { LoadingSpinner } from '@/components/LoadingSpinner';
-import { employeesService } from '@/services/employees';
-import { Employee } from '@/types';
+import { useEmployees } from '@/hooks/useEmployees';
+import { Employee as EmployeeType } from '@/types';
 
 export default function EmployeeScreen() {
   const insets = useSafeAreaInsets();
   const [searchQuery, setSearchQuery] = useState('');
-  const [selectedFilter, setSelectedFilter] = useState('all');
-  const [employees, setEmployees] = useState<Employee[]>([]);
-  const [isLoading, setIsLoading] = useState(true);
+  const { employees, isLoading, error, searchEmployees, refreshEmployees } = useEmployees();
   const [refreshing, setRefreshing] = useState(false);
 
-  // Load employees on component mount
-  React.useEffect(() => {
-    loadEmployees();
-  }, []);
-
-  const loadEmployees = async () => {
-    setIsLoading(true);
-    try {
-      const { employees: employeeData, error } = await employeesService.getAllEmployees();
-      if (error) {
-        console.error('Failed to load employees:', error);
-      } else {
-        setEmployees(employeeData);
-      }
-    } catch (error) {
-      console.error('Error loading employees:', error);
-    } finally {
-      setIsLoading(false);
-    }
-  };
-
-  const onRefresh = async () => {
+  const onRefresh = useCallback(async () => {
     setRefreshing(true);
-    await loadEmployees();
+    await refreshEmployees();
     setRefreshing(false);
-  };
+  }, [refreshEmployees]);
+
+  const onSearch = useCallback(async (query: string) => {
+    setSearchQuery(query);
+    if (query.trim()) {
+      await searchEmployees(query);
+    } else {
+      await refreshEmployees();
+    }
+  }, [searchEmployees, refreshEmployees]);
 
   const getStatusColor = (status: string) => {
     switch (status) {
@@ -94,6 +80,11 @@ export default function EmployeeScreen() {
     employee.department.toLowerCase().includes(searchQuery.toLowerCase())
   );
 
+  // Calculate stats from real data
+  const totalEmployees = employees.length;
+  const workingEmployees = employees.filter(e => e.status === 'online').length;
+  const remoteEmployees = employees.filter(e => e.location.toLowerCase().includes('remote')).length;
+
   return (
     <View style={styles.container}>
       <StatusBar style="light" />
@@ -105,7 +96,7 @@ export default function EmployeeScreen() {
       >
         <Text style={styles.headerTitle}>Employee Directory</Text>
         <Text style={styles.headerSubtitle}>
-          {employees.length} employees • {employees.filter(e => e.status === 'online').length} online
+          {totalEmployees} employees • {workingEmployees} online
         </Text>
       </LinearGradient>
 
@@ -124,7 +115,7 @@ export default function EmployeeScreen() {
               style={styles.searchInput}
               placeholder="Search employees..."
               value={searchQuery}
-              onChangeText={setSearchQuery}
+              onChangeText={onSearch}
               placeholderTextColor="#999"
             />
           </View>
@@ -137,30 +128,30 @@ export default function EmployeeScreen() {
         <View style={styles.statsContainer}>
           <View style={styles.statCard}>
             <View style={styles.statIcon}>
-              <Users size={20} color="#4A90E2" />
+              <Users size={15} color="#4A90E2" />
             </View>
             <View style={styles.statInfo}>
-              <Text style={styles.statValue}>{employees.length}</Text>
+              <Text style={styles.statValue}>{totalEmployees}</Text>
               <Text style={styles.statLabel}>Total</Text>
             </View>
           </View>
           
           <View style={styles.statCard}>
             <View style={styles.statIcon}>
-              <Clock size={20} color="#4CAF50" />
+              <Clock size={15} color="#4CAF50" />
             </View>
             <View style={styles.statInfo}>
-              <Text style={styles.statValue}>{employees.filter(e => e.status === 'online').length}</Text>
+              <Text style={styles.statValue}>{workingEmployees}</Text>
               <Text style={styles.statLabel}>Working</Text>
             </View>
           </View>
           
           <View style={styles.statCard}>
             <View style={styles.statIcon}>
-              <MapPin size={20} color="#FF9800" />
+              <MapPin size={15} color="#FF9800" />
             </View>
             <View style={styles.statInfo}>
-              <Text style={styles.statValue}>{employees.filter(e => e.location === 'Remote').length}</Text>
+              <Text style={styles.statValue}>{remoteEmployees}</Text>
               <Text style={styles.statLabel}>Remote</Text>
             </View>
           </View>
@@ -172,6 +163,12 @@ export default function EmployeeScreen() {
           
           {isLoading ? (
             <LoadingSpinner text="Loading employees..." />
+          ) : error ? (
+            <EmptyState
+              icon={<UserX size={48} color="#E0E0E0" />}
+              title="Error loading employees"
+              message={error}
+            />
           ) : filteredEmployees.length === 0 ? (
             <EmptyState
               icon={<UserX size={48} color="#E0E0E0" />}
@@ -187,7 +184,10 @@ export default function EmployeeScreen() {
             >
               <View style={styles.employeeHeader}>
                 <View style={styles.avatarContainer}>
-                  <Image source={{ uri: employee.avatar || 'https://images.pexels.com/photos/614810/pexels-photo-614810.jpeg?auto=compress&cs=tinysrgb&w=150' }} style={styles.avatar} />
+                  <Image 
+                    source={{ uri: employee.avatar || 'https://ui-avatars.com/api/?name=' + encodeURIComponent(employee.name) }} 
+                    style={styles.avatar} 
+                  />
                   <View
                     style={[
                       styles.statusIndicator,
@@ -198,8 +198,8 @@ export default function EmployeeScreen() {
                 
                 <View style={styles.employeeInfo}>
                   <Text style={styles.employeeName}>{employee.name}</Text>
-                  <Text style={styles.employeePosition}>{employee.position}</Text>
-                  <Text style={styles.employeeDepartment}>{employee.department}</Text>
+                  <Text style={styles.employeePosition}>{employee.position || 'Position not set'}</Text>
+                  <Text style={styles.employeeDepartment}>{employee.department || 'Department not set'}</Text>
                 </View>
                 
                 <View style={styles.statusContainer}>
@@ -215,24 +215,24 @@ export default function EmployeeScreen() {
               <View style={styles.employeeDetails}>
                 <View style={styles.detailItem}>
                   <Clock size={14} color="#666" />
-                  <Text style={styles.detailText}>{employee.workHours}</Text>
+                  <Text style={styles.detailText}>{employee.workHours || 'Not set'}</Text>
                 </View>
                 
                 <View style={styles.detailItem}>
                   <MapPin size={14} color="#666" />
-                  <Text style={styles.detailText}>{employee.location}</Text>
+                  <Text style={styles.detailText}>{employee.location || 'Location not set'}</Text>
                 </View>
               </View>
               
               <View style={styles.contactInfo}>
                 <View style={styles.contactItem}>
                   <Phone size={14} color="#4A90E2" />
-                  <Text style={styles.contactText}>{employee.phone}</Text>
+                  <Text style={styles.contactText}>{employee.phone || 'Phone not set'}</Text>
                 </View>
                 
                 <View style={styles.contactItem}>
                   <Mail size={14} color="#4A90E2" />
-                  <Text style={styles.contactText}>{employee.email}</Text>
+                  <Text style={styles.contactText}>{employee.email || 'Email not set'}</Text>
                 </View>
               </View>
             </TouchableOpacity>
@@ -283,10 +283,8 @@ const styles = StyleSheet.create({
     paddingVertical: 12,
     marginRight: 12,
     elevation: 2,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 1 },
-    shadowOpacity: 0.1,
-    shadowRadius: 3,
+    borderWidth: 1,
+    borderColor: '#E0E0E0',
   },
   searchInput: {
     flex: 1,
@@ -299,10 +297,8 @@ const styles = StyleSheet.create({
     borderRadius: 12,
     padding: 12,
     elevation: 2,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 1 },
-    shadowOpacity: 0.1,
-    shadowRadius: 3,
+    borderWidth: 1,
+    borderColor: '#E0E0E0',
   },
   statsContainer: {
     flexDirection: 'row',
@@ -318,14 +314,12 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     elevation: 2,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 1 },
-    shadowOpacity: 0.1,
-    shadowRadius: 3,
+    borderWidth: 1,
+    borderColor: '#E0E0E0',
   },
   statIcon: {
-    width: 40,
-    height: 40,
+    width: 30,
+    height: 30,
     borderRadius: 20,
     backgroundColor: '#F8F9FA',
     justifyContent: 'center',
@@ -360,10 +354,8 @@ const styles = StyleSheet.create({
     padding: 16,
     marginBottom: 12,
     elevation: 2,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 1 },
-    shadowOpacity: 0.1,
-    shadowRadius: 3,
+    borderWidth: 1,
+    borderColor: '#E0E0E0',
   },
   employeeHeader: {
     flexDirection: 'row',
