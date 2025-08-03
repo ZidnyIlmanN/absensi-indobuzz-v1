@@ -54,7 +54,7 @@ export const notificationsService = {
         return { notifications: [], error: handleSupabaseError(error) };
       }
 
-      const notifications = data.map(notification => this.mapNotificationRecord(notification));
+      const notifications = data.map((notification: any) => this.mapNotificationRecord(notification));
       return { notifications, error: null };
     } catch (error) {
       return { notifications: [], error: handleSupabaseError(error) };

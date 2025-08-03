@@ -1,6 +1,5 @@
 import { supabase, handleSupabaseError } from '@/lib/supabase';
 import { User } from '@/types';
-import { demoDataService } from '@/services/demo-data';
 
 export interface AuthCredentials {
   email: string;
@@ -28,18 +27,18 @@ export const authService = {
       });
 
       if (error) {
+        console.error('Supabase signUp error:', error);
         return { user: null, error: handleSupabaseError(error) };
       }
 
       if (data.user) {
-        // Get the created profile
-        const profile = await this.getProfile(data.user.id);
-        
-        // Setup demo data for new users
-        if (profile) {
-          await demoDataService.setupDemoData(data.user.id);
+        // Try to get the created profile
+        let profile = await this.getProfile(data.user.id);
+        if (!profile) {
+          // Profile not found, possibly trigger did not run or error occurred
+          console.error('Profile not found for user id:', data.user.id);
+          return { user: null, error: 'User profile not found after registration' };
         }
-        
         return { user: profile, error: null };
       }
 
@@ -63,14 +62,6 @@ export const authService = {
 
       if (data.user) {
         const profile = await this.getProfile(data.user.id);
-        
-        // Setup demo data if profile doesn't exist
-        if (!profile) {
-          await demoDataService.createDemoProfile(data.user.id);
-          const newProfile = await this.getProfile(data.user.id);
-          return { user: newProfile, error: null };
-        }
-        
         return { user: profile, error: null };
       }
 
@@ -136,6 +127,8 @@ export const authService = {
         joinDate: data.join_date || '',
         location: data.location || '',
         workSchedule: data.work_schedule || '09:00-18:00',
+        totalWorkHours: data.total_work_hours || 0,
+        totalDays: data.total_days || 0,
       };
     } catch (error) {
       console.error('Error in getProfile:', error);
@@ -146,6 +139,8 @@ export const authService = {
   // Update user profile
   async updateProfile(userId: string, updates: Partial<User>): Promise<{ error: string | null }> {
     try {
+      const joinDateValue = updates.joinDate === '' ? null : updates.joinDate;
+
       const { error } = await supabase
         .from('profiles')
         .update({
@@ -154,7 +149,7 @@ export const authService = {
           position: updates.position,
           department: updates.department,
           avatar_url: updates.avatar,
-          join_date: updates.joinDate,
+          join_date: joinDateValue,
           location: updates.location,
           work_schedule: updates.workSchedule,
           updated_at: new Date().toISOString(),
@@ -169,7 +164,7 @@ export const authService = {
 
   // Listen to auth state changes
   onAuthStateChange(callback: (user: User | null) => void) {
-    return supabase.auth.onAuthStateChange(async (event, session) => {
+    return supabase.auth.onAuthStateChange(async (_event, session) => {
       if (session?.user) {
         const profile = await this.getProfile(session.user.id);
         callback(profile);

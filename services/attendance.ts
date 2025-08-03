@@ -15,6 +15,10 @@ export interface ClockOutData {
   attendanceId: string;
   selfieUrl?: string;
   notes?: string;
+  workHours: number;
+  breakTime: number;
+  overtimeHours: number;
+  clientVisitTime: number;
 }
 
 export interface ActivityData {
@@ -27,6 +31,7 @@ export interface ActivityData {
     address: string;
   };
   notes?: string;
+  selfieUrl?: string;
 }
 
 export const attendanceService = {
@@ -98,6 +103,10 @@ export const attendanceService = {
           status: 'completed',
           notes: data.notes,
           updated_at: now.toISOString(),
+          work_hours: data.workHours,
+          break_time: data.breakTime,
+          overtime_hours: data.overtimeHours,
+          client_visit_time: data.clientVisitTime,
         })
         .eq('id', data.attendanceId);
 
@@ -146,9 +155,49 @@ export const attendanceService = {
           location_lng: data.location?.longitude,
           location_address: data.location?.address,
           notes: data.notes,
+          selfie_url: data.selfieUrl,
         });
 
-      return { error: error ? handleSupabaseError(error) : null };
+      if (error) {
+        return { error: handleSupabaseError(error) };
+      }
+
+      // Update attendance status based on activity type
+      if (data.type === 'break_start') {
+        await this.updateAttendanceStatus(data.attendanceId, 'break');
+      } else if (data.type === 'break_end') {
+        await this.updateAttendanceStatus(data.attendanceId, 'working');
+        // Calculate break duration and update break_time
+        const { data: breakStart } = await supabase
+          .from('activity_records')
+          .select('timestamp')
+          .eq('attendance_id', data.attendanceId)
+          .eq('type', 'break_start')
+          .order('timestamp', { ascending: false })
+          .limit(1)
+          .single();
+
+        if (breakStart) {
+          const breakStartTime = new Date(breakStart.timestamp);
+          const breakEndTime = new Date();
+          const breakDuration = Math.floor((breakEndTime.getTime() - breakStartTime.getTime()) / 1000 / 60); // in minutes, rounded down to integer
+
+          const { data: attendance } = await supabase
+            .from('attendance_records')
+            .select('break_time')
+            .eq('id', data.attendanceId)
+            .single();
+
+          if (attendance) {
+            await supabase
+              .from('attendance_records')
+              .update({ break_time: (attendance.break_time || 0) + breakDuration })
+              .eq('id', data.attendanceId);
+          }
+        }
+      }
+
+      return { error: null };
     } catch (error) {
       return { error: handleSupabaseError(error) };
     }
@@ -167,7 +216,7 @@ export const attendanceService = {
         `)
         .eq('user_id', userId)
         .eq('date', today)
-        .eq('status', 'working')
+        
         .single();
 
       if (error && error.code !== 'PGRST116') {
@@ -204,7 +253,7 @@ export const attendanceService = {
         return { records: [], error: handleSupabaseError(error) };
       }
 
-      const records = data.map(record => this.mapAttendanceRecord(record));
+      const records = data.map((record: any) => this.mapAttendanceRecord(record));
       return { records, error: null };
     } catch (error) {
       return { records: [], error: handleSupabaseError(error) };
@@ -228,7 +277,7 @@ export const attendanceService = {
         return { activities: [], error: handleSupabaseError(error) };
       }
 
-      const activities = data.map(activity => this.mapActivityRecord(activity));
+      const activities = data.map((activity: any) => this.mapActivityRecord(activity));
       return { activities, error: null };
     } catch (error) {
       return { activities: [], error: handleSupabaseError(error) };
@@ -256,28 +305,29 @@ export const attendanceService = {
   },
 
   // Helper function to map database record to AttendanceRecord
-  mapAttendanceRecord(data: any): AttendanceRecord {
-    return {
-      id: data.id,
-      userId: data.user_id,
-      clockIn: new Date(data.clock_in),
-      clockOut: data.clock_out ? new Date(data.clock_out) : undefined,
-      date: data.date,
-      workHours: data.work_hours || 0,
-      breakTime: data.break_time || 0,
-      overtimeHours: data.overtime_hours || 0,
-      clientVisitTime: data.client_visit_time || 0,
-      status: data.status,
-      location: {
-        latitude: parseFloat(data.location_lat),
-        longitude: parseFloat(data.location_lng),
-        address: data.location_address,
-      },
-      selfieUrl: data.selfie_url,
-      notes: data.notes,
-      activities: data.activity_records ? data.activity_records.map((act: any) => this.mapActivityRecord(act)) : [],
-    };
-  },
+mapAttendanceRecord(data: any): AttendanceRecord {
+  return {
+    id: data.id,
+    userId: data.user_id,
+    clockIn: new Date(data.clock_in),
+    clockOut: data.clock_out ? new Date(data.clock_out) : undefined,
+    date: data.date,
+    workHours: data.work_hours || 0,
+    breakTime: data.break_time || 0,
+    overtimeHours: data.overtime_hours || 0,
+    clientVisitTime: data.client_visit_time || 0,
+    status: data.status,
+    location: {
+      latitude: parseFloat(data.location_lat),
+      longitude: parseFloat(data.location_lng),
+      address: data.location_address,
+    },
+    selfieUrl: data.selfie_url,
+    notes: data.notes,
+    activities: data.activity_records ? data.activity_records.map((act: any) => this.mapActivityRecord(act)) : [],
+    breakStartTime: null, // Add this line
+  };
+},
 
   // Helper function to map database record to ActivityRecord
   mapActivityRecord(data: any): ActivityRecord {
@@ -291,6 +341,7 @@ export const attendanceService = {
         address: data.location_address,
       } : undefined,
       notes: data.notes,
+      selfieUrl: data.selfie_url,
     };
   },
 };

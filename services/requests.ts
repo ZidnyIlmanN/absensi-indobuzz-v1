@@ -57,7 +57,7 @@ export const requestsService = {
         return { requests: [], error: handleSupabaseError(error) };
       }
 
-      const requests = data.map(request => this.mapRequestRecord(request));
+      const requests = data.map((request: any) => this.mapRequestRecord(request));
       return { requests, error: null };
     } catch (error) {
       return { requests: [], error: handleSupabaseError(error) };
@@ -105,7 +105,7 @@ export const requestsService = {
         return { requests: [], error: handleSupabaseError(error) };
       }
 
-      const requests = data.map(request => this.mapRequestRecord(request));
+      const requests = data.map((request: any) => this.mapRequestRecord(request));
       return { requests, error: null };
     } catch (error) {
       return { requests: [], error: handleSupabaseError(error) };
