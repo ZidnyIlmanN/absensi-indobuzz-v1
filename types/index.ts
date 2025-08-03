@@ -1,4 +1,6 @@
 export interface User {
+  totalWorkHours: string;
+  totalDays: string;
   id: string;
   name: string;
   email: string;
@@ -13,6 +15,7 @@ export interface User {
 }
 
 export interface AttendanceRecord {
+  breakStartTime: null;
   id: string;
   userId: string;
   clockIn: Date;
@@ -43,6 +46,7 @@ export interface ActivityRecord {
     address: string;
   };
   notes?: string;
+  selfieUrl?: string;
 }
 
 export interface Request {
