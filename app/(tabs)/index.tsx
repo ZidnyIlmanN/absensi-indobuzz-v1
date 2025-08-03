@@ -15,21 +15,7 @@ import { LinearGradient } from 'expo-linear-gradient';
 import { StatusBar } from 'expo-status-bar';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { router } from 'expo-router';
-import {
-  Clock,
-  MapPin,
-  Calendar,
-  TrendingUp,
-  LogIn,
-  LogOut,
-  Camera,
-  Wifi,
-  WifiOff,
-  Grid,
-  Sun,
-  Sunset,
-  Moon,
-} from 'lucide-react-native';
+import { Clock, MapPin, Calendar, TrendingUp, LogIn, LogOut, Camera, Wifi, WifiOff, Grid2x2 as Grid, Sun, Sunset, Moon } from 'lucide-react-native';
 import { AttendanceCard } from '@/components/AttendanceCard';
 import { AttendanceStatusCard } from '@/components/AttendanceStatusCard';
 import { QuickActionCard } from '@/components/QuickActionCard';
