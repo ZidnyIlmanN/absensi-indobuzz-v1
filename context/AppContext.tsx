@@ -1,96 +1,9 @@
-import React, { createContext, useContext, useReducer, ReactNode } from 'react';
+import React, { createContext, useContext, ReactNode, useState, useEffect } from 'react';
 import { User, AttendanceRecord, Request, Notification, Employee, ActivityRecord } from '@/types';
 import { useAuth } from '@/hooks/useAuth';
-import { useAttendance } from '@/hooks/useAttendance';
+import { useAttendance } from '@/hooks/userAttendance';
 import { useNotifications } from '@/hooks/useNotifications';
 import { useRequests } from '@/hooks/useRequests';
-import { useState } from 'react';
-
-interface AppState {
-  user: User | null;
-  isAuthenticated: boolean;
-  currentAttendance: AttendanceRecord | null;
-  isWorking: boolean;
-  currentStatus: 'ready' | 'working' | 'break' | 'overtime' | 'client_visit';
-  workHours: string;
-  breakTime: string;
-  overtimeHours: string;
-  clientVisitTime: string;
-  todayActivities: ActivityRecord[];
-  requests: Request[];
-  notifications: Notification[];
-  unreadNotifications: number;
-  employees: Employee[];
-  isLoading: boolean;
-  error: string | null;
-}
-
-type AppAction = 
-  | { type: 'SET_USER'; payload: User | null }
-  | { type: 'SET_WORKING_STATUS'; payload: boolean }
-  | { type: 'SET_CURRENT_STATUS'; payload: 'ready' | 'working' | 'break' | 'overtime' | 'client_visit' }
-  | { type: 'SET_ATTENDANCE'; payload: AttendanceRecord | null }
-  | { type: 'SET_WORK_HOURS'; payload: string }
-  | { type: 'SET_BREAK_TIME'; payload: string }
-  | { type: 'SET_OVERTIME_HOURS'; payload: string }
-  | { type: 'SET_CLIENT_VISIT_TIME'; payload: string }
-  | { type: 'ADD_ACTIVITY'; payload: ActivityRecord }
-  | { type: 'SET_TODAY_ACTIVITIES'; payload: ActivityRecord[] }
-  | { type: 'ADD_REQUEST'; payload: Request }
-  | { type: 'SET_LOADING'; payload: boolean }
-  | { type: 'SET_ERROR'; payload: string | null };
-
-const initialState: AppState = {
-  user: null,
-  isAuthenticated: false,
-  currentAttendance: null,
-  isWorking: false,
-  currentStatus: 'ready',
-  workHours: '00:00',
-  breakTime: '00:00',
-  overtimeHours: '00:00',
-  clientVisitTime: '00:00',
-  todayActivities: [],
-  requests: [],
-  notifications: [],
-  unreadNotifications: 0,
-  employees: [],
-  isLoading: false,
-  error: null,
-};
-
-function appReducer(state: AppState, action: AppAction): AppState {
-  switch (action.type) {
-    case 'SET_USER':
-      return { ...state, user: action.payload, isAuthenticated: !!action.payload };
-    case 'SET_WORKING_STATUS':
-      return { ...state, isWorking: action.payload };
-    case 'SET_CURRENT_STATUS':
-      return { ...state, currentStatus: action.payload };
-    case 'SET_ATTENDANCE':
-      return { ...state, currentAttendance: action.payload };
-    case 'SET_WORK_HOURS':
-      return { ...state, workHours: action.payload };
-    case 'SET_BREAK_TIME':
-      return { ...state, breakTime: action.payload };
-    case 'SET_OVERTIME_HOURS':
-      return { ...state, overtimeHours: action.payload };
-    case 'SET_CLIENT_VISIT_TIME':
-      return { ...state, clientVisitTime: action.payload };
-    case 'ADD_ACTIVITY':
-      return { ...state, todayActivities: [action.payload, ...state.todayActivities] };
-    case 'SET_TODAY_ACTIVITIES':
-      return { ...state, todayActivities: action.payload };
-    case 'ADD_REQUEST':
-      return { ...state, requests: [action.payload, ...state.requests] };
-    case 'SET_LOADING':
-      return { ...state, isLoading: action.payload };
-    case 'SET_ERROR':
-      return { ...state, error: action.payload };
-    default:
-      return state;
-  }
-}
 
 interface AppContextType {
   // Auth
@@ -124,6 +37,7 @@ interface AppContextType {
   // UI State
   isWorking: boolean;
   currentStatus: 'ready' | 'working' | 'break' | 'overtime' | 'client_visit';
+  setCurrentStatus: (status: 'ready' | 'working' | 'break' | 'overtime' | 'client_visit') => void;
   workHours: string;
   breakTime: string;
   overtimeHours: string;
@@ -133,17 +47,11 @@ interface AppContextType {
   
   // Actions
   refreshData: () => Promise<void>;
-  
-  // State management
-  state: AppState;
-  dispatch: React.Dispatch<AppAction>;
 }
 
 const AppContext = createContext<AppContextType | null>(null);
 
 export const AppProvider = ({ children }: { children: ReactNode }) => {
-  const [state, dispatch] = useReducer(appReducer, initialState);
-  
   // Auth hooks
   const auth = useAuth();
   
@@ -152,23 +60,21 @@ export const AppProvider = ({ children }: { children: ReactNode }) => {
   const notifications = useNotifications(auth.user?.id || null);
   const requests = useRequests(auth.user?.id || null);
   
-  // Sync auth state with local state
-  React.useEffect(() => {
-    dispatch({ type: 'SET_USER', payload: auth.user });
-    dispatch({ type: 'SET_LOADING', payload: auth.isLoading });
-    dispatch({ type: 'SET_ERROR', payload: auth.error });
-  }, [auth.user, auth.isLoading, auth.error]);
-
-  // Sync attendance state
-  React.useEffect(() => {
-    dispatch({ type: 'SET_ATTENDANCE', payload: attendance.currentAttendance });
-    dispatch({ type: 'SET_TODAY_ACTIVITIES', payload: attendance.todayActivities });
-    dispatch({ type: 'SET_WORKING_STATUS', payload: !!attendance.currentAttendance });
-  }, [attendance.currentAttendance, attendance.todayActivities]);
+  // UI state
+  const [uiState, setUiState] = useState({
+    workHours: '00:00',
+    breakTime: '00:00', // Initialize breakTime
+    overtimeHours: '00:00',
+    clientVisitTime: '00:00',
+    currentStatus: 'ready' as 'working' | 'break' | 'ready' | 'overtime' | 'client_visit',
+  }); 
+  const setCurrentStatus = (status: 'ready' | 'working' | 'break' | 'overtime' | 'client_visit') => {
+    setUiState(prev => ({ ...prev, currentStatus: status }));
+  }; // This function is correctly setting the currentStatus
 
   // Calculate real-time work hours
-  React.useEffect(() => {
-    if (!attendance.currentAttendance?.clockIn) return;
+  useEffect(() => {
+    if (!attendance.currentAttendance?.clockIn || attendance.currentAttendance.status === 'completed') return;
 
     const timer = setInterval(() => {
       const now = new Date();
@@ -180,7 +86,7 @@ export const AppProvider = ({ children }: { children: ReactNode }) => {
       let totalClientVisitTime = 0;
       
       // Calculate time based on activities
-      const activities = [...state.todayActivities].sort((a, b) => a.timestamp.getTime() - b.timestamp.getTime());
+      const activities = [...attendance.todayActivities].sort((a, b) => a.timestamp.getTime() - b.timestamp.getTime());
       
       let currentActivityStart = clockInTime;
       let currentActivityType: 'working' | 'break' | 'overtime' | 'client_visit' = 'working';
@@ -207,29 +113,29 @@ export const AppProvider = ({ children }: { children: ReactNode }) => {
         }
         
         // Update current activity type based on activity
-        switch (activity.type) {
-          case 'break_start':
-            currentActivityType = 'break';
-            break;
-          case 'break_end':
-          case 'overtime_end':
-          case 'client_visit_end':
-            currentActivityType = 'working';
-            break;
-          case 'overtime_start':
-            currentActivityType = 'overtime';
-            break;
-          case 'client_visit_start':
-            currentActivityType = 'client_visit';
-            break;
-        }
+          switch (activity.type) {
+            case 'break_start':
+              currentActivityType = 'break';
+              break;
+            case 'break_end':
+            case 'overtime_end':
+            case 'client_visit_end':
+              currentActivityType = 'working';
+              break;
+            case 'overtime_start':
+              currentActivityType = 'overtime';
+              break;
+            case 'client_visit_start':
+              currentActivityType = 'client_visit';
+              break;
+          }
         
         currentActivityStart = activityTime;
       }
       
       // Add current ongoing activity time
       const currentDuration = now.getTime() - currentActivityStart;
-      switch (state.currentStatus) {
+      switch (currentActivityType) {
         case 'working':
           totalWorkTime += currentDuration;
           break;
@@ -251,20 +157,25 @@ export const AppProvider = ({ children }: { children: ReactNode }) => {
         return `${hours.toString().padStart(2, '0')}:${minutes.toString().padStart(2, '0')}`;
       };
       
-      dispatch({ type: 'SET_WORK_HOURS', payload: formatTime(totalWorkTime) });
-      dispatch({ type: 'SET_BREAK_TIME', payload: formatTime(totalBreakTime) });
-      dispatch({ type: 'SET_OVERTIME_HOURS', payload: formatTime(totalOvertimeTime) });
-      dispatch({ type: 'SET_CLIENT_VISIT_TIME', payload: formatTime(totalClientVisitTime) });
+      setUiState(prev => ({
+        ...prev,
+        workHours: formatTime(totalWorkTime),
+        breakTime: formatTime(totalBreakTime),
+        overtimeHours: formatTime(totalOvertimeTime),
+        clientVisitTime: formatTime(totalClientVisitTime),
+        currentStatus: currentActivityType,
+      }));
     }, 1000);
 
     return () => clearInterval(timer);
-  }, [attendance.currentAttendance?.clockIn, state.todayActivities, state.currentStatus]);
+  }, [attendance.currentAttendance?.clockIn, attendance.currentAttendance?.status, attendance.todayActivities, uiState.currentStatus]);
 
   const refreshData = async () => {
     await Promise.all([
       attendance.refreshData(),
       notifications.refreshNotifications(),
       requests.refreshRequests(),
+      auth.refreshUser(), // Added to refresh user data
     ]);
   };
 
@@ -298,23 +209,19 @@ export const AppProvider = ({ children }: { children: ReactNode }) => {
     deleteNotification: notifications.deleteNotification,
     
     // UI State
-    isWorking: state.isWorking,
-    currentStatus: state.currentStatus,
-    workHours: state.workHours,
-    breakTime: state.breakTime,
-    overtimeHours: state.overtimeHours,
-    clientVisitTime: state.clientVisitTime,
+    isWorking: !!attendance.currentAttendance && attendance.currentAttendance.status !== 'completed',
+    currentStatus: uiState.currentStatus,
+    setCurrentStatus,
+    workHours: uiState.workHours,
+    breakTime: uiState.breakTime,
+    overtimeHours: uiState.overtimeHours,
+    clientVisitTime: uiState.clientVisitTime,
     isLoading: auth.isLoading || attendance.isLoading || notifications.isLoading || requests.isLoading,
     error: auth.error || attendance.error || notifications.error || requests.error,
     
     // Actions
     refreshData,
-    
-    // State management
-    state,
-    dispatch,
   };
-  
   return (
     <AppContext.Provider value={contextValue}>
       {children}
