@@ -8,6 +8,8 @@ import {
   Alert,
   Dimensions,
   RefreshControl,
+  Image,
+  Animated,
 } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import { StatusBar } from 'expo-status-bar';
@@ -24,6 +26,9 @@ import {
   Wifi,
   WifiOff,
   Grid,
+  Sun,
+  Sunset,
+  Moon,
 } from 'lucide-react-native';
 import { AttendanceCard } from '@/components/AttendanceCard';
 import { AttendanceStatusCard } from '@/components/AttendanceStatusCard';
@@ -42,10 +47,15 @@ export default function HomeScreen() {
   const [isLoading, setIsLoading] = useState(false);
   const [isOnline, setIsOnline] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
+  const [greeting, setGreeting] = useState('');
+  const [greetingIcon, setGreetingIcon] = useState<React.ReactNode>(null);
+  const fadeAnim = useState(new Animated.Value(1))[0];
 
   useEffect(() => {
     const timer = setInterval(() => {
-      setCurrentTime(new Date());
+      const now = new Date();
+      setCurrentTime(now);
+      updateGreeting(now);
       if (currentAttendance?.clockIn) {
         const diff = new Date().getTime() - currentAttendance.clockIn.getTime();
         const hours = Math.floor(diff / (1000 * 60 * 60));
@@ -56,6 +66,56 @@ export default function HomeScreen() {
 
     return () => clearInterval(timer); // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [currentAttendance?.clockIn]);
+
+  const updateGreeting = (time: Date) => {
+    const hour = time.getHours();
+    let newGreeting = '';
+    let newIcon = null;
+
+    if (hour >= 5 && hour < 12) {
+      newGreeting = 'Good Morning';
+      newIcon = <Sun size={20} color="rgba(255, 255, 255, 0.9)" />;
+    } else if (hour >= 12 && hour < 17) {
+      newGreeting = 'Good Afternoon';
+      newIcon = <Sun size={20} color="rgba(255, 255, 255, 0.9)" />;
+    } else if (hour >= 17 && hour < 21) {
+      newGreeting = 'Good Evening';
+      newIcon = <Sunset size={20} color="rgba(255, 255, 255, 0.9)" />;
+    } else {
+      newGreeting = 'Good Night';
+      newIcon = <Moon size={20} color="rgba(255, 255, 255, 0.9)" />;
+    }
+
+    // Only update if greeting has changed to trigger animation
+    if (newGreeting !== greeting) {
+      // Fade out
+      Animated.timing(fadeAnim, {
+        toValue: 0,
+        duration: 200,
+        useNativeDriver: true,
+      }).start(() => {
+        // Update content
+        setGreeting(newGreeting);
+        setGreetingIcon(newIcon);
+        
+        // Fade in
+        Animated.timing(fadeAnim, {
+          toValue: 1,
+          duration: 300,
+          useNativeDriver: true,
+        }).start();
+      });
+    } else if (!greeting) {
+      // Initial load
+      setGreeting(newGreeting);
+      setGreetingIcon(newIcon);
+    }
+  };
+
+  // Initialize greeting on component mount
+  useEffect(() => {
+    updateGreeting(new Date());
+  }, []);
 
   const onRefresh = async () => {
     setRefreshing(true);
@@ -156,25 +216,27 @@ export default function HomeScreen() {
         >
           <View style={styles.headerContent}>
             <View>
-              <Text style={styles.greeting}>Good Morning,</Text>
+              <Animated.View style={[styles.greetingContainer, { opacity: fadeAnim }]}>
+                <View style={styles.greetingRow}>
+                  {greetingIcon}
+                  <Text style={styles.greeting}>{greeting},</Text>
+                </View>
+              </Animated.View>
               <Text style={styles.userName}>{user?.name || 'Employee Name'}</Text>
             </View>
             <View style={styles.headerRight}>
-
-              <View style={styles.timeContainer}>
-                <Text style={styles.currentTime}>
-                  {currentTime.toLocaleTimeString([], { 
-                    hour: '2-digit', 
-                    minute: '2-digit' 
-                  })}
-                </Text>
-                <Text style={styles.currentDate}>
-                  {currentTime.toLocaleDateString([], {
-                    weekday: 'short',
-                    day: 'numeric',
-                    month: 'short',
-                  })}
-                </Text>
+              <TouchableOpacity 
+                style={styles.profilePhotoContainer}
+                onPress={() => router.push('/(tabs)/profile')}
+                activeOpacity={0.8}
+              >
+                <Image 
+                  source={{ 
+                    uri: user?.avatar || 'https://images.pexels.com/photos/1040880/pexels-photo-1040880.jpeg?auto=compress&cs=tinysrgb&w=100'
+                  }} 
+                  style={styles.profilePhoto} 
+                />
+                <View style={styles.profilePhotoBorder} />
               </View>
             </View>
           </View>
@@ -374,10 +436,20 @@ const styles = StyleSheet.create({
     justifyContent: 'space-between',
     alignItems: 'center',
   },
+  greetingContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+  },
+  greetingRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+  },
   greeting: {
     fontSize: 16,
     color: 'rgba(255, 255, 255, 0.8)',
     marginBottom: 4,
+    marginLeft: 6,
+    fontWeight: '500',
   },
   userName: {
     fontSize: 20,
@@ -387,21 +459,33 @@ const styles = StyleSheet.create({
   headerRight: {
     alignItems: 'flex-end',
   },
-  connectionStatus: {
-    marginBottom: 8,
+  profilePhotoContainer: {
+    position: 'relative',
+    width: 50,
+    height: 50,
+    borderRadius: 25,
+    elevation: 4,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.2,
+    shadowRadius: 4,
   },
-  timeContainer: {
-    alignItems: 'flex-end',
+  profilePhoto: {
+    width: 50,
+    height: 50,
+    borderRadius: 25,
+    borderWidth: 2,
+    borderColor: 'rgba(255, 255, 255, 0.3)',
   },
-  currentTime: {
-    fontSize: 24,
-    fontWeight: 'bold',
-    color: 'white',
-  },
-  currentDate: {
-    fontSize: 12,
-    color: 'rgba(255, 255, 255, 0.8)',
-    marginTop: 2,
+  profilePhotoBorder: {
+    position: 'absolute',
+    top: 0,
+    left: 0,
+    right: 0,
+    bottom: 0,
+    borderRadius: 25,
+    borderWidth: 2,
+    borderColor: 'rgba(255, 255, 255, 0.4)',
   },
   content: {
     flex: 1,
