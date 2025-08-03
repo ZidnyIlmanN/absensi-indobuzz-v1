@@ -1,6 +1,7 @@
 import { createClient } from '@supabase/supabase-js';
 import { Database } from '@/types/database';
 import Constants from 'expo-constants';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 
 const manifest = Constants.manifest ?? Constants.expoConfig;
 const supabaseUrl = manifest?.extra?.supabaseUrl!;
@@ -8,9 +9,11 @@ const supabaseAnonKey = manifest?.extra?.supabaseAnonKey!;
 
 export const supabase = createClient<Database>(supabaseUrl, supabaseAnonKey, {
   auth: {
+    storage: AsyncStorage,
     autoRefreshToken: true,
     persistSession: true,
     detectSessionInUrl: false,
+    flowType: 'pkce',
   },
 });
 

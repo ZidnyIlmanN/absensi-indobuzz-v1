@@ -16,6 +16,7 @@ import { router } from 'expo-router';
 import { Mail, Lock, Eye, EyeOff, LogIn, UserPlus } from 'lucide-react-native';
 import { useAppContext } from '@/context/AppContext';
 import { LoadingSpinner } from '@/components/LoadingSpinner';
+import { biometricAuth } from '@/services/biometricAuth';
 
 export default function LoginScreen() {
   const insets = useSafeAreaInsets();
@@ -24,7 +25,23 @@ export default function LoginScreen() {
   const [password, setPassword] = useState('');
   const [showPassword, setShowPassword] = useState(false);
   const [isSigningIn, setIsSigningIn] = useState(false);
+  const [showBiometricOption, setShowBiometricOption] = useState(false);
+  const [biometricCapabilities, setBiometricCapabilities] = useState<any>(null);
 
+  useEffect(() => {
+    // Check biometric capabilities on component mount
+    const checkBiometrics = async () => {
+      const capabilities = await biometricAuth.getBiometricCapabilities();
+      setBiometricCapabilities(capabilities);
+      
+      if (capabilities.isAvailable) {
+        const isEnabled = await biometricAuth.isBiometricAuthEnabled();
+        setShowBiometricOption(isEnabled);
+      }
+    };
+    
+    checkBiometrics();
+  }, []);
   const handleLogin = async () => {
     if (!email.trim() || !password.trim()) {
       Alert.alert('Error', 'Please fill in all fields');
@@ -44,6 +61,24 @@ export default function LoginScreen() {
     setIsSigningIn(false);
   };
 
+  const handleBiometricLogin = async () => {
+    setIsSigningIn(true);
+    
+    try {
+      const authResult = await biometricAuth.quickBiometricLogin();
+      
+      if (authResult.success) {
+        // Biometric authentication successful, proceed with stored session
+        router.replace('/(tabs)');
+      } else {
+        Alert.alert('Biometric Login Failed', authResult.error || 'Please try again');
+      }
+    } catch (error) {
+      Alert.alert('Error', 'Biometric login failed. Please use password.');
+    }
+    
+    setIsSigningIn(false);
+  };
   const handleSignUp = () => {
  router.push('/register');
   };
@@ -122,6 +157,27 @@ export default function LoginScreen() {
                 )}
               </View>
             </TouchableOpacity>
+
+            {/* Biometric Login Button */}
+            {showBiometricOption && biometricCapabilities?.isAvailable && (
+              <TouchableOpacity
+                style={styles.biometricButton}
+                onPress={handleBiometricLogin}
+                disabled={isSigningIn}
+              >
+                <View style={styles.buttonContent}>
+                  {isSigningIn ? (
+                    <LoadingSpinner size="small" color="#4A90E2" />
+                  ) : (
+                    <>
+                      <Text style={styles.biometricButtonText}>
+                        Use {biometricCapabilities.supportedTypes[0] || 'Biometric'}
+                      </Text>
+                    </>
+                  )}
+                </View>
+              </TouchableOpacity>
+            )}
 
             {/* Sign Up Link */}
             <View style={styles.signUpContainer}>
@@ -220,6 +276,21 @@ const styles = StyleSheet.create({
     fontSize: 14,
     color: 'white',
     fontWeight: '600',
+  },
+  biometricButton: {
+    backgroundColor: 'rgba(255, 255, 255, 0.1)',
+    borderRadius: 12,
+    paddingVertical: 16,
+    paddingHorizontal: 24,
+    borderWidth: 1,
+    borderColor: 'rgba(255, 255, 255, 0.2)',
+    marginTop: 12,
+  },
+  biometricButtonText: {
+    fontSize: 16,
+    fontWeight: '600',
+    color: 'white',
+    textAlign: 'center',
   },
   demoInfo: {
     marginTop: 24,

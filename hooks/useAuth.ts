@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react';
 import { authService } from '@/services/auth';
 import { User } from '@/types';
 import { AppState, AppStateStatus } from 'react-native';
+import { sessionManager } from '@/services/sessionManager';
 
 interface AuthState {
   user: User | null;
@@ -20,44 +21,44 @@ export function useAuth() {
 
   useEffect(() => {
     console.log('[useAuth] Checking initial session...');
-    // Add timeout to avoid indefinite loading
-    let didTimeout = false;
-    const timeoutId = setTimeout(() => {
-      didTimeout = true;
-      console.warn('[useAuth] getCurrentSession timeout, setting isLoading to false');
-      setAuthState(prev => ({
-        ...prev,
-        isLoading: false,
-        error: 'Session check timed out',
-      }));
-    }, 10000); // 10 seconds timeout
+    
+    const initializeAuth = async () => {
+      try {
+        // Initialize session manager first
+        const sessionResult = await authService.initializeSession();
+        
+        if (sessionResult.user) {
+          console.log('[useAuth] Session restored from storage');
+          setAuthState({
+            user: sessionResult.user,
+            isLoading: false,
+            isAuthenticated: true,
+            error: null,
+          });
+          return;
+        }
 
-    // Check initial session
-    authService.getCurrentSession().then(({ user, error }) => {
-      if (didTimeout) {
-        // Already timed out, ignore result
-        return;
-      }
-      clearTimeout(timeoutId);
-      console.log('[useAuth] Initial session result:', { user, error });
-      console.log('[useAuth] AuthState after initial session check:', { user, isAuthenticated: !!user, isLoading: false, error });
-      setAuthState({
-        user,
-        isLoading: false,
-        isAuthenticated: !!user,
-        error,
-      });
-    }).catch((error) => {
-      if (!didTimeout) {
-        clearTimeout(timeoutId);
-        console.error('[useAuth] Error during getCurrentSession:', error);
+        // If no stored session, check current Supabase session
+        const currentSessionResult = await authService.getCurrentSession();
+        console.log('[useAuth] Current session result:', { user: currentSessionResult.user, error: currentSessionResult.error });
+        
+        setAuthState({
+          user: currentSessionResult.user,
+          isLoading: false,
+          isAuthenticated: !!currentSessionResult.user,
+          error: currentSessionResult.error,
+        });
+      } catch (error) {
+        console.error('[useAuth] Error during auth initialization:', error);
         setAuthState(prev => ({
           ...prev,
           isLoading: false,
-          error: error.message || 'Error during session check',
+          error: error instanceof Error ? error.message : 'Auth initialization error',
         }));
       }
-    });
+    };
+
+    initializeAuth();
 
     // Listen to auth changes
     const { data: { subscription } } = authService.onAuthStateChange((user) => {
@@ -87,7 +88,13 @@ export function useAuth() {
     const handleAppStateChange = (nextAppState: AppStateStatus) => {
       if (nextAppState === 'active') {
         console.log('[useAuth] App has come to foreground, refreshing user session...');
-        refreshUser();
+        // Check if session needs refresh when app becomes active
+        sessionManager.getStoredSession().then(result => {
+          if (result.needsRefresh) {
+            console.log('[useAuth] Session needs refresh on app resume');
+            sessionManager.refreshSession();
+          }
+        });
       }
     };
 
@@ -96,6 +103,7 @@ export function useAuth() {
     return () => {
       subscription?.unsubscribe();
       subscriptionAppState.remove();
+      sessionManager.cleanup();
     };
   }, []);
 

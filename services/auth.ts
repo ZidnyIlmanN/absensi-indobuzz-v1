@@ -1,5 +1,7 @@
 import { supabase, handleSupabaseError } from '@/lib/supabase';
 import { User } from '@/types';
+import { sessionManager } from './sessionManager';
+import { secureStorage, STORAGE_KEYS } from './secureStorage';
 
 export interface AuthCredentials {
   email: string;
@@ -32,6 +34,11 @@ export const authService = {
       }
 
       if (data.user) {
+        // Save session data after successful signup
+        if (data.session) {
+          await this.saveSessionData(data.session, data.user.id);
+        }
+
         // Try to get the created profile
         let profile = await this.getProfile(data.user.id);
         if (!profile) {
@@ -61,6 +68,9 @@ export const authService = {
       }
 
       if (data.user) {
+        // Save session data after successful login
+        await this.saveSessionData(data.session, data.user.id);
+
         const profile = await this.getProfile(data.user.id);
         return { user: profile, error: null };
       }
@@ -74,6 +84,9 @@ export const authService = {
   // Sign out user
   async signOut(): Promise<{ error: string | null }> {
     try {
+      // Clear stored session data
+      await sessionManager.clearSession();
+      
       const { error } = await supabase.auth.signOut();
       return { error: error ? handleSupabaseError(error) : null };
     } catch (error) {
@@ -82,8 +95,9 @@ export const authService = {
   },
 
   // Get current session
-  async getCurrentSession() {
+  async getCurrentSession(): Promise<AuthResponse> {
     try {
+      // First, try to get session from Supabase
       const { data: { session }, error } = await supabase.auth.getSession();
       
       if (error) {
@@ -95,12 +109,68 @@ export const authService = {
         return { user: profile, error: null };
       }
 
+      // If no active session, try to restore from secure storage
+      console.log('No active session found, checking stored session...');
+      const storedSessionResult = await sessionManager.getStoredSession();
+      
+      if (storedSessionResult.isValid && storedSessionResult.user) {
+        console.log('Valid stored session found, restoring...');
+        return { user: storedSessionResult.user, error: null };
+      }
+      
+      if (storedSessionResult.needsRefresh) {
+        console.log('Stored session needs refresh, attempting...');
+        const refreshResult = await sessionManager.refreshSession();
+        
+        if (refreshResult.success) {
+          // Try to get session again after refresh
+          const { data: { session: refreshedSession } } = await supabase.auth.getSession();
+          if (refreshedSession?.user) {
+            const profile = await this.getProfile(refreshedSession.user.id);
+            return { user: profile, error: null };
+          }
+        }
+      }
       return { user: null, error: null };
     } catch (error) {
       return { user: null, error: handleSupabaseError(error) };
     }
   },
 
+  // Save session data securely
+  async saveSessionData(session: any, userId: string): Promise<void> {
+    try {
+      const profile = await this.getProfile(userId);
+      if (!profile) {
+        throw new Error('User profile not found');
+      }
+
+      const sessionData = {
+        accessToken: session.access_token,
+        refreshToken: session.refresh_token,
+        expiresAt: Date.now() + (session.expires_in * 1000),
+        user: profile,
+      };
+
+      await sessionManager.saveSession(sessionData);
+    } catch (error) {
+      console.error('Failed to save session data:', error);
+      // Don't throw error here to avoid breaking the login flow
+    }
+  },
+
+  // Initialize session manager
+  async initializeSession(): Promise<AuthResponse> {
+    try {
+      const result = await sessionManager.initialize();
+      return {
+        user: result.user,
+        error: result.error || null,
+      };
+    } catch (error) {
+      return { user: null, error: handleSupabaseError(error) };
+    }
+  },
   // Get user profile
   async getProfile(userId: string): Promise<User | null> {
     try {
@@ -165,10 +235,16 @@ export const authService = {
   // Listen to auth state changes
   onAuthStateChange(callback: (user: User | null) => void) {
     return supabase.auth.onAuthStateChange(async (_event, session) => {
+      console.log('Auth state changed:', _event, !!session);
+      
       if (session?.user) {
+        // Save session data when auth state changes to signed in
+        await this.saveSessionData(session, session.user.id);
         const profile = await this.getProfile(session.user.id);
         callback(profile);
       } else {
+        // Clear session data when signed out
+        await sessionManager.clearSession();
         callback(null);
       }
     });
