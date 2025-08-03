@@ -2,7 +2,10 @@ import { Stack } from 'expo-router';
 
 export default function ClockOutLayout() {
   return (
-    <Stack screenOptions={{ headerShown: false }}>
+    <Stack screenOptions={{ 
+      headerShown: false,
+      animation: 'slide_from_right',
+    }}>
       <Stack.Screen name="selfie" />
     </Stack>
   );

@@ -20,7 +20,7 @@ const { width, height } = Dimensions.get('window');
 
 export default function ClockOutSelfieScreen() {
   const insets = useSafeAreaInsets();
-  const { state, dispatch } = useAppContext();
+  const { user, clockOut, currentAttendance } = useAppContext();
   const [facing, setFacing] = useState<CameraType>('front');
   const [permission, requestPermission] = useCameraPermissions();
   const [capturedImage, setCapturedImage] = useState<string | null>(null);
@@ -74,34 +74,29 @@ export default function ClockOutSelfieScreen() {
       // Simulate API call for face verification
       await new Promise(resolve => setTimeout(resolve, 2000));
 
-      // Clock out with selfie
+      if (!currentAttendance) {
+        Alert.alert('Error', 'No active attendance record found.');
+        setIsProcessing(false);
+        return;
+      }
+
       const { error } = await clockOut(capturedImage);
 
       if (error) {
-        throw new Error(error);
+        Alert.alert('Clock Out Failed', error);
+      } else {
+        Alert.alert(
+          'Success!',
+          'You have successfully clocked out. Have a great rest of your day!',
+          [{ text: 'OK' }]
+        );
+        router.replace('/live-attendance');
       }
-
-      // Update app state
-      dispatch({ type: 'SET_WORKING_STATUS', payload: false });
-      dispatch({ type: 'SET_CURRENT_STATUS', payload: 'ready' });
-      dispatch({ type: 'SET_WORK_HOURS', payload: '00:00' });
-      dispatch({ type: 'SET_BREAK_TIME', payload: '00:00' });
-      dispatch({ type: 'SET_OVERTIME_HOURS', payload: '00:00' });
-      dispatch({ type: 'SET_CLIENT_VISIT_TIME', payload: '00:00' });
-
-      // Navigate back to live attendance
-      router.replace('/live-attendance');
-      
-      Alert.alert(
-        'Success!',
-        'You have successfully clocked out. Have a great rest of your day!',
-        [{ text: 'OK' }]
-      );
     } catch (error) {
       console.error('Error submitting clock out:', error);
       Alert.alert(
-        'Clock Out Failed',
-        error instanceof Error ? error.message : 'Please try again with better lighting.',
+        'Verification Failed',
+        'Face verification failed. Please try again with better lighting.',
         [{ text: 'OK' }]
       );
     } finally {
