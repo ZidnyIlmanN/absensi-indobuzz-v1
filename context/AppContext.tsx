@@ -4,6 +4,7 @@ import { useAuth } from '@/hooks/useAuth';
 import { useAttendance } from '@/hooks/userAttendance';
 import { useNotifications } from '@/hooks/useNotifications';
 import { useRequests } from '@/hooks/useRequests';
+import { sessionMonitor } from '@/utils/sessionUtils';
 
 interface AppContextType {
   // Auth
@@ -72,6 +73,29 @@ export const AppProvider = ({ children }: { children: ReactNode }) => {
     setUiState(prev => ({ ...prev, currentStatus: status }));
   }; // This function is correctly setting the currentStatus
 
+  // Initialize session monitoring
+  useEffect(() => {
+    if (auth.isAuthenticated) {
+      sessionMonitor.startMonitoring({
+        onSessionExpired: () => {
+          console.log('Session expired, redirecting to login');
+          auth.signOut();
+        },
+        onSessionRefreshed: () => {
+          console.log('Session refreshed successfully');
+        },
+        onSessionError: (error) => {
+          console.error('Session error:', error);
+        },
+      });
+    } else {
+      sessionMonitor.stopMonitoring();
+    }
+
+    return () => {
+      sessionMonitor.stopMonitoring();
+    };
+  }, [auth.isAuthenticated]);
   // Calculate real-time work hours
   useEffect(() => {
     if (!attendance.currentAttendance?.clockIn || attendance.currentAttendance.status === 'completed') return;

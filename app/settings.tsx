@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import {
   View,
   Text,
@@ -13,7 +13,8 @@ import { StatusBar } from 'expo-status-bar';
 import { LinearGradient } from 'expo-linear-gradient';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { router } from 'expo-router';
-import { ArrowLeft, Globe, Clock, Palette, Type, Mail, Download, Upload, Trash2, ChevronRight, Moon, Sun, Languages, Bell, Database, TriangleAlert as AlertTriangle, Check } from 'lucide-react-native';
+import { ArrowLeft, Globe, Clock, Palette, Type, Mail, Download, Upload, Trash2, ChevronRight, Moon, Sun, Languages, Bell, Database, TriangleAlert as AlertTriangle, Check, Fingerprint } from 'lucide-react-native';
+import { biometricAuth } from '@/services/biometricAuth';
 
 interface AppSettings {
   language: string;
@@ -26,6 +27,7 @@ interface AppSettings {
   weeklyDigest: boolean;
   autoBackup: boolean;
   dataSharing: boolean;
+  biometricEnabled: boolean;
 }
 
 export default function SettingsScreen() {
@@ -41,14 +43,31 @@ export default function SettingsScreen() {
     weeklyDigest: true,
     autoBackup: true,
     dataSharing: false,
+    biometricEnabled: false,
   });
 
+  const [biometricCapabilities, setBiometricCapabilities] = useState<any>(null);
   const [showLanguageModal, setShowLanguageModal] = useState(false);
   const [showTimezoneModal, setShowTimezoneModal] = useState(false);
   const [showThemeModal, setShowThemeModal] = useState(false);
   const [showFontModal, setShowFontModal] = useState(false);
   const [showDeleteModal, setShowDeleteModal] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
+
+  useEffect(() => {
+    // Check biometric capabilities and current setting
+    const initializeBiometrics = async () => {
+      const capabilities = await biometricAuth.getBiometricCapabilities();
+      setBiometricCapabilities(capabilities);
+      
+      if (capabilities.isAvailable) {
+        const isEnabled = await biometricAuth.isBiometricAuthEnabled();
+        setSettings(prev => ({ ...prev, biometricEnabled: isEnabled }));
+      }
+    };
+    
+    initializeBiometrics();
+  }, []);
 
   const languages = [
     { code: 'en', name: 'English' },
@@ -84,6 +103,30 @@ export default function SettingsScreen() {
 
   const handleSettingChange = (key: keyof AppSettings, value: any) => {
     setSettings(prev => ({ ...prev, [key]: value }));
+  };
+
+  const handleBiometricToggle = async (enabled: boolean) => {
+    try {
+      if (enabled) {
+        const result = await biometricAuth.enableBiometricAuth();
+        if (result.success) {
+          handleSettingChange('biometricEnabled', true);
+          Alert.alert('Success', 'Biometric authentication enabled successfully');
+        } else {
+          Alert.alert('Error', result.error || 'Failed to enable biometric authentication');
+        }
+      } else {
+        const result = await biometricAuth.disableBiometricAuth();
+        if (result.success) {
+          handleSettingChange('biometricEnabled', false);
+          Alert.alert('Success', 'Biometric authentication disabled');
+        } else {
+          Alert.alert('Error', result.error || 'Failed to disable biometric authentication');
+        }
+      }
+    } catch (error) {
+      Alert.alert('Error', 'An error occurred while updating biometric settings');
+    }
   };
 
   const handleExportData = () => {
@@ -246,6 +289,24 @@ export default function SettingsScreen() {
         {/* Account Preferences */}
         <View style={styles.section}>
           <Text style={styles.sectionTitle}>Account Preferences</Text>
+          
+          {/* Biometric Authentication */}
+          {biometricCapabilities?.isAvailable && (
+            <SettingItem
+              icon={<Fingerprint size={20} color="#4CAF50" />}
+              title="Biometric Authentication"
+              subtitle={`Use ${biometricCapabilities.supportedTypes[0] || 'biometric'} for quick login`}
+              rightComponent={
+                <Switch
+                  value={settings.biometricEnabled}
+                  onValueChange={handleBiometricToggle}
+                  trackColor={{ false: '#E0E0E0', true: '#4A90E2' }}
+                  thumbColor={settings.biometricEnabled ? '#FFFFFF' : '#F4F3F4'}
+                />
+              }
+              showArrow={false}
+            />
+          )}
           
           <SettingItem
             icon={<Languages size={20} color="#4A90E2" />}
