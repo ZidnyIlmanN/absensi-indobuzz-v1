@@ -1,8 +1,10 @@
 import { createClient } from '@supabase/supabase-js';
 import { Database } from '@/types/database';
+import Constants from 'expo-constants';
 
-const supabaseUrl = process.env.EXPO_PUBLIC_SUPABASE_URL!;
-const supabaseAnonKey = process.env.EXPO_PUBLIC_SUPABASE_ANON_KEY!;
+const manifest = Constants.manifest ?? Constants.expoConfig;
+const supabaseUrl = manifest?.extra?.supabaseUrl!;
+const supabaseAnonKey = manifest?.extra?.supabaseAnonKey!;
 
 export const supabase = createClient<Database>(supabaseUrl, supabaseAnonKey, {
   auth: {
@@ -11,6 +13,7 @@ export const supabase = createClient<Database>(supabaseUrl, supabaseAnonKey, {
     detectSessionInUrl: false,
   },
 });
+
 
 // Helper function to handle Supabase errors
 export const handleSupabaseError = (error: any) => {
