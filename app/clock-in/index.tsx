@@ -6,6 +6,7 @@ import {
   TouchableOpacity,
   Dimensions,
   Alert,
+  ScrollView,
 } from 'react-native';
 import { StatusBar } from 'expo-status-bar';
 import { LinearGradient } from 'expo-linear-gradient';
@@ -27,7 +28,7 @@ const { width } = Dimensions.get('window');
 
 export default function ClockInLandingScreen() {
   const insets = useSafeAreaInsets();
-  const { state } = useAppContext();
+  const { user } = useAppContext();
   const [currentTime, setCurrentTime] = useState(new Date());
 
   useEffect(() => {
@@ -79,8 +80,9 @@ export default function ClockInLandingScreen() {
           <View style={styles.placeholder} />
         </View>
       </LinearGradient>
+      
 
-      <View style={styles.content}>
+      <ScrollView style={styles.content} showsVerticalScrollIndicator={false}>
         {/* Time Display Card */}
         <View style={styles.timeCard}>
           <LinearGradient
@@ -162,9 +164,9 @@ export default function ClockInLandingScreen() {
               <User size={20} color="#4A90E2" />
             </View>
             <View style={styles.employeeDetails}>
-              <Text style={styles.employeeName}>{state.user?.name}</Text>
-              <Text style={styles.employeePosition}>{state.user?.position}</Text>
-              <Text style={styles.employeeDepartment}>{state.user?.department}</Text>
+              <Text style={styles.employeeName}>{user?.name}</Text>
+              <Text style={styles.employeePosition}>{user?.position}</Text>
+              <Text style={styles.employeeDepartment}>{user?.department}</Text>
             </View>
           </View>
         </View>
@@ -191,7 +193,7 @@ export default function ClockInLandingScreen() {
             Make sure you're at your designated work location before starting the clock-in process.
           </Text>
         </View>
-      </View>
+      </ScrollView>
     </View>
   );
 }
@@ -231,7 +233,7 @@ const styles = StyleSheet.create({
     paddingHorizontal: 20,
   },
   timeCard: {
-    marginTop: -30,
+    marginTop: 20,
     marginBottom: 24,
     borderRadius: 16,
     elevation: 8,

@@ -11,7 +11,7 @@ import {
 import { StatusBar } from 'expo-status-bar';
 import { LinearGradient } from 'expo-linear-gradient';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import { router } from 'expo-router';
+import { router, useLocalSearchParams } from 'expo-router';
 import { CameraView, CameraType, useCameraPermissions } from 'expo-camera';
 import { ArrowLeft, Camera, RotateCcw, CircleCheck as CheckCircle, RefreshCw, User, ChevronRight } from 'lucide-react-native';
 import { useAppContext } from '@/context/AppContext';
@@ -20,7 +20,8 @@ const { width, height } = Dimensions.get('window');
 
 export default function SelfieScreen() {
   const insets = useSafeAreaInsets();
-  const { state, dispatch } = useAppContext();
+  const { user, clockIn } = useAppContext();
+  const { latitude, longitude, address } = useLocalSearchParams();
   const [facing, setFacing] = useState<CameraType>('front');
   const [permission, requestPermission] = useCameraPermissions();
   const [capturedImage, setCapturedImage] = useState<string | null>(null);
@@ -66,111 +67,42 @@ export default function SelfieScreen() {
     if (!capturedImage) {
       Alert.alert('Photo Required', 'Please take a selfie to continue.');
       return;
+
     }
 
-    setIsProcessing(true);
-
-    try {
-      // Simulate API call for face verification
-      await new Promise(resolve => setTimeout(resolve, 2000));
-
-      // Clock in with location and selfie
-      const { error } = await clockIn(
-        {
-          latitude: -6.2088,
-          longitude: 106.8456,
-          address: 'PT. INDOBUZZ REPUBLIK DIGITAL',
-        },
-        capturedImage
-      );
-
-      if (error) {
-        throw new Error(error);
-      }
-
-      // Update UI state
-      dispatch({ type: 'SET_WORKING_STATUS', payload: true });
-      dispatch({ type: 'SET_CURRENT_STATUS', payload: 'working' });
-      
-      // Navigate back to live attendance
-      router.replace('/live-attendance');
-      
-      Alert.alert(
-        'Success!',
-        'You have successfully clocked in. Have a great workday!',
-        [{ text: 'OK' }]
-      );
-    } catch (error) {
-      console.error('Error submitting attendance:', error);
-      Alert.alert(
-        'Clock In Failed',
-        error instanceof Error ? error.message : 'Please try again.',
-        [{ text: 'OK' }]
-      );
-    } finally {
-      setIsProcessing(false);
+    if (!user) {
+      Alert.alert('Error', 'User not authenticated. Please log in again.');
+      router.replace('/(auth)/login');
+      return;
     }
-  };
 
-  const handleSubmitOld = async () => {
-    if (!capturedImage) {
-      Alert.alert('Photo Required', 'Please take a selfie to continue.');
+    if (!latitude || !longitude || !address) {
+      Alert.alert('Error', 'Location data missing. Please go back and select location again.');
+      router.back();
       return;
     }
 
     setIsProcessing(true);
 
     try {
-      // Simulate API call for face verification
-      await new Promise(resolve => setTimeout(resolve, 2000));
-
-      // Create attendance record (old implementation)
-      const now = new Date();
-      const attendance = {
-        id: Date.now().toString(),
-        userId: state.user?.id || '',
-        clockIn: now,
-        date: now.toISOString().split('T')[0],
-        workHours: 0,
-        breakTime: 0,
-        overtimeHours: 0,
-        clientVisitTime: 0,
-        status: 'working' as const,
-        location: {
-          latitude: -6.2088,
-          longitude: 106.8456,
-          address: 'PT. INDOBUZZ REPUBLIK DIGITAL',
-        },
-        selfieUrl: capturedImage,
-        activities: [],
+      const locationData = {
+        latitude: parseFloat(latitude as string),
+        longitude: parseFloat(longitude as string),
+        address: address as string,
       };
 
-      // Update app state
-      dispatch({ type: 'SET_WORKING_STATUS', payload: true });
-      dispatch({ type: 'SET_CURRENT_STATUS', payload: 'working' });
-      dispatch({ type: 'SET_ATTENDANCE', payload: attendance });
-      
-      // Add clock in activity
-      const clockInActivity = {
-        id: Date.now().toString(),
-        type: 'clock_in' as const,
-        timestamp: now,
-        location: {
-          latitude: -6.2088,
-          longitude: 106.8456,
-          address: 'PT. INDOBUZZ REPUBLIK DIGITAL',
-        },
-      };
-      dispatch({ type: 'ADD_ACTIVITY', payload: clockInActivity });
+      const { error } = await clockIn(locationData, capturedImage);
 
-      // Navigate back to live attendance
-      router.replace('/live-attendance');
-      
-      Alert.alert(
-        'Success!',
-        'You have successfully clocked in. Have a great workday!',
-        [{ text: 'OK' }]
-      );
+      if (error) {
+        Alert.alert('Clock In Failed', error);
+      } else {
+        Alert.alert(
+          'Success!',
+          'You have successfully clocked in. Have a great workday!',
+          [{ text: 'OK' }]
+        );
+        router.replace('/live-attendance');
+      }
     } catch (error) {
       console.error('Error submitting attendance:', error);
       Alert.alert(
@@ -197,8 +129,7 @@ export default function SelfieScreen() {
         <StatusBar style="light" />
         <LinearGradient
           colors={['#4A90E2', '#357ABD']}
-          style={[styles.header, { paddingTop: insets.top + 20 }]}
-        >
+          style={[styles.header, { paddingTop: insets.top + 20 }]}>
           <View style={styles.headerContent}>
             <TouchableOpacity
               style={styles.backButton}
@@ -232,8 +163,7 @@ export default function SelfieScreen() {
       {/* Header */}
       <LinearGradient
         colors={['#4A90E2', '#357ABD']}
-        style={[styles.header, { paddingTop: insets.top + 20 }]}
-      >
+        style={[styles.header, { paddingTop: insets.top + 20 }]}>
         <View style={styles.headerContent}>
           <TouchableOpacity
             style={styles.backButton}

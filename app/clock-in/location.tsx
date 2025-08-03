@@ -87,14 +87,35 @@ export default function LocationSelectionScreen() {
     try {
       const result = await checkOfficeProximityDetailed(true);
       console.log('Manual refresh result:', result);
+
+      if (result.currentLocation) {
+        // Validate coordinates to avoid invalid location data
+        if (
+          result.currentLocation.latitude === 0 && result.currentLocation.longitude === 0 ||
+          result.currentLocation.latitude > 90 || result.currentLocation.latitude < -90 ||
+          result.currentLocation.longitude > 180 || result.currentLocation.longitude < -180
+        ) {
+          Alert.alert('Invalid GPS Data', 'Received invalid GPS coordinates. Please try again.');
+          setRefreshing(false);
+          return;
+        }
+      }
       
       await refreshLocation();
     } catch (error) {
       console.error('Manual refresh failed:', error);
+      Alert.alert('Location Error', 'Failed to refresh location. Please try again.');
     }
     
     setRefreshing(false);
   };
+  
+  // Additional UI feedback for location error
+  useEffect(() => {
+    if (locationError) {
+      Alert.alert('Location Error', locationError);
+    }
+  }, [locationError]);
 
   const handleLocationSelect = (locationId: string) => {
     if (officeLocation?.isInRange) {
@@ -121,8 +142,21 @@ export default function LocationSelectionScreen() {
       return;
     }
 
-    // Proceed to selfie step
-    router.push('/clock-in/selfie');
+    // Ensure currentLocation is available before proceeding
+    if (!currentLocation) {
+      Alert.alert('Error', 'Your current location could not be determined. Please try again.');
+      return;
+    }
+
+    // Proceed to selfie step, passing location data
+    router.push({
+      pathname: '/clock-in/selfie',
+      params: {
+        latitude: currentLocation.latitude.toString(), // Pass as string, convert back in selfie.tsx
+        longitude: currentLocation.longitude.toString(),
+        address: officeLocation?.address || 'Unknown Location', // Use officeLocation address
+      },
+    });
   };
 
   const handleRetryLocation = () => {
