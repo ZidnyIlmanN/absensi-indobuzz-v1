@@ -91,8 +91,8 @@ export const WORK_LOCATIONS = [
     name: 'Kantor',
     address: 'PT. INDOBUZZ REPUBLIK DIGITAL',
     coordinates: {
-      latitude: -6.2088,
-      longitude: 106.8456,
+      latitude: -6.562300216281189,
+      longitude: 107.78160173799691,
     },
     radius: 100, // 100 meters acceptable radius for better coverage
   },
@@ -100,8 +100,8 @@ export const WORK_LOCATIONS = [
 
 // Office coordinates from Google Maps link
 export const OFFICE_COORDINATES = {
-  latitude: -6.2088,
-  longitude: 106.8456,
+      latitude: -6.562300216281189,
+      longitude: 107.78160173799691,
 };
 
 export const ACCEPTABLE_RADIUS = 100; // meters - increased for better user experience
@@ -131,7 +131,7 @@ export const getHighAccuracyLocation = async (maxRetries: number = 3): Promise<L
         accuracy: Location.Accuracy.BestForNavigation,
         maximumAge: 1000, // Use cached location if less than 1 second old
         timeout: 15000, // 15 second timeout
-      });
+      } as any);
 
       const coords = {
         latitude: location.coords.latitude,
@@ -140,6 +140,15 @@ export const getHighAccuracyLocation = async (maxRetries: number = 3): Promise<L
 
       console.log(`Location obtained: ${coords.latitude}, ${coords.longitude}`);
       console.log(`Accuracy: ${location.coords.accuracy}m`);
+
+      // Check for suspiciously large coordinates or zero values
+      if (
+        coords.latitude === 0 && coords.longitude === 0 ||
+        coords.latitude > 90 || coords.latitude < -90 ||
+        coords.longitude > 180 || coords.longitude < -180
+      ) {
+        throw new Error('Invalid GPS coordinates received');
+      }
       
       return coords;
     } catch (error) {
@@ -149,15 +158,18 @@ export const getHighAccuracyLocation = async (maxRetries: number = 3): Promise<L
         // Last attempt failed, try with lower accuracy
         try {
           const location = await Location.getCurrentPositionAsync({
-            accuracy: Location.Accuracy.Balanced,
-            maximumAge: 5000,
-            timeout: 10000,
-          });
+            accuracy: Location.Accuracy.Lowest,
+            maximumAge: 1000,
+            timeout: 15000,
+          } as any);
           
-          return {
+          const fallbackCoords = {
             latitude: location.coords.latitude,
             longitude: location.coords.longitude,
           };
+
+          console.log(`Fallback location obtained: ${fallbackCoords.latitude}, ${fallbackCoords.longitude}`);
+          return fallbackCoords;
         } catch (fallbackError) {
           console.error('Fallback location failed:', fallbackError);
           return null;
@@ -209,6 +221,7 @@ export const checkOfficeProximityDetailed = async (
       isWithinRange,
       distance: Math.round(distance),
       currentLocation,
+      accuracy: undefined,
     };
   } catch (error) {
     console.error('Proximity check failed:', error);

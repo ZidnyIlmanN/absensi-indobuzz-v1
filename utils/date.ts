@@ -24,9 +24,11 @@ export const formatDateTime = (date: Date): string => {
   });
 };
 
-export const calculateWorkHours = (clockIn: Date, clockOut?: Date): string => {
-  const endTime = clockOut || new Date();
-  const diff = endTime.getTime() - clockIn.getTime();
+export const calculateWorkHours = (clockIn: Date, clockOut: number | Date | null, breakTime: number): string => {
+  const endTime = clockOut instanceof Date ? clockOut : new Date(clockOut || Date.now());
+  const diff = endTime.getTime() - clockIn.getTime() - (breakTime * 60 * 1000); // Subtract break time in milliseconds
+
+  if (diff < 0) return '00:00'; // Ensure non-negative duration
   const hours = Math.floor(diff / (1000 * 60 * 60));
   const minutes = Math.floor((diff % (1000 * 60 * 60)) / (1000 * 60));
   return `${hours.toString().padStart(2, '0')}:${minutes.toString().padStart(2, '0')}`;
