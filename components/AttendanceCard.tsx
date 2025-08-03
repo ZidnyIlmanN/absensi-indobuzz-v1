@@ -8,8 +8,9 @@ import {
   ActivityIndicator,
 } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
-import { LogIn, LogOut, MapPin, Clock } from 'lucide-react-native';
+import { LogIn, LogOut, MapPin, Clock, Coffee, Play, Pause } from 'lucide-react-native';
 import { router } from 'expo-router';
+import { useAppContext } from '@/context/AppContext';
 
 const { width } = Dimensions.get('window');
 
@@ -20,6 +21,7 @@ interface AttendanceCardProps {
   onClockOut: () => void;
   clockInTime: Date | null;
   isLoading?: boolean;
+  currentStatus: 'working' | 'break' | 'off';
 }
 
 export function AttendanceCard({
@@ -29,18 +31,92 @@ export function AttendanceCard({
   onClockOut,
   clockInTime,
   isLoading = false,
+  currentStatus,
 }: AttendanceCardProps) {
+  const { todayActivities } = useAppContext();
+  const hasTakenBreak = todayActivities.some(
+    (act) => act.type === 'break_start' || act.type === 'break_end'
+  );
+  const renderActionButtons = () => {
+    if (!isWorking) {
+      return (
+        <TouchableOpacity
+          style={styles.actionButton}
+          onPress={onClockIn}
+          disabled={isLoading}
+          activeOpacity={0.8}
+        >
+          <View style={styles.buttonContent}>
+            {isLoading ? (
+              <ActivityIndicator size="small" color="#4A90E2" />
+            ) : (
+              <LogIn size={20} color="#4A90E2" />
+            )}
+            <Text style={styles.buttonText}>
+              {isLoading ? 'Clocking In...' : 'Clock In'}
+            </Text>
+          </View>
+        </TouchableOpacity>
+      );
+    }
+
+    if (currentStatus === 'break') {
+      return (
+        <TouchableOpacity
+          style={[styles.actionButton, { backgroundColor: '#E91E63' }]}
+          onPress={() => router.push('/end-break/selfie')}
+          disabled={isLoading}
+          activeOpacity={0.8}
+        >
+          <View style={styles.buttonContent}>
+            <Play size={20} color="white" />
+            <Text style={[styles.buttonText, { color: 'white' }]}>End Break</Text>
+          </View>
+        </TouchableOpacity>
+      );
+    }
+
+    return (
+      <View style={styles.buttonRow}>
+          <TouchableOpacity
+            style={[styles.halfButton, { backgroundColor: '#FF9800' }]}
+            onPress={() => router.push('/start-break/selfie')}
+            disabled={isLoading || hasTakenBreak}
+            activeOpacity={0.8}
+          >
+            <View style={styles.buttonContent}>
+              <Coffee size={20} color="white" />
+              <Text style={[styles.buttonText, { color: 'white' }]}>
+                {hasTakenBreak ? 'Break Used' : 'Start Break'}
+              </Text>
+            </View>
+          </TouchableOpacity>
+        <TouchableOpacity
+          style={[styles.halfButton, { backgroundColor: '#F44336' }]}
+          onPress={() => router.push('/clock-out/selfie')}
+          disabled={isLoading}
+          activeOpacity={0.8}
+        >
+          <View style={styles.buttonContent}>
+            <LogOut size={20} color="white" />
+            <Text style={[styles.buttonText, { color: 'white' }]}>Clock Out</Text>
+          </View>
+        </TouchableOpacity>
+      </View>
+    );
+  };
+
   return (
     <View style={styles.container}>
       <LinearGradient
-        colors={isWorking ? ['#4CAF50', '#45A049'] : ['#4A90E2', '#357ABD']}
+        colors={isWorking ? (currentStatus === 'break' ? ['#FF9800', '#F57C00'] : ['#4CAF50', '#45A049']) : ['#4A90E2', '#357ABD']}
         style={styles.card}
       >
         <View style={styles.header}>
           <View style={styles.statusContainer}>
-            <View style={[styles.statusDot, { backgroundColor: isWorking ? '#81C784' : '#90CAF9' }]} />
+            <View style={[styles.statusDot, { backgroundColor: isWorking ? (currentStatus === 'break' ? '#FFC107' : '#81C784') : '#90CAF9' }]} />
             <Text style={styles.statusText}>
-              {isWorking ? 'Currently Working' : 'Ready to Start'}
+              {isWorking ? (currentStatus === 'break' ? 'On Break' : 'Currently Working') : 'Ready to Start'}
             </Text>
           </View>
           <View style={styles.timeContainer}>
@@ -51,7 +127,7 @@ export function AttendanceCard({
 
         <View style={styles.content}>
           <Text style={styles.mainText}>
-            {isWorking ? "You're clocked in!" : "Ready to clock in?"}
+            {isWorking ? (currentStatus === 'break' ? "Enjoy your break!" : "You're clocked in!") : "Ready to clock in?"}
           </Text>
           <Text style={styles.subText}>
             {isWorking 
@@ -62,32 +138,11 @@ export function AttendanceCard({
 
           <View style={styles.locationContainer}>
             <MapPin size={14} color="rgba(255, 255, 255, 0.8)" />
-            <Text style={styles.locationText}>Office Location • Jakarta, Indonesia</Text>
+            <Text style={styles.locationText}>Office Location • PT. INDOBUZZ REPUBLIK DIGITAL</Text>
           </View>
         </View>
 
-        <TouchableOpacity
-          style={styles.actionButton}
-          onPress={isWorking ? onClockOut : onClockIn}
-          disabled={isLoading}
-          activeOpacity={0.8}
-        >
-          <View style={styles.buttonContent}>
-            {isLoading ? (
-              <ActivityIndicator size="small" color="#4A90E2" />
-            ) : isWorking ? (
-              <LogOut size={20} color="#4A90E2" />
-            ) : (
-              <LogIn size={20} color="#4A90E2" />
-            )}
-            <Text style={styles.buttonText}>
-              {isLoading 
-                ? (isWorking ? 'Clocking Out...' : 'Clocking In...') 
-                : (isWorking ? 'Clock Out' : 'Clock In')
-              }
-            </Text>
-          </View>
-        </TouchableOpacity>
+        {renderActionButtons()}
       </LinearGradient>
     </View>
   );
@@ -184,4 +239,21 @@ const styles = StyleSheet.create({
     color: '#4A90E2',
     marginLeft: 8,
   },
+  buttonRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+  },
+  halfButton: {
+    flex: 1,
+    borderRadius: 12,
+    paddingVertical: 16,
+    paddingHorizontal: 16,
+    marginHorizontal: 4,
+    elevation: 2,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.1,
+    shadowRadius: 4,
+  },
 });
+

@@ -29,29 +29,70 @@ import { ActivityRecord } from '@/types';
 const { width } = Dimensions.get('window');
 
 export function DynamicAttendanceCard() {
-  const { state, dispatch, clockIn, clockOut, addActivity } = useAppContext();
+  const { 
+    isWorking, 
+    currentStatus, 
+    setCurrentStatus, 
+    currentAttendance, 
+    todayActivities, 
+    workHours, 
+    addActivity 
+  } = useAppContext();
   const [isLoading, setIsLoading] = useState(false);
 
-  // Helper function to add activity and update times
-  const addActivityLocal = (type: ActivityRecord['type'], notes?: string) => {
-    const activity: ActivityRecord = {
-      id: Date.now().toString(),
-      type,
-      timestamp: new Date(),
-      location: {
-        latitude: -6.2088,
-        longitude: 106.8456,
-        address: 'PT. INDOBUZZ REPUBLIK DIGITAL',
-      },
-      notes,
-    };
-    
-    dispatch({ type: 'ADD_ACTIVITY', payload: activity });
-    return activity;
+  const handleClockIn = () => {
+    router.push('/clock-in');
+  };
+
+  const handleClockOut = () => {
+    Alert.alert(
+      'Clock Out',
+      'Please take a selfie to verify your clock out',
+      [
+        { text: 'Cancel', style: 'cancel' },
+        {
+          text: 'Take Selfie',
+          onPress: () => {
+            router.push('/clock-out/selfie');
+          },
+        },
+      ]
+    );
+  };
+
+  const handleStateChange = (newState: 'overtime' | 'client_visit') => {
+    setIsLoading(true);
+
+    const currentState = currentStatus;
+
+    if (currentState === 'overtime') {
+      addActivity('overtime_end');
+    } else if (currentState === 'client_visit') {
+      addActivity('client_visit_end');
+    }
+
+    if (newState === 'overtime') {
+      addActivity('overtime_start');
+    } else if (newState === 'client_visit') {
+      addActivity('client_visit_start');
+    }
+
+    setTimeout(() => {
+      setCurrentStatus(newState);
+      setIsLoading(false);
+
+      const stateMessages = {
+        working: 'Back to work mode',
+        overtime: 'Overtime mode activated',
+        client_visit: 'Client visit started',
+      };
+
+      Alert.alert('Status Updated', stateMessages[newState] || 'Status changed');
+    }, 1000);
   };
   
   const getCardConfig = () => {
-    if (!state.isWorking) {
+    if (!isWorking) {
       return {
         state: 'ready',
         title: 'Ready to Start',
@@ -63,20 +104,19 @@ export function DynamicAttendanceCard() {
       };
     }
 
-    switch (state.currentStatus) {
+    switch (currentStatus) {
       case 'working': {
-        // Check if break has already been taken
-        const hasTakenBreak = state.todayActivities.some(
+        const hasTakenBreak = todayActivities.some(
           (act) => act.type === 'break_start' || act.type === 'break_end'
         );
         return {
           state: 'working',
           title: 'Currently Working',
-          subtitle: `Started at ${state.currentAttendance?.clockIn.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}`,
+          subtitle: `Started at ${currentAttendance?.clockIn.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}`,
           colors: ['#4CAF50', '#45A049'] as readonly ColorValue[],
           icon: <Activity size={24} color="white" />,
           buttonText: hasTakenBreak ? '' : 'Start Break',
-          buttonAction: hasTakenBreak ? undefined : () => handleStateChange('break'),
+          buttonAction: hasTakenBreak ? undefined : () => router.push('/start-break/selfie'),
         };
       }
       case 'break':
@@ -87,7 +127,7 @@ export function DynamicAttendanceCard() {
           colors: ['#FF9800', '#F57C00'] as readonly ColorValue[],
           icon: <Coffee size={24} color="white" />,
           buttonText: 'End Break',
-          buttonAction: () => handleStateChange('working'),
+          buttonAction: () => router.push('/end-break/selfie'),
         };
       case 'overtime':
         return {
@@ -97,7 +137,7 @@ export function DynamicAttendanceCard() {
           colors: ['#9C27B0', '#7B1FA2'] as readonly ColorValue[],
           icon: <RotateCcw size={24} color="white" />,
           buttonText: 'End Overtime',
-          buttonAction: () => handleStateChange('working'),
+          buttonAction: () => setCurrentStatus('working'),
         };
       case 'client_visit':
         return {
@@ -107,81 +147,19 @@ export function DynamicAttendanceCard() {
           colors: ['#2196F3', '#1976D2'] as readonly ColorValue[],
           icon: <Users size={24} color="white" />,
           buttonText: 'End Client Visit',
-          buttonAction: () => handleStateChange('working'),
+          buttonAction: () => setCurrentStatus('working'),
         };
       default:
         return {
           state: 'working',
           title: 'Currently Working',
-          subtitle: `Started at ${state.currentAttendance?.clockIn.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}`,
+          subtitle: `Started at ${currentAttendance?.clockIn.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}`,
           colors: ['#4CAF50', '#45A049'] as readonly ColorValue[],
           icon: <Activity size={24} color="white" />,
           buttonText: 'Start Break',
-          buttonAction: () => handleStateChange('break'),
+          buttonAction: () => router.push('/start-break/selfie'),
         };
     }
-  };
-
-  const handleClockIn = () => {
-    router.push('/clock-in');
-  };
-
-  const handleClockOut = () => {
-    // Fixed: Ensure selfie verification is triggered for clock out
-    Alert.alert(
-      'Clock Out',
-      'Please take a selfie to verify your clock out',
-      [
-        { text: 'Cancel', style: 'cancel' },
-        {
-          text: 'Take Selfie',
-          onPress: () => {
-            // Navigate to clock out selfie screen
-            router.push('/clock-out/selfie');
-          },
-        },
-      ]
-    );
-  };
-
-  const handleStateChange = (newState: typeof state.currentStatus) => {
-    setIsLoading(true);
-    
-    // Add activity for state changes
-    const currentState = state.currentStatus;
-    
-    // End current activity
-    if (currentState === 'break') {
-      addActivityLocal('break_end');
-    } else if (currentState === 'overtime') {
-      addActivityLocal('overtime_end');
-    } else if (currentState === 'client_visit') {
-      addActivityLocal('client_visit_end');
-    }
-    
-    // Start new activity
-    if (newState === 'break') {
-      addActivityLocal('break_start');
-    } else if (newState === 'overtime') {
-      addActivityLocal('overtime_start');
-    } else if (newState === 'client_visit') {
-      addActivityLocal('client_visit_start');
-    }
-    
-    setTimeout(() => {
-      dispatch({ type: 'SET_CURRENT_STATUS', payload: newState });
-      setIsLoading(false);
-      
-      const stateMessages = {
-        working: 'Back to work mode',
-        break: 'Break started',
-        overtime: 'Overtime mode activated',
-        client_visit: 'Client visit started',
-        ready: 'Ready to start',
-      };
-      
-      Alert.alert('Status Updated', stateMessages[newState] || 'Status changed');
-    }, 1000);
   };
 
   const config = getCardConfig();
@@ -200,7 +178,7 @@ export function DynamicAttendanceCard() {
           </View>
           <View style={styles.workHoursContainer}>
             <Clock size={16} color="rgba(255, 255, 255, 0.8)" />
-            <Text style={styles.workHours}>{state.workHours}</Text>
+            <Text style={styles.workHours}>{workHours}</Text>
           </View>
         </View>
 
@@ -232,9 +210,9 @@ export function DynamicAttendanceCard() {
           ) : null}
 
           {/* Secondary Actions */}
-          {state.isWorking && (
+          {isWorking && (
             <View style={styles.secondaryActions}>
-              {state.currentStatus === 'working' && (
+              {currentStatus === 'working' && (
                 <>
                   <TouchableOpacity
                     style={styles.secondaryButton}
@@ -409,3 +387,4 @@ const styles = StyleSheet.create({
     fontWeight: '500',
   },
 });
+

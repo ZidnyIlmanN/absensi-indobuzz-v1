@@ -2,38 +2,34 @@ import React, { useEffect } from 'react';
 import { View, StyleSheet } from 'react-native';
 import { router, useSegments } from 'expo-router';
 import { useAppContext } from '@/context/AppContext';
-import { LoadingSpinner } from '@/components/LoadingSpinner';
+import SplashScreen from '@/app/splash';
 
 interface AuthGuardProps {
   children: React.ReactNode;
 }
 
 export function AuthGuard({ children }: AuthGuardProps) {
-  const { state } = useAppContext();
+  const { user, isAuthenticated, isLoading } = useAppContext();
   const segments = useSegments();
 
   useEffect(() => {
-    if (state.isLoading) return;
+    console.log('[AuthGuard] isLoading:', isLoading, 'isAuthenticated:', isAuthenticated, 'segments:', segments);
+    if (isLoading) return;
 
-    const inAuthGroup = segments[0] === 'auth';
-    const inSplash = segments[0] === 'splash';
-    const inSplashToMain = segments[0] === 'splash-to-main';
+    const inAuthGroup = (segments[0] as string) === '(auth)';
+    const inSplash = (segments[0] as string) === 'splash';
 
-    if (!state.isAuthenticated && !inAuthGroup && !inSplash && !inSplashToMain) {
+    if (!isAuthenticated && !inAuthGroup && !inSplash) {
       // Redirect to login if not authenticated
-      router.replace('/auth/login');
-    } else if (state.isAuthenticated && inAuthGroup) {
+      router.replace('/(auth)/login' as any);
+    } else if (isAuthenticated && inAuthGroup) {
       // Redirect to main app if authenticated and in auth screens
-      router.replace('/splash-to-main');
+      router.replace('/(tabs)' as any);
     }
-  }, [state.user, state.isAuthenticated, state.isLoading, segments]);
+  }, [user, isAuthenticated, isLoading, segments]);
 
-  if (state.isLoading) {
-    return (
-      <View style={styles.loadingContainer}>
-        <LoadingSpinner text="Loading..." />
-      </View>
-    );
+  if (isLoading) {
+    return <SplashScreen />;
   }
 
   return <>{children}</>;
