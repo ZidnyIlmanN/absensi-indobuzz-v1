@@ -261,7 +261,7 @@ export default function HomeScreen() {
             </View>
           </LinearGradientWrapper>
 
-          <View style={styles.content}> {/* Closing tag added here */}
+          <View style={styles.content}>
           {/* Attendance Card */}
           {/* Derive breakStartTime from currentAttendance.activities */}
           {(() => {
