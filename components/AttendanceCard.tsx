@@ -7,7 +7,7 @@ import {
   Dimensions,
   ActivityIndicator,
 } from 'react-native';
-import { LinearGradient } from 'expo-linear-gradient';
+import { LinearGradientWrapper } from '@/components/LinearGradientWrapper';
 import { LogIn, LogOut, MapPin, Clock, Coffee, Play, Pause } from 'lucide-react-native';
 import { router } from 'expo-router';
 import { useAppContext } from '@/context/AppContext';
@@ -108,7 +108,7 @@ export function AttendanceCard({
 
   return (
     <View style={styles.container}>
-      <LinearGradient
+      <LinearGradientWrapper
         colors={isWorking ? (currentStatus === 'break' ? ['#FF9800', '#F57C00'] : ['#4CAF50', '#45A049']) : ['#4A90E2', '#357ABD']}
         style={styles.card}
       >
@@ -143,7 +143,7 @@ export function AttendanceCard({
         </View>
 
         {renderActionButtons()}
-      </LinearGradient>
+      </LinearGradientWrapper>
     </View>
   );
 }
