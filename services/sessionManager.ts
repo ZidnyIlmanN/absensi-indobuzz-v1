@@ -18,9 +18,10 @@ interface SessionValidationResult {
 
 export class SessionManager {
   private static instance: SessionManager;
-  private sessionCheckInterval: NodeJS.Timeout | null = null;
+  private sessionCheckInterval: number | null = null;
   private readonly SESSION_CHECK_INTERVAL = 5 * 60 * 1000; // 5 minutes
   private readonly TOKEN_REFRESH_THRESHOLD = 10 * 60 * 1000; // Refresh if expires in 10 minutes
+  private isRefreshing = false; // Prevent multiple concurrent refresh attempts
 
   public static getInstance(): SessionManager {
     if (!SessionManager.instance) {
@@ -92,17 +93,48 @@ export class SessionManager {
       // Check if session needs refresh soon
       const needsRefresh = (parsedSession.expiresAt - now) < this.TOKEN_REFRESH_THRESHOLD;
 
-      // Validate session with Supabase
-      const { data: { user }, error } = await supabase.auth.getUser(parsedSession.accessToken);
+      // Skip Supabase validation if we're already refreshing
+      if (this.isRefreshing) {
+        console.log('Skipping Supabase validation during refresh');
+        return {
+          isValid: true,
+          user: parsedSession.user,
+          needsRefresh,
+        };
+      }
+
+      // Validate session with Supabase with timeout
+      let validationError: string | null = null;
+      let validationUser: any = null;
       
-      if (error || !user) {
-        console.log('Session validation failed:', error);
+      try {
+        // Add timeout to prevent hanging
+        const timeoutPromise = new Promise((_, reject) => {
+          setTimeout(() => reject(new Error('Supabase validation timeout')), 5000);
+        });
+        
+        const validationPromise = supabase.auth.getUser(parsedSession.accessToken);
+        
+        const { data: { user }, error } = await Promise.race([validationPromise, timeoutPromise]) as any;
+        
+        if (error || !user) {
+          validationError = error?.message || 'Session validation failed';
+        } else {
+          validationUser = user;
+        }
+      } catch (timeoutError) {
+        console.warn('Supabase validation timed out, using stored session');
+        validationUser = parsedSession.user;
+      }
+      
+      if (validationError) {
+        console.log('Session validation failed:', validationError);
         await this.clearSession();
         return {
           isValid: false,
           user: null,
           needsRefresh: true,
-          error: 'Session validation failed',
+          error: validationError,
         };
       }
 
@@ -128,6 +160,14 @@ export class SessionManager {
    * Refresh session token
    */
   async refreshSession(): Promise<{ success: boolean; error?: string }> {
+    // Prevent multiple concurrent refresh attempts
+    if (this.isRefreshing) {
+      console.log('Refresh already in progress, skipping');
+      return { success: true };
+    }
+    
+    this.isRefreshing = true;
+    
     try {
       console.log('Attempting to refresh session...');
       
@@ -155,6 +195,8 @@ export class SessionManager {
       console.error('Error refreshing session:', error);
       await this.clearSession();
       return { success: false, error: 'Session refresh error' };
+    } finally {
+      this.isRefreshing = false;
     }
   }
 
@@ -202,7 +244,7 @@ export class SessionManager {
     if (this.sessionCheckInterval) {
       clearInterval(this.sessionCheckInterval);
     }
-
+    
     this.sessionCheckInterval = setInterval(async () => {
       const result = await this.getStoredSession();
       
@@ -239,10 +281,10 @@ export class SessionManager {
     if (result.isValid) {
       this.startSessionMonitoring();
       
-      // Auto-refresh if needed
+      // Auto-refresh if needed but don't wait for it
       if (result.needsRefresh) {
         console.log('Session needs refresh, refreshing...');
-        await this.refreshSession();
+        this.refreshSession(); // Don't await this, let it run in background
       }
     }
     

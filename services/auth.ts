@@ -137,6 +137,27 @@ export const authService = {
     }
   },
 
+  // Get current session without circular calls
+  async getCurrentSessionSafe(): Promise<AuthResponse> {
+    try {
+      // Only check Supabase for current session, don't try to restore from storage
+      const { data: { session }, error } = await supabase.auth.getSession();
+      
+      if (error) {
+        return { user: null, error: handleSupabaseError(error) };
+      }
+
+      if (session?.user) {
+        const profile = await this.getProfile(session.user.id);
+        return { user: profile, error: null };
+      }
+
+      return { user: null, error: null };
+    } catch (error) {
+      return { user: null, error: handleSupabaseError(error) };
+    }
+  },
+
   // Save session data securely
   async saveSessionData(session: any, userId: string): Promise<void> {
     try {
