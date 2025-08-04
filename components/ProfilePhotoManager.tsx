@@ -37,6 +37,7 @@ export function ProfilePhotoManager({
       return;
     }
 
+    console.log('Profile photo selected:', imageUri);
     setIsUploading(true);
     setUploadSuccess(false);
 
@@ -45,11 +46,13 @@ export function ProfilePhotoManager({
       const result = await imageService.updateProfilePhotoComplete(user.id, imageUri);
 
       if (result.error) {
+        console.error('Profile photo upload failed:', result.error);
         Alert.alert('Upload Failed', result.error);
         return;
       }
 
       if (result.avatarUrl) {
+        console.log('Profile photo uploaded successfully:', result.avatarUrl);
         // Update local context
         await updateProfile({ avatar: result.avatarUrl });
         
@@ -61,10 +64,13 @@ export function ProfilePhotoManager({
         onPhotoUpdated?.(result.avatarUrl);
 
         Alert.alert('Success', 'Profile photo updated successfully!');
+      } else {
+        console.error('No avatar URL returned from upload');
+        Alert.alert('Upload Failed', 'No avatar URL returned from upload');
       }
     } catch (error) {
       console.error('Profile photo update error:', error);
-      Alert.alert('Error', 'Failed to update profile photo');
+      Alert.alert('Error', `Failed to update profile photo: ${error instanceof Error ? error.message : 'Unknown error'}`);
     } finally {
       setIsUploading(false);
     }

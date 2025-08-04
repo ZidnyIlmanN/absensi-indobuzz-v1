@@ -37,11 +37,16 @@ export class ImageService {
    */
   async requestPermissions(): Promise<{ camera: boolean; mediaLibrary: boolean }> {
     try {
+      console.log('Requesting image picker permissions...');
       const [cameraResult, mediaResult] = await Promise.all([
         ImagePicker.requestCameraPermissionsAsync(),
         ImagePicker.requestMediaLibraryPermissionsAsync(),
       ]);
 
+      console.log('Permission results:', {
+        camera: cameraResult.status,
+        mediaLibrary: mediaResult.status,
+      });
       return {
         camera: cameraResult.status === 'granted',
         mediaLibrary: mediaResult.status === 'granted',
@@ -61,15 +66,18 @@ export class ImageService {
     aspect?: [number, number];
   }): Promise<ImagePickerResult> {
     try {
+      console.log('Requesting camera permissions...');
       const permissions = await this.requestPermissions();
       
       if (!permissions.camera) {
+        console.error('Camera permission not granted');
         return {
           uri: null,
           error: 'Camera permission not granted',
         };
       }
 
+      console.log('Camera permission granted, launching camera...');
       const result = await ImagePicker.launchCameraAsync({
         mediaTypes: ImagePicker.MediaTypeOptions.Images,
         allowsEditing: options?.allowsEditing ?? true,
@@ -78,6 +86,10 @@ export class ImageService {
         base64: false,
       });
 
+      console.log('Camera result:', {
+        canceled: result.canceled,
+        assetsLength: result.assets?.length,
+      });
       if (result.canceled) {
         return {
           uri: null,
@@ -141,8 +153,44 @@ export class ImageService {
       }
 
       if (result.assets && result.assets.length > 0) {
+        const asset = result.assets[0];
+        console.log('Camera asset details:', {
+          uri: asset.uri,
+          width: asset.width,
+          height: asset.height,
+          fileSize: asset.fileSize,
+        });
+
+        // Validate the captured image
+        if (!asset.uri) {
+          return {
+            uri: null,
+            error: 'No image URI returned from camera',
+          };
+        }
+
+        // Check if file exists and has content
+        try {
+          const testResponse = await fetch(asset.uri);
+          const testBlob = await testResponse.blob();
+          console.log('Camera captured image blob size:', testBlob.size);
+          
+          if (testBlob.size === 0) {
+            return {
+              uri: null,
+              error: 'Captured image is empty',
+            };
+          }
+        } catch (testError) {
+          console.error('Error validating captured image:', testError);
+          return {
+            uri: null,
+            error: 'Cannot validate captured image',
+          };
+        }
+
         return {
-          uri: result.assets[0].uri,
+          uri: asset.uri,
           error: null,
         };
       }
@@ -168,6 +216,37 @@ export class ImageService {
     options: ImageCompressionOptions = { quality: 0.8 }
   ): Promise<{ uri: string | null; error: string | null }> {
     try {
+      console.log('Starting image compression for URI:', uri);
+      console.log('Requesting media library permissions...');
+      console.log('Compression options:', options);
+
+      // Validate input URI
+      if (!uri || uri.trim() === '') {
+        return {
+          uri: null,
+          error: 'Invalid image URI provided',
+        };
+      }
+
+      // Check if URI is accessible
+      try {
+        const testResponse = await fetch(uri);
+        if (!testResponse.ok) {
+          console.error('URI not accessible:', testResponse.status);
+          return {
+            uri: null,
+            error: 'Image file not accessible',
+          };
+        }
+        console.log('Input image is accessible');
+      } catch (fetchError) {
+        console.error('Error testing URI accessibility:', fetchError);
+        return {
+          uri: null,
+          error: 'Cannot access image file',
+        };
+      }
+
       const manipulatorOptions: ImageManipulator.ImageManipulatorOptions = {
         compress: options.quality,
         format: options.format === 'png' ? ImageManipulator.SaveFormat.PNG : ImageManipulator.SaveFormat.JPEG,
@@ -184,14 +263,93 @@ export class ImageService {
         });
       }
 
+      console.log('Manipulator actions:', actions);
+      console.log('Manipulator options:', manipulatorOptions);
+
       const result = await ImageManipulator.manipulateAsync(
         uri,
         actions,
         manipulatorOptions
       );
 
-      return {
+      console.log('Image manipulation result:', {
         uri: result.uri,
+        width: result.width,
+        height: result.height,
+      });
+
+      // Validate the result
+      if (!result.uri) {
+        return {
+          uri: null,
+        console.error('Media library permission not granted');
+          error: 'Image manipulation failed - no output URI',
+        };
+      }
+
+      // Test the manipulated image
+      try {
+      console.log('Media library permission granted, launching gallery...');
+        const testResponse = await fetch(result.uri);
+        const testBlob = await testResponse.blob();
+        console.log('Manipulated image size:', testBlob.size);
+        
+        if (testBlob.size === 0) {
+          return {
+            uri: null,
+            error: 'Image manipulation resulted in empty file',
+      console.log('Gallery result:', {
+        canceled: result.canceled,
+        assetsLength: result.assets?.length,
+      });
+          };
+        }
+      } catch (testError) {
+        console.error('Error testing manipulated image:', testError);
+        return {
+          uri: null,
+          error: 'Cannot verify manipulated image',
+        };
+      }
+
+        const asset = result.assets[0];
+        console.log('Gallery asset details:', {
+          uri: asset.uri,
+          width: asset.width,
+          height: asset.height,
+          fileSize: asset.fileSize,
+        });
+
+        // Validate the selected image
+        if (!asset.uri) {
+          return {
+            uri: null,
+            error: 'No image URI returned from gallery',
+          };
+        }
+
+        // Check if file exists and has content
+        try {
+          const testResponse = await fetch(asset.uri);
+          const testBlob = await testResponse.blob();
+          console.log('Gallery selected image blob size:', testBlob.size);
+          
+          if (testBlob.size === 0) {
+            return {
+              uri: null,
+              error: 'Selected image is empty',
+            };
+          }
+        } catch (testError) {
+          console.error('Error validating selected image:', testError);
+          return {
+            uri: null,
+            error: 'Cannot validate selected image',
+          };
+        }
+
+      return {
+          uri: asset.uri,
         error: null,
       };
     } catch (error) {
@@ -286,6 +444,9 @@ export class ImageService {
     options?: ImageCompressionOptions
   ): Promise<ImageUploadResult> {
     try {
+      console.log('Starting profile photo upload for user:', userId);
+      console.log('Image URI:', imageUri);
+
       // Compress image with profile-specific settings
       const compressionResult = await this.compressImage(imageUri, {
         quality: 0.8,
@@ -296,15 +457,37 @@ export class ImageService {
       });
 
       if (compressionResult.error || !compressionResult.uri) {
+        console.error('Image compression failed:', compressionResult.error);
         return {
           url: null,
           error: compressionResult.error || 'Image compression failed',
         };
       }
 
+      console.log('Image compressed successfully, new URI:', compressionResult.uri);
+
       // Convert image URI to blob
       const response = await fetch(compressionResult.uri);
+      
+      if (!response.ok) {
+        console.error('Failed to fetch compressed image:', response.status, response.statusText);
+        return {
+          url: null,
+          error: `Failed to fetch image: ${response.status} ${response.statusText}`,
+        };
+      }
+
       const blob = await response.blob();
+      
+      console.log('Blob created, size:', blob.size, 'type:', blob.type);
+      
+      if (blob.size === 0) {
+        console.error('Blob is empty (0 bytes)');
+        return {
+          url: null,
+          error: 'Image file is empty after processing',
+        };
+      }
       
       // Use consistent filename for profile photos (will overwrite previous)
       const fileName = `${userId}/profile/avatar.jpg`;
@@ -316,6 +499,7 @@ export class ImageService {
         await supabase.storage
           .from('avatars')
           .remove([fileName]);
+        console.log('Previous profile photo removed (if existed)');
       } catch (deleteError) {
         // Ignore delete errors - file might not exist
         console.log('Previous profile photo not found or could not be deleted');
@@ -337,6 +521,8 @@ export class ImageService {
           fileName,
         };
       }
+
+      console.log('Upload successful, data:', data);
 
       // Get public URL with cache busting
       const { data: { publicUrl } } = supabase.storage
@@ -443,22 +629,39 @@ export class ImageService {
     imageUri: string
   ): Promise<{ avatarUrl: string | null; error: string | null }> {
     try {
+      console.log('Starting complete profile photo update workflow...');
+      console.log('User ID:', userId);
+      console.log('Image URI:', imageUri);
+
+      // Validate inputs
+      if (!userId || !imageUri) {
+        return {
+          avatarUrl: null,
+          error: 'Missing required parameters',
+        };
+      }
+
       // Upload the image
       const uploadResult = await this.uploadProfilePhoto(userId, imageUri);
       
       if (uploadResult.error || !uploadResult.url) {
+        console.error('Upload failed:', uploadResult.error);
         return {
           avatarUrl: null,
           error: uploadResult.error || 'Upload failed',
         };
       }
 
+      console.log('Upload successful, updating profile...');
+
       // Update profile record
       const updateResult = await this.updateProfileAvatar(userId, uploadResult.url);
       
       if (updateResult.error) {
+        console.error('Profile update failed:', updateResult.error);
         // If profile update fails, try to clean up uploaded image
         if (uploadResult.fileName) {
+          console.log('Cleaning up uploaded image due to profile update failure...');
           await this.deleteImage('avatars', uploadResult.fileName);
         }
         
@@ -468,11 +671,13 @@ export class ImageService {
         };
       }
 
+      console.log('Profile photo update workflow completed successfully');
       return {
         avatarUrl: uploadResult.url,
         error: null,
       };
     } catch (error) {
+      console.error('Profile photo update workflow error:', error);
       return {
         avatarUrl: null,
         error: error instanceof Error ? error.message : 'Profile photo update failed',

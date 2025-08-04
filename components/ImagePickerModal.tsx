@@ -33,6 +33,7 @@ export function ImagePickerModal({
 }: ImagePickerModalProps) {
   const handleCameraCapture = async () => {
     try {
+      console.log('Starting camera capture...');
       const result = await imageService.captureFromCamera({
         allowsEditing: allowEditing,
         aspect,
@@ -40,25 +41,33 @@ export function ImagePickerModal({
       });
 
       if (result.error) {
+        console.error('Camera capture error:', result.error);
         Alert.alert('Camera Error', result.error);
         return;
       }
 
       if (result.cancelled) {
+        console.log('Camera capture cancelled by user');
         return;
       }
 
       if (result.uri) {
+        console.log('Camera capture successful:', result.uri);
         onImageSelected(result.uri);
         onClose();
+      } else {
+        console.error('No URI returned from camera capture');
+        Alert.alert('Error', 'No image captured');
       }
     } catch (error) {
+      console.error('Camera capture exception:', error);
       Alert.alert('Error', 'Failed to capture photo from camera');
     }
   };
 
   const handleGallerySelection = async () => {
     try {
+      console.log('Starting gallery selection...');
       const result = await imageService.selectFromGallery({
         allowsEditing: allowEditing,
         aspect,
@@ -66,19 +75,26 @@ export function ImagePickerModal({
       });
 
       if (result.error) {
+        console.error('Gallery selection error:', result.error);
         Alert.alert('Gallery Error', result.error);
         return;
       }
 
       if (result.cancelled) {
+        console.log('Gallery selection cancelled by user');
         return;
       }
 
       if (result.uri) {
+        console.log('Gallery selection successful:', result.uri);
         onImageSelected(result.uri);
         onClose();
+      } else {
+        console.error('No URI returned from gallery selection');
+        Alert.alert('Error', 'No image selected');
       }
     } catch (error) {
+      console.error('Gallery selection exception:', error);
       Alert.alert('Error', 'Failed to select photo from gallery');
     }
   };
