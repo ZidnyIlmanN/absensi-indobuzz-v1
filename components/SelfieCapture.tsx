@@ -8,32 +8,55 @@ import {
   Dimensions,
   Image,
 } from 'react-native';
-import { StatusBar } from 'expo-status-bar';
-import { LinearGradient } from 'expo-linear-gradient';
-import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import { router, useLocalSearchParams } from 'expo-router';
 import { CameraView, CameraType, useCameraPermissions } from 'expo-camera';
-import { ArrowLeft, Camera, RotateCcw, CircleCheck as CheckCircle, RefreshCw, User, ChevronRight } from 'lucide-react-native';
-import { useAppContext } from '@/context/AppContext';
+import { Camera, RotateCcw, CircleCheck as CheckCircle, RefreshCw, X } from 'lucide-react-native';
+import { LoadingSpinner } from './LoadingSpinner';
 import { imageService } from '@/services/imageService';
+import { useAppContext } from '@/context/AppContext';
 
 const { width, height } = Dimensions.get('window');
 
-export default function SelfieScreen() {
-  const insets = useSafeAreaInsets();
-  const { user, clockIn } = useAppContext();
-  const { latitude, longitude, address } = useLocalSearchParams();
+interface SelfieCaptureProps {
+  visible: boolean;
+  onClose: () => void;
+  onSelfieUploaded: (selfieUrl: string) => void;
+  type: 'clock_in' | 'clock_out' | 'break_start' | 'break_end' | 'general';
+  title?: string;
+  subtitle?: string;
+  autoUpload?: boolean;
+}
+
+export function SelfieCapture({
+  visible,
+  onClose,
+  onSelfieUploaded,
+  type,
+  title = 'Take Selfie',
+  subtitle = 'Position your face in the center',
+  autoUpload = true,
+}: SelfieCaptureProps) {
+  const { user } = useAppContext();
   const [facing, setFacing] = useState<CameraType>('front');
   const [permission, requestPermission] = useCameraPermissions();
   const [capturedImage, setCapturedImage] = useState<string | null>(null);
   const [isProcessing, setIsProcessing] = useState(false);
+  const [isUploading, setIsUploading] = useState(false);
   const cameraRef = useRef<CameraView>(null);
 
   useEffect(() => {
-    if (!permission?.granted) {
+    if (visible && !permission?.granted) {
       requestPermission();
     }
-  }, [permission]);
+  }, [visible, permission]);
+
+  // Reset state when modal opens/closes
+  useEffect(() => {
+    if (!visible) {
+      setCapturedImage(null);
+      setIsProcessing(false);
+      setIsUploading(false);
+    }
+  }, [visible]);
 
   const takePicture = async () => {
     if (!cameraRef.current) return;
@@ -47,12 +70,50 @@ export default function SelfieScreen() {
       
       if (photo) {
         setCapturedImage(photo.uri);
+        
+        // Auto-upload if enabled
+        if (autoUpload) {
+          await handleUpload(photo.uri);
+        }
       }
     } catch (error) {
       console.error('Error taking picture:', error);
       Alert.alert('Error', 'Failed to capture photo. Please try again.');
     } finally {
       setIsProcessing(false);
+    }
+  };
+
+  const handleUpload = async (imageUri: string) => {
+    if (!user) {
+      Alert.alert('Error', 'User not authenticated');
+      return;
+    }
+
+    setIsUploading(true);
+
+    try {
+      const result = await imageService.uploadSelfie(user.id, imageUri, type, {
+        quality: 0.7,
+        maxWidth: 800,
+        maxHeight: 800,
+      });
+
+      if (result.error) {
+        Alert.alert('Upload Failed', result.error);
+        return;
+      }
+
+      if (result.url) {
+        onSelfieUploaded(result.url);
+        Alert.alert('Success', 'Selfie uploaded successfully!');
+        onClose();
+      }
+    } catch (error) {
+      console.error('Selfie upload error:', error);
+      Alert.alert('Error', 'Failed to upload selfie');
+    } finally {
+      setIsUploading(false);
     }
   };
 
@@ -68,65 +129,19 @@ export default function SelfieScreen() {
     if (!capturedImage) {
       Alert.alert('Photo Required', 'Please take a selfie to continue.');
       return;
-
     }
 
-    if (!user) {
-      Alert.alert('Error', 'User not authenticated. Please log in again.');
-      router.replace('/(auth)/login');
-      return;
-    }
-
-    if (!latitude || !longitude || !address) {
-      Alert.alert('Error', 'Location data missing. Please go back and select location again.');
-      router.back();
-      return;
-    }
-
-    setIsProcessing(true);
-
-    try {
-      const locationData = {
-        latitude: parseFloat(latitude as string),
-        longitude: parseFloat(longitude as string),
-        address: address as string,
-      };
-
-      // Upload selfie first, then clock in with the uploaded URL
-      const uploadResult = await imageService.uploadSelfie(user.id, capturedImage, 'clock_in');
-      
-      if (uploadResult.error) {
-        Alert.alert('Upload Failed', uploadResult.error);
-        return;
-      }
-
-      const { error } = await clockIn(locationData, uploadResult.url || undefined);
-
-      if (error) {
-        Alert.alert('Clock In Failed', error);
-      } else {
-        Alert.alert(
-          'Success!',
-          'You have successfully clocked in. Have a great workday!',
-          [{ text: 'OK', onPress: () => router.replace('/(tabs)') }]
-        );
-      }
-    } catch (error) {
-      console.error('Error submitting attendance:', error);
-      Alert.alert(
-        'Upload Failed',
-        'Failed to upload selfie. Please try again with better lighting.',
-        [{ text: 'OK' }]
-      );
-    } finally {
-      setIsProcessing(false);
+    if (!autoUpload) {
+      await handleUpload(capturedImage);
     }
   };
+
+  if (!visible) return null;
 
   if (!permission) {
     return (
       <View style={styles.container}>
-        <Text>Requesting camera permission...</Text>
+        <LoadingSpinner text="Requesting camera permission..." />
       </View>
     );
   }
@@ -134,27 +149,11 @@ export default function SelfieScreen() {
   if (!permission.granted) {
     return (
       <View style={styles.container}>
-        <StatusBar style="light" />
-        <LinearGradient
-          colors={['#4A90E2', '#357ABD']}
-          style={[styles.header, { paddingTop: insets.top + 20 }]}>
-          <View style={styles.headerContent}>
-            <TouchableOpacity
-              style={styles.backButton}
-              onPress={() => router.back()}
-            >
-              <ArrowLeft size={24} color="white" />
-            </TouchableOpacity>
-            <Text style={styles.headerTitle}>Take Selfie</Text>
-            <View style={styles.placeholder} />
-          </View>
-        </LinearGradient>
-
         <View style={styles.permissionContainer}>
           <Camera size={64} color="#E0E0E0" />
           <Text style={styles.permissionTitle}>Camera Permission Required</Text>
           <Text style={styles.permissionText}>
-            We need access to your camera to take a selfie for attendance verification.
+            We need access to your camera to take selfies for verification.
           </Text>
           <TouchableOpacity style={styles.permissionButton} onPress={requestPermission}>
             <Text style={styles.permissionButtonText}>Grant Permission</Text>
@@ -166,37 +165,6 @@ export default function SelfieScreen() {
 
   return (
     <View style={styles.container}>
-      <StatusBar style="light" />
-      
-      {/* Header */}
-      <LinearGradient
-        colors={['#4A90E2', '#357ABD']}
-        style={[styles.header, { paddingTop: insets.top + 20 }]}>
-        <View style={styles.headerContent}>
-          <TouchableOpacity
-            style={styles.backButton}
-            onPress={() => router.back()}
-          >
-            <ArrowLeft size={24} color="white" />
-          </TouchableOpacity>
-          <Text style={styles.headerTitle}>Take Selfie</Text>
-          <TouchableOpacity
-            style={styles.flipButton}
-            onPress={toggleCameraFacing}
-          >
-            <RotateCcw size={20} color="white" />
-          </TouchableOpacity>
-        </View>
-
-        {/* Progress Indicator */}
-        <View style={styles.progressContainer}>
-          <View style={styles.progressBar}>
-            <View style={[styles.progressFill, { width: '100%' }]} />
-          </View>
-          <Text style={styles.progressText}>Step 2 of 2</Text>
-        </View>
-      </LinearGradient>
-
       {capturedImage ? (
         // Preview Mode
         <View style={styles.previewContainer}>
@@ -204,9 +172,9 @@ export default function SelfieScreen() {
           
           <View style={styles.previewOverlay}>
             <View style={styles.previewHeader}>
-              <Text style={styles.previewTitle}>Photo Preview</Text>
+              <Text style={styles.previewTitle}>{title}</Text>
               <Text style={styles.previewSubtitle}>
-                Make sure your face is clearly visible
+                Review your selfie before {autoUpload ? 'uploading' : 'continuing'}
               </Text>
             </View>
 
@@ -214,43 +182,58 @@ export default function SelfieScreen() {
               <TouchableOpacity
                 style={styles.retakeButton}
                 onPress={retakePicture}
+                disabled={isUploading}
               >
                 <RefreshCw size={20} color="#4A90E2" />
                 <Text style={styles.retakeButtonText}>Retake</Text>
               </TouchableOpacity>
 
-              <TouchableOpacity
-                style={styles.submitButton}
-                onPress={handleSubmit}
-                disabled={isProcessing}
-              >
-                <LinearGradient
-                  colors={['#4A90E2', '#357ABD']}
-                  style={styles.submitButtonGradient}
+              {!autoUpload && (
+                <TouchableOpacity
+                  style={styles.submitButton}
+                  onPress={handleSubmit}
+                  disabled={isUploading}
                 >
-                  {isProcessing ? (
-                    <Text style={styles.submitButtonText}>Processing...</Text>
+                  {isUploading ? (
+                    <LoadingSpinner size="small" color="white" />
                   ) : (
                     <>
                       <CheckCircle size={20} color="white" />
-                      <Text style={styles.submitButtonText}>Complete Clock In</Text>
+                      <Text style={styles.submitButtonText}>Upload Selfie</Text>
                     </>
                   )}
-                </LinearGradient>
-              </TouchableOpacity>
+                </TouchableOpacity>
+              )}
             </View>
+
+            {/* Upload Progress */}
+            {isUploading && (
+              <View style={styles.uploadProgress}>
+                <LoadingSpinner size="small" color="#4A90E2" />
+                <Text style={styles.uploadProgressText}>Uploading selfie...</Text>
+              </View>
+            )}
           </View>
         </View>
       ) : (
         // Camera Mode
         <View style={styles.cameraContainer}>
+          {/* Header */}
+          <View style={styles.cameraHeader}>
+            <TouchableOpacity onPress={onClose} style={styles.closeButton}>
+              <X size={24} color="white" />
+            </TouchableOpacity>
+            <Text style={styles.cameraTitle}>{title}</Text>
+            <TouchableOpacity onPress={toggleCameraFacing} style={styles.flipButton}>
+              <RotateCcw size={20} color="white" />
+            </TouchableOpacity>
+          </View>
+
           {/* Instructions */}
           <View style={styles.instructionsContainer}>
             <View style={styles.instructionsCard}>
-              <User size={20} color="#4A90E2" />
-              <Text style={styles.instructionsText}>
-                Position your face in the center and tap the capture button
-              </Text>
+              <Camera size={20} color="#4A90E2" />
+              <Text style={styles.instructionsText}>{subtitle}</Text>
             </View>
           </View>
 
@@ -310,60 +293,6 @@ const styles = StyleSheet.create({
     flex: 1,
     backgroundColor: '#000',
   },
-  header: {
-    paddingBottom: 20,
-    paddingHorizontal: 20,
-    zIndex: 10,
-  },
-  headerContent: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    marginBottom: 16,
-  },
-  backButton: {
-    width: 40,
-    height: 40,
-    borderRadius: 20,
-    backgroundColor: 'rgba(255, 255, 255, 0.2)',
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  headerTitle: {
-    fontSize: 20,
-    fontWeight: 'bold',
-    color: 'white',
-  },
-  flipButton: {
-    width: 40,
-    height: 40,
-    borderRadius: 20,
-    backgroundColor: 'rgba(255, 255, 255, 0.2)',
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  placeholder: {
-    width: 40,
-  },
-  progressContainer: {
-    alignItems: 'center',
-  },
-  progressBar: {
-    width: '100%',
-    height: 4,
-    backgroundColor: 'rgba(255, 255, 255, 0.3)',
-    borderRadius: 2,
-    marginBottom: 8,
-  },
-  progressFill: {
-    height: '100%',
-    backgroundColor: 'white',
-    borderRadius: 2,
-  },
-  progressText: {
-    fontSize: 12,
-    color: 'rgba(255, 255, 255, 0.8)',
-  },
   permissionContainer: {
     flex: 1,
     justifyContent: 'center',
@@ -400,9 +329,40 @@ const styles = StyleSheet.create({
   cameraContainer: {
     flex: 1,
   },
+  cameraHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    paddingHorizontal: 20,
+    paddingTop: 60,
+    paddingBottom: 20,
+    backgroundColor: 'rgba(0, 0, 0, 0.5)',
+    zIndex: 10,
+  },
+  closeButton: {
+    width: 40,
+    height: 40,
+    borderRadius: 20,
+    backgroundColor: 'rgba(255, 255, 255, 0.2)',
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  cameraTitle: {
+    fontSize: 18,
+    fontWeight: 'bold',
+    color: 'white',
+  },
+  flipButton: {
+    width: 40,
+    height: 40,
+    borderRadius: 20,
+    backgroundColor: 'rgba(255, 255, 255, 0.2)',
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
   instructionsContainer: {
     position: 'absolute',
-    top: 20,
+    top: 140,
     left: 20,
     right: 20,
     zIndex: 5,
@@ -446,6 +406,7 @@ const styles = StyleSheet.create({
     paddingHorizontal: 20,
     paddingBottom: 40,
     alignItems: 'center',
+    backgroundColor: 'rgba(0, 0, 0, 0.5)',
   },
   controls: {
     flexDirection: 'row',
@@ -523,6 +484,7 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
+    marginBottom: 16,
   },
   retakeButton: {
     flexDirection: 'row',
@@ -542,21 +504,32 @@ const styles = StyleSheet.create({
   },
   submitButton: {
     flex: 1,
-    marginLeft: 16,
-    borderRadius: 12,
-  },
-  submitButtonGradient: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
+    backgroundColor: '#4A90E2',
     paddingVertical: 16,
     paddingHorizontal: 24,
     borderRadius: 12,
+    marginLeft: 16,
   },
   submitButtonText: {
     fontSize: 16,
     fontWeight: '600',
     color: 'white',
+    marginLeft: 8,
+  },
+  uploadProgress: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingTop: 16,
+    borderTopWidth: 1,
+    borderTopColor: 'rgba(255, 255, 255, 0.2)',
+  },
+  uploadProgressText: {
+    fontSize: 14,
+    color: 'rgba(255, 255, 255, 0.8)',
     marginLeft: 8,
   },
 });

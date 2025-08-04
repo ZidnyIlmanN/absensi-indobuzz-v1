@@ -18,6 +18,7 @@ import { router } from 'expo-router';
 import { ArrowLeft, Camera, Save, X, User, Mail, Phone, MapPin, Calendar, Briefcase, CreditCard as Edit3, Check, CircleAlert as AlertCircle } from 'lucide-react-native';
 import { useAppContext } from '@/context/AppContext';
 import { LoadingSpinner } from '@/components/LoadingSpinner';
+import { ProfilePhotoManager } from '@/components/ProfilePhotoManager';
 
 interface FormData {
   name: string;
@@ -42,7 +43,6 @@ export default function EditProfileScreen() {
   const { user, updateProfile } = useAppContext();
   const [isLoading, setIsLoading] = useState(false);
   const [isSaving, setIsSaving] = useState(false); // This state is already defined
-  const [profileImage, setProfileImage] = useState(user?.avatar || 'https://via.placeholder.com/120');
   const [hasChanges, setHasChanges] = useState(false);
   const [errors, setErrors] = useState<FormErrors>({});
   const [showSuccess, setShowSuccess] = useState(false);
@@ -97,28 +97,8 @@ export default function EditProfileScreen() {
     }
   };
 
-  const handleImagePicker = () => {
-    Alert.alert(
-      'Change Profile Picture',
-      'Choose an option',
-      [
-        { text: 'Cancel', style: 'cancel' },
-        { 
-          text: 'Camera', 
-          onPress: () => {
-            setProfileImage('https://images.pexels.com/photos/1040880/pexels-photo-1040880.jpeg?auto=compress&cs=tinysrgb&w=200');
-            setHasChanges(true);
-          }
-        },
-        { 
-          text: 'Gallery', 
-          onPress: () => {
-            setProfileImage('https://images.pexels.com/photos/1040880/pexels-photo-1040880.jpeg?auto=compress&cs=tinysrgb&w=200');
-            setHasChanges(true);
-          }
-        },
-      ]
-    );
+  const handlePhotoUpdated = (newAvatarUrl: string) => {
+    setHasChanges(true);
   };
 
   const handleSave = async () => {
@@ -138,7 +118,6 @@ export default function EditProfileScreen() {
         department: formData.department,
         location: formData.location,
         joinDate: formData.joinDate,
-        avatar: profileImage,
       });
 
       if (error) {
@@ -229,15 +208,12 @@ export default function EditProfileScreen() {
 
         {/* Profile Picture Section */}
         <View style={styles.profileImageSection}>
-          <View style={styles.imageContainer}>
-            <Image source={{ uri: profileImage }} style={styles.profileImage} />
-            <TouchableOpacity
-              style={styles.cameraButton}
-              onPress={handleImagePicker}
-            >
-              <Camera size={16} color="white" />
-            </TouchableOpacity>
-          </View>
+          <ProfilePhotoManager
+            currentAvatarUrl={user?.avatar}
+            size={120}
+            showEditButton={true}
+            onPhotoUpdated={handlePhotoUpdated}
+          />
           <Text style={styles.imageHint}>Tap to change profile picture</Text>
         </View>
 
@@ -489,44 +465,11 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     paddingVertical: 30,
   },
-  imageContainer: {
-    position: 'relative',
-    marginBottom: 12,
-  },
-  profileImage: {
-    width: 120,
-    height: 120,
-    borderRadius: 60,
-    borderWidth: 4,
-    borderColor: 'white',
-    elevation: 4,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.1,
-    shadowRadius: 4,
-  },
-  cameraButton: {
-    position: 'absolute',
-    bottom: 4,
-    right: 4,
-    backgroundColor: '#4A90E2',
-    borderRadius: 20,
-    width: 40,
-    height: 40,
-    justifyContent: 'center',
-    alignItems: 'center',
-    borderWidth: 3,
-    borderColor: 'white',
-    elevation: 4,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.2,
-    shadowRadius: 4,
-  },
   imageHint: {
     fontSize: 14,
     color: '#666',
     textAlign: 'center',
+    marginTop: 12,
   },
   formSection: {
     marginBottom: 32,

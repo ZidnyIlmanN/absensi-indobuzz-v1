@@ -15,6 +15,7 @@ export interface ClockOutData {
   attendanceId: string;
   selfieUrl?: string;
   notes?: string;
+  selfieUrl?: string;
   workHours: number;
   breakTime: number;
   overtimeHours: number;
@@ -38,6 +39,20 @@ export const attendanceService = {
   // Clock in user
   async clockIn(data: ClockInData): Promise<{ attendance: AttendanceRecord | null; error: string | null }> {
     try {
+      // Upload selfie first if provided
+      let uploadedSelfieUrl = data.selfieUrl;
+      if (data.selfieUrl && !data.selfieUrl.startsWith('http')) {
+        // If selfieUrl is a local URI, upload it first
+        const { imageService } = await import('./imageService');
+        const uploadResult = await imageService.uploadSelfie(data.userId, data.selfieUrl, 'clock_in');
+        
+        if (uploadResult.error) {
+          return { attendance: null, error: `Failed to upload selfie: ${uploadResult.error}` };
+        }
+        
+        uploadedSelfieUrl = uploadResult.url;
+      }
+
       const now = new Date();
       const today = now.toISOString().split('T')[0];
 
@@ -63,7 +78,7 @@ export const attendanceService = {
           location_lat: data.location.latitude,
           location_lng: data.location.longitude,
           location_address: data.location.address,
-          selfie_url: data.selfieUrl,
+          selfie_url: uploadedSelfieUrl,
           status: 'working',
         })
         .select()
@@ -93,6 +108,28 @@ export const attendanceService = {
   // Clock out user
   async clockOut(data: ClockOutData): Promise<{ error: string | null }> {
     try {
+      // Upload selfie first if provided
+      let uploadedSelfieUrl = data.selfieUrl;
+      if (data.selfieUrl && !data.selfieUrl.startsWith('http')) {
+        // Get user ID from attendance record
+        const { data: attendance } = await supabase
+          .from('attendance_records')
+          .select('user_id')
+          .eq('id', data.attendanceId)
+          .single();
+
+        if (attendance) {
+          const { imageService } = await import('./imageService');
+          const uploadResult = await imageService.uploadSelfie(attendance.user_id, data.selfieUrl, 'clock_out');
+          
+          if (uploadResult.error) {
+            return { error: `Failed to upload selfie: ${uploadResult.error}` };
+          }
+          
+          uploadedSelfieUrl = uploadResult.url;
+        }
+      }
+
       const now = new Date();
 
       // Update attendance record
@@ -101,6 +138,7 @@ export const attendanceService = {
         .update({
           clock_out: now.toISOString(),
           status: 'completed',
+          selfie_url: uploadedSelfieUrl,
           notes: data.notes,
           updated_at: now.toISOString(),
           work_hours: data.workHours,
@@ -144,6 +182,19 @@ export const attendanceService = {
   // Add activity record
   async addActivity(data: ActivityData): Promise<{ error: string | null }> {
     try {
+      // Upload selfie first if provided
+      let uploadedSelfieUrl = data.selfieUrl;
+      if (data.selfieUrl && !data.selfieUrl.startsWith('http')) {
+        const { imageService } = await import('./imageService');
+        const uploadResult = await imageService.uploadSelfie(data.userId, data.selfieUrl, data.type as any);
+        
+        if (uploadResult.error) {
+          return { error: `Failed to upload selfie: ${uploadResult.error}` };
+        }
+        
+        uploadedSelfieUrl = uploadResult.url;
+      }
+
       const { error } = await supabase
         .from('activity_records')
         .insert({
@@ -155,7 +206,7 @@ export const attendanceService = {
           location_lng: data.location?.longitude,
           location_address: data.location?.address,
           notes: data.notes,
-          selfie_url: data.selfieUrl,
+          selfie_url: uploadedSelfieUrl,
         });
 
       if (error) {

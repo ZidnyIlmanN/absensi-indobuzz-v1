@@ -16,18 +16,13 @@ import { useRouter } from 'expo-router';
 import { Settings, Bell, Shield, CircleHelp as HelpCircle, LogOut, CreditCard as Edit, Camera, MapPin, Phone, Mail, Calendar, Clock, ChevronRight } from 'lucide-react-native';
 import { useAppContext } from '@/context/AppContext';
 import { LoadingSpinner } from '@/components/LoadingSpinner';
+import { ProfilePhotoManager } from '@/components/ProfilePhotoManager';
 
 export default function ProfileScreen() {
   const insets = useSafeAreaInsets();
   const router = useRouter();
   const { user, signOut, refreshData, isLoading, attendanceHistory, currentAttendance } = useAppContext();
   const [refreshing, setRefreshing] = useState(false);
-
-  useEffect(() => {
-    if (user?.avatar) {
-      // setProfileImage(user.avatar); // Uncomment if you want to manage profile image state separately
-    }
-  }, [user?.avatar]);
 
   const onRefresh = async () => {
     setRefreshing(true);
@@ -79,16 +74,9 @@ export default function ProfileScreen() {
     router.push('/edit-profile');
   };
 
-  const handleChangePhoto = () => {
-    Alert.alert(
-      'Change Photo',
-      'Choose an option',
-      [
-        { text: 'Cancel', style: 'cancel' },
-        { text: 'Camera', onPress: () => Alert.alert('Info', 'Camera feature coming soon!') },
-        { text: 'Gallery', onPress: () => Alert.alert('Info', 'Gallery feature coming soon!') },
-      ]
-    );
+  const handlePhotoUpdated = (newAvatarUrl: string) => {
+    // Photo updated successfully, refresh data if needed
+    refreshData();
   };
 
   const handleLogout = async () => {
@@ -182,15 +170,12 @@ export default function ProfileScreen() {
       >
         {/* Profile Section */}
         <View style={styles.profileSection}>
-          <View style={styles.profileImageContainer}>
-            <Image source={{ uri: user.avatar || 'https://via.placeholder.com/100' }} style={styles.profileImage} />
-            <TouchableOpacity
-              style={styles.cameraButton}
-              onPress={handleChangePhoto}
-            >
-              <Camera size={16} color="white" />
-            </TouchableOpacity>
-          </View>
+          <ProfilePhotoManager
+            currentAvatarUrl={user.avatar}
+            size={100}
+            showEditButton={true}
+            onPhotoUpdated={handlePhotoUpdated}
+          />
           
           <View style={styles.profileInfo}>
             <Text style={styles.profileName}>{user.name}</Text>
@@ -355,37 +340,9 @@ const styles = StyleSheet.create({
     paddingVertical: 30,
     marginTop: -10,
   },
-  profileImageContainer: {
-    position: 'relative',
-    marginBottom: 16,
-  },
-  profileImage: {
-    width: 100,
-    height: 100,
-    borderRadius: 50,
-    borderWidth: 4,
-    borderColor: 'white',
-    elevation: 4,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.1,
-    shadowRadius: 4,
-  },
-  cameraButton: {
-    position: 'absolute',
-    bottom: 4,
-    right: 4,
-    backgroundColor: '#4A90E2',
-    borderRadius: 16,
-    width: 32,
-    height: 32,
-    justifyContent: 'center',
-    alignItems: 'center',
-    borderWidth: 2,
-    borderColor: 'white',
-  },
   profileInfo: {
     alignItems: 'center',
+    marginTop: 16,
   },
   profileName: {
     fontSize: 24,

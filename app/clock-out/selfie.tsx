@@ -15,6 +15,7 @@ import { router } from 'expo-router';
 import { CameraView, CameraType, useCameraPermissions } from 'expo-camera';
 import { ArrowLeft, Camera, RotateCcw, CircleCheck as CheckCircle, RefreshCw, LogOut, ChevronRight } from 'lucide-react-native';
 import { useAppContext } from '@/context/AppContext';
+import { imageService } from '@/services/imageService';
 
 const { width, height } = Dimensions.get('window');
 
@@ -80,23 +81,29 @@ export default function ClockOutSelfieScreen() {
         return;
       }
 
-      const { error } = await clockOut(capturedImage);
+      // Upload selfie first, then clock out with the uploaded URL
+      const uploadResult = await imageService.uploadSelfie(user.id, capturedImage, 'clock_out');
+      
+      if (uploadResult.error) {
+        Alert.alert('Upload Failed', uploadResult.error);
+        return;
+      }
 
+      const { error } = await clockOut(uploadResult.url || undefined);
       if (error) {
         Alert.alert('Clock Out Failed', error);
       } else {
         Alert.alert(
           'Success!',
           'You have successfully clocked out. Have a great rest of your day!',
-          [{ text: 'OK' }]
+          [{ text: 'OK', onPress: () => router.replace('/(tabs)') }]
         );
-        router.replace('/live-attendance');
       }
     } catch (error) {
       console.error('Error submitting clock out:', error);
       Alert.alert(
-        'Verification Failed',
-        'Face verification failed. Please try again with better lighting.',
+        'Upload Failed',
+        'Failed to upload selfie. Please try again with better lighting.',
         [{ text: 'OK' }]
       );
     } finally {
