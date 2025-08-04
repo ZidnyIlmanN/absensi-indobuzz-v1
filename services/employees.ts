@@ -5,41 +5,33 @@ export const employeesService = {
   // Get all employees
   async getAllEmployees(): Promise<{ employees: Employee[]; error: string | null }> {
     try {
-      // Get all profiles with their today's attendance record (if any)
+      // Get all profiles first
       const today = new Date().toISOString().split('T')[0];
       
       const { data: profiles, error: profilesError } = await supabase
         .from('profiles')
-        .select(`
-          *,
-          attendance_records!left (
-            id,
-            status,
-            clock_in,
-            clock_out,
-            date,
-            work_hours,
-            break_time,
-            overtime_hours,
-            client_visit_time,
-            location_lat,
-            location_lng,
-            location_address,
-            selfie_url,
-            notes
-          )
-        `)
+        .select('*')
         .order('name');
 
       if (profilesError) {
         return { employees: [], error: handleSupabaseError(profilesError) };
       }
 
-      // Map profiles to employees, filtering for today's attendance
+      // Get today's attendance records for all users
+      const { data: attendanceRecords, error: attendanceError } = await supabase
+        .from('attendance_records')
+        .select('*')
+        .eq('date', today);
+
+      if (attendanceError) {
+        console.warn('Failed to fetch attendance records:', attendanceError);
+      }
+
+      // Map profiles to employees with their attendance data
       const employees = profiles.map((profile: any) => {
-        // Find today's attendance record
-        const todayAttendance = profile.attendance_records?.find((record: any) => 
-          record.date === today
+        // Find today's attendance record for this user
+        const todayAttendance = attendanceRecords?.find((record: any) => 
+          record.user_id === profile.id
         );
         
         return this.mapEmployeeRecord(profile, todayAttendance);
@@ -62,6 +54,9 @@ export const employeesService = {
           break;
         case 'break':
           status = 'break';
+          break;
+        case 'completed':
+          status = 'offline';
           break;
         default:
           status = 'offline';

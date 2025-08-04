@@ -76,14 +76,14 @@ export default function EmployeeScreen() {
 
   const filteredEmployees = employees.filter(employee =>
     employee.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
-    employee.position.toLowerCase().includes(searchQuery.toLowerCase()) ||
-    employee.department.toLowerCase().includes(searchQuery.toLowerCase())
+    (employee.position || '').toLowerCase().includes(searchQuery.toLowerCase()) ||
+    (employee.department || '').toLowerCase().includes(searchQuery.toLowerCase())
   );
 
   // Calculate stats from real data
   const totalEmployees = employees.length;
   const workingEmployees = employees.filter(e => e.status === 'online').length;
-  const remoteEmployees = employees.filter(e => e.location.toLowerCase().includes('remote')).length;
+  const remoteEmployees = employees.filter(e => (e.location || '').toLowerCase().includes('remote')).length;
 
   return (
     <View style={styles.container}>
@@ -185,7 +185,9 @@ export default function EmployeeScreen() {
               <View style={styles.employeeHeader}>
                 <View style={styles.avatarContainer}>
                   <Image 
-                    source={{ uri: employee.avatar || 'https://ui-avatars.com/api/?name=' + encodeURIComponent(employee.name) }} 
+                    source={{ 
+                      uri: employee.avatar || `https://ui-avatars.com/api/?name=${encodeURIComponent(employee.name)}&background=4A90E2&color=fff&size=50`
+                    }} 
                     style={styles.avatar} 
                   />
                   <View
@@ -198,8 +200,8 @@ export default function EmployeeScreen() {
                 
                 <View style={styles.employeeInfo}>
                   <Text style={styles.employeeName}>{employee.name}</Text>
-                  <Text style={styles.employeePosition}>{employee.position || 'Position not set'}</Text>
-                  <Text style={styles.employeeDepartment}>{employee.department || 'Department not set'}</Text>
+                  <Text style={styles.employeePosition}>{employee.position || 'No position'}</Text>
+                  <Text style={styles.employeeDepartment}>{employee.department || 'No department'}</Text>
                 </View>
                 
                 <View style={styles.statusContainer}>
@@ -215,24 +217,24 @@ export default function EmployeeScreen() {
               <View style={styles.employeeDetails}>
                 <View style={styles.detailItem}>
                   <Clock size={14} color="#666" />
-                  <Text style={styles.detailText}>{employee.workHours || 'Not set'}</Text>
+                  <Text style={styles.detailText}>{employee.workHours || '09:00-18:00'}</Text>
                 </View>
                 
                 <View style={styles.detailItem}>
                   <MapPin size={14} color="#666" />
-                  <Text style={styles.detailText}>{employee.location || 'Location not set'}</Text>
+                  <Text style={styles.detailText}>{employee.location || 'No location'}</Text>
                 </View>
               </View>
               
               <View style={styles.contactInfo}>
                 <View style={styles.contactItem}>
                   <Phone size={14} color="#4A90E2" />
-                  <Text style={styles.contactText}>{employee.phone || 'Phone not set'}</Text>
+                  <Text style={styles.contactText}>{employee.phone || 'No phone'}</Text>
                 </View>
                 
                 <View style={styles.contactItem}>
                   <Mail size={14} color="#4A90E2" />
-                  <Text style={styles.contactText}>{employee.email || 'Email not set'}</Text>
+                  <Text style={styles.contactText}>{employee.email || 'No email'}</Text>
                 </View>
               </View>
             </TouchableOpacity>
