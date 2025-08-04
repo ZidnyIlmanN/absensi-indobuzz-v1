@@ -1,5 +1,4 @@
 import React, { useEffect } from 'react';
-import { View, Text, StyleSheet } from 'react-native';
 import { router, useSegments } from 'expo-router';
 import { useAppContext } from '@/context/AppContext';
 import SplashScreen from '@/app/splash';
@@ -21,10 +20,10 @@ export function AuthGuard({ children }: AuthGuardProps) {
 
     if (!isAuthenticated && !inAuthGroup && !inSplash) {
       // Redirect to login if not authenticated
-      router.replace('/(auth)/login' as any);
+      router.replace('/(auth)/login');
     } else if (isAuthenticated && inAuthGroup) {
       // Redirect to main app if authenticated and in auth screens
-      router.replace('/(tabs)' as any);
+      router.replace('/(tabs)');
     }
   }, [user, isAuthenticated, isLoading, segments]);
 
@@ -32,11 +31,10 @@ export function AuthGuard({ children }: AuthGuardProps) {
     return <SplashScreen />;
   }
 
-  return <View style={styles.container}>{children}</View>;
-}
+  // Ensure children is properly handled
+  if (!children) {
+    return null;
+  }
 
-const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-  },
-});
+  return <>{children}</>;
+}
