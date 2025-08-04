@@ -190,53 +190,97 @@ export default function HomeScreen() {
     },
   ];
 
+  const formatTime = (time: Date) => {
+    return time.toLocaleTimeString([], { 
+      hour: '2-digit', 
+      minute: '2-digit',
+      hour12: false 
+    });
+  };
+
+  const formatDate = (time: Date) => {
+    return time.toLocaleDateString('en-US', { 
+      weekday: 'long',
+      month: 'long', 
+      day: 'numeric' 
+    });
+  };
+
   return (
     <ErrorBoundary>
+      <StatusBar style="light" />
       <View style={styles.container}>
-        <StatusBar style="light" />
-        
-        {/* Header */}
-        <LinearGradient
-          colors={['#4A90E2', '#357ABD']}
-          style={[styles.header, { paddingTop: insets.top + 20 }]}
-        >
-          <View style={styles.headerContent}>
-            <View>
-              <Animated.View style={[styles.greetingContainer, { opacity: fadeAnim }]}>
-                <View style={styles.greetingRow}>
-                  {greetingIcon}
-                  <Text style={styles.greeting}>{greeting},</Text>
-                </View>
-              </Animated.View>
-              <Text style={styles.userName}>{user?.name || 'Employee Name'}</Text>
-            </View>
-            <View style={styles.headerRight}>
-              <TouchableOpacity 
-                style={styles.profilePhotoContainer}
-                onPress={() => router.push('/(tabs)/profile')}
-                activeOpacity={0.8}
-              >
-                <Image 
-                  source={{ 
-                    uri: user?.avatar || 'https://images.pexels.com/photos/1040880/pexels-photo-1040880.jpeg?auto=compress&cs=tinysrgb&w=100'
-                  }} 
-                  style={styles.profilePhoto} 
-                />
-                <View style={styles.profilePhotoBorder} />
-              </View>
-            </View>
-          </View>
-        </LinearGradient>
 
-        <ScrollView 
-          style={styles.content} 
+        <ScrollView
+          style={styles.container}
           showsVerticalScrollIndicator={false}
-          refreshControl={
-            <RefreshControl refreshing={refreshing} onRefresh={onRefresh} />
-          }
+          refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} />}
           contentContainerStyle={styles.scrollViewContent}
         >
+          {/* Enhanced Header */}
+          <LinearGradient
+            colors={['#667eea', '#4A90E2', 'rgba(255, 255, 255, 0.1)']}
+            locations={[0, 0.6, 1]}
+            style={[styles.header, { paddingTop: insets.top + 20 }]}
+          >
+            {/* Background Pattern */}
+            <View style={styles.headerPattern}>
+              <View style={[styles.patternCircle, styles.circle1]} />
+              <View style={[styles.patternCircle, styles.circle2]} />
+              <View style={[styles.patternCircle, styles.circle3]} />
+            </View>
 
+            {/* Header Content */}
+            <View style={styles.headerContent}>
+              <View style={styles.userSection}>
+                <TouchableOpacity
+                  style={styles.profilePhotoContainer}
+                  onPress={() => router.push('/(tabs)/profile')}
+                  activeOpacity={0.8}
+                >
+                  <Image
+                    source={{
+                      uri: user?.avatar || 'https://images.pexels.com/photos/1040880/pexels-photo-1040880.jpeg?auto=compress&cs=tinysrgb&w=100'
+                    }}
+                    style={styles.profilePhoto} 
+                  />
+                  <View style={styles.profilePhotoBorder} />
+                  <View style={styles.profilePhotoGlow} />
+                </TouchableOpacity>
+
+                <View style={styles.userInfo}>
+                  <Animated.View style={[styles.greetingContainer, { opacity: fadeAnim }]}>
+                    <View style={styles.greetingRow}>
+                      {greetingIcon}
+                      <Text style={styles.greeting}>{greeting},</Text>
+                    </View>
+                  </Animated.View>
+                  <Text style={styles.userName}>{user?.name || 'Employee Name'}</Text>
+                  <Text style={styles.userRole}>{user?.position || 'Software Developer'}</Text>
+                </View>
+              </View>
+            </View>
+
+            {/* Time and Date Display */}
+            <View style={styles.timeSection}>
+              <View style={styles.timeContainer}>
+                <Text style={styles.currentTime}>{formatTime(currentTime)}</Text>
+                <Text style={styles.currentDate}>{formatDate(currentTime)}</Text>
+              </View>
+              <View style={styles.workStatusContainer}>
+                <View style={[
+                  styles.workStatusIndicator,
+                  { backgroundColor: isWorking ? '#4CAF50' : '#FF9800' }
+                ]}>
+                  <Text style={styles.workStatusText}>
+                    {isWorking ? 'Working' : 'Off Duty'}
+                  </Text>
+                </View>
+              </View>
+            </View>
+          </LinearGradient>
+
+          <View style={styles.content}> {/* Closing tag added here */}
           {/* Attendance Card */}
           {/* Derive breakStartTime from currentAttendance.activities */}
           {(() => {
@@ -255,59 +299,56 @@ export default function HomeScreen() {
                 breakStartTime={breakStartTime}
                 attendanceStatus={currentAttendance?.status || 'ready'}
                 onPressClockIn={() => router.push('/attendance')}
-                onPressBreak={() => router.push('/attendance')}
-              />
+                onPressBreak={() => router.push('/attendance')} />
             );
           })()}
+
           <AttendanceCard
             isWorking={isWorking}
             workHours={workHours}
             onClockIn={handleClockIn}
-            onClockOut={handleClockOut} 
+            onClockOut={handleClockOut}
             clockInTime={currentAttendance?.clockIn || null}
             isLoading={isLoading}
-          currentStatus={
-            currentAttendance?.status === 'completed'
+            currentStatus={currentAttendance?.status === 'completed'
               ? 'off'
               : currentAttendance?.status === 'break'
-              ? 'break'
-              : currentAttendance?.status || 'off'
-          }
-          />
+                ? 'break'
+                : currentAttendance?.status || 'off'} />
 
           {/* Quick Actions */}
           <View style={styles.section}>
             <Text style={styles.sectionTitle}>Quick Actions</Text>
             <View style={styles.quickActionsGrid}>
               {quickActions.map((action, index) => (
-          <TouchableOpacity
-            key={`action-${index}`}
-            style={[styles.quickActionWrapper, { backgroundColor: 'transparent' }]}
-            onPress={() => {
-              switch (index) {
-                case 0:
-                  router.push('/lihat-semua');
-                  break;
-                case 1:
-                  router.push('/live-attendance-protected');
-                  break;
-                case 2:
-                  router.push('/timeoff');
-                  break;
-                case 3:
-                  router.push('/reimburse');
-                  break;
-                default:
-                  Alert.alert('Feature', `${action.title} feature coming soon!`);
-              }
-            }}
-            activeOpacity={0.7}
-          >
-            <View style={styles.quickActionIcon}>
-              {action.icon}
-            </View>
-            <Text style={styles.quickActionTitle}>{action.title}</Text>
-          </TouchableOpacity>
+                <TouchableOpacity
+                  key={`action-${index}`}
+                  style={[styles.quickActionWrapper, { backgroundColor: 'transparent' }]}
+                  onPress={() => {
+                    switch (index) {
+                      case 0:
+                        router.push('/lihat-semua');
+                        break;
+                      case 1:
+                        router.push('/live-attendance-protected');
+                        break;
+                      case 2:
+                        router.push('/timeoff');
+                        break;
+                      case 3:
+                        router.push('/reimburse');
+                        break;
+                      default:
+                        Alert.alert('Feature', `${action.title} feature coming soon!`);
+                    }
+                  }}
+                  activeOpacity={0.7}
+                >
+                  <View style={styles.quickActionIcon}>
+                    {action.icon}
+                  </View>
+                  <Text style={styles.quickActionTitle}>{action.title}</Text>
+                </TouchableOpacity>
               ))}
             </View>
           </View>
@@ -316,18 +357,16 @@ export default function HomeScreen() {
           <View style={styles.section}>
             <Text style={styles.sectionTitle}>Today's Overview</Text>
             <View style={styles.statsGrid}>
-              <StatsCard 
+              <StatsCard
                 title="Work Hours"
                 value={workHours}
                 icon={<Clock size={20} color="#4A90E2" />}
-                color="#E3F2FD"
-              />
+                color="#E3F2FD" />
               <StatsCard
                 title="Status"
                 value={isWorking ? "Working" : "Off"}
                 icon={<TrendingUp size={20} color="#4CAF50" />}
-                color="#E8F5E8"
-              />
+                color="#E8F5E8" />
             </View>
           </View>
 
@@ -339,10 +378,10 @@ export default function HomeScreen() {
                 <Text style={styles.viewAllText}>View All</Text>
               </TouchableOpacity>
             </View>
-            
-            <TouchableOpacity 
+
+            <TouchableOpacity
               style={styles.attendanceList}
-              onPress={() => router.push('/attendance')}
+              onPress={() => router.push('/attendance-history')}
               activeOpacity={0.7}
             >
               {recentAttendance.length > 0 ? (
@@ -360,23 +399,23 @@ export default function HomeScreen() {
                         {record.status === 'working' || record.clockIn ? 'Clock In' : 'Clock Out'}
                       </Text>
                       <Text style={styles.attendanceTime}>
-                        {record.clockIn 
-                          ? new Date(record.clockIn).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) 
-                          : record.clockOut 
-                          ? new Date(record.clockOut).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) 
-                          : 'N/A'}
+                        {record.clockIn
+                          ? new Date(record.clockIn).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
+                          : record.clockOut
+                            ? new Date(record.clockOut).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
+                            : 'N/A'}
                       </Text>
                       <Text style={styles.attendanceDate}>
-                        {record.clockIn 
-                          ? new Date(record.clockIn).toLocaleDateString([], { weekday: 'short', month: 'short', day: 'numeric' }) 
-                          : record.clockOut 
-                          ? new Date(record.clockOut).toLocaleDateString([], { weekday: 'short', month: 'short', day: 'numeric' }) 
-                          : 'N/A'}
+                        {record.clockIn
+                          ? new Date(record.clockIn).toLocaleDateString([], { weekday: 'short', month: 'short', day: 'numeric' })
+                          : record.clockOut
+                            ? new Date(record.clockOut).toLocaleDateString([], { weekday: 'short', month: 'short', day: 'numeric' })
+                            : 'N/A'}
                       </Text>
                     </View>
                     <View style={styles.attendanceStatus}>
                       <Text style={[
-                        styles.statusText, 
+                        styles.statusText,
                         { color: record.status === 'completed' ? '#4CAF50' : record.status === 'working' ? '#4A90E2' : '#FF9800' }
                       ]}>
                         {record.status === 'completed' ? 'Completed' : record.status === 'working' ? 'Working' : 'Pending'}
@@ -394,6 +433,7 @@ export default function HomeScreen() {
               )}
             </TouchableOpacity>
           </View>
+        </View>
         </ScrollView>
 
         {/* Loading Overlay */}
@@ -414,53 +454,62 @@ const styles = StyleSheet.create({
     backgroundColor: '#F8F9FA',
   },
   header: {
-    paddingBottom: 20,
+    paddingBottom: 30,
     paddingHorizontal: 20,
+    position: 'relative',
+    overflow: 'hidden',
+    marginBottom: 20,
+  },
+  headerPattern: {
+    position: 'absolute',
+    top: 0,
+    left: 0,
+    right: 0,
+    bottom: 0,
+  },
+  patternCircle: {
+    position: 'absolute',
+    borderRadius: 999,
+    backgroundColor: 'rgba(255, 255, 255, 0.05)',
+  },
+  circle1: {
+    width: 200,
+    height: 200,
+    top: -100,
+    right: -50,
+  },
+  circle2: {
+    width: 150,
+    height: 150,
+    bottom: -75,
+    left: -30,
+  },
+  circle3: {
+    width: 100,
+    height: 100,
+    top: 50,
+    left: -20,
   },
   headerContent: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
+    zIndex: 1,
+    marginBottom: 20,
   },
-  greetingContainer: {
-    flexDirection: 'row',
-    alignItems: 'center',
-  },
-  greetingRow: {
+  userSection: {
     flexDirection: 'row',
     alignItems: 'center',
-  },
-  greeting: {
-    fontSize: 16,
-    color: 'rgba(255, 255, 255, 0.8)',
-    marginBottom: 4,
-    marginLeft: 6,
-    fontWeight: '500',
-  },
-  userName: {
-    fontSize: 20,
-    fontWeight: 'bold',
-    color: 'white',
-  },
-  headerRight: {
-    alignItems: 'flex-end',
   },
   profilePhotoContainer: {
     position: 'relative',
-    width: 50,
-    height: 50,
-    borderRadius: 25,
-    elevation: 4,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.2,
-    shadowRadius: 4,
+    width: 60,
+    height: 60,
+    borderRadius: 30,
+    marginRight: 16,
   },
   profilePhoto: {
-    width: 50,
-    height: 50,
-    borderRadius: 25,
-    borderWidth: 2,
+    width: 60,
+    height: 60,
+    borderRadius: 30,
+    borderWidth: 3,
     borderColor: 'rgba(255, 255, 255, 0.3)',
   },
   profilePhotoBorder: {
@@ -469,17 +518,93 @@ const styles = StyleSheet.create({
     left: 0,
     right: 0,
     bottom: 0,
-    borderRadius: 25,
+    borderRadius: 30,
     borderWidth: 2,
     borderColor: 'rgba(255, 255, 255, 0.4)',
   },
-  content: {
+  profilePhotoGlow: {
+    position: 'absolute',
+    top: -5,
+    left: -5,
+    right: -5,
+    bottom: -5,
+    borderRadius: 35,
+    backgroundColor: 'transparent',
+    borderWidth: 1,
+    borderColor: 'rgba(255, 255, 255, 0.2)',
+  },
+  userInfo: {
     flex: 1,
+  },
+  greetingContainer: {
+    marginBottom: 4,
+  },
+  greetingRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+  },
+  greeting: {
+    fontSize: 16,
+    color: 'rgba(255, 255, 255, 0.8)',
+    marginLeft: 6,
+    fontWeight: '500',
+  },
+  userName: {
+    fontSize: 22,
+    fontWeight: 'bold',
+    color: 'white',
+    marginBottom: 2,
+  },
+  userRole: {
+    fontSize: 14,
+    color: 'rgba(255, 255, 255, 0.7)',
+    fontWeight: '400',
+  },
+  timeSection: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    backgroundColor: 'rgba(255, 255, 255, 0.3)',
+    borderWidth: .5,
+    borderColor: '#E0E0E0',
+    borderRadius: 12,
+    elevation: 2,
+    padding: 16,
+    zIndex: 1,
+  },
+  timeContainer: {
+    flex: 1,
+  },
+  currentTime: {
+    fontSize: 24,
+    fontWeight: 'bold',
+    color: '#4A90E2',
+    marginBottom: 2,
+  },
+  currentDate: {
+    fontSize: 14,
+    color: 'rgba(0, 0, 0, 0.48)',
+    fontWeight: '400',
+  },
+  workStatusContainer: {
+    alignItems: 'flex-end',
+  },
+  workStatusIndicator: {
+    paddingHorizontal: 12,
+    paddingVertical: 6,
+    borderRadius: 20,
+    elevation: 2,
+  },
+  workStatusText: {
+    color: 'white',
+    fontSize: 12,
+    fontWeight: '600',
+  },
+  content: {
     paddingHorizontal: 20,
   },
   scrollViewContent: {
-    paddingTop: 50, // Menambahkan ruang antara header dan AttendanceCard
-    paddingBottom: 50, // Menambahkan ruang di bagian bawah
+    paddingBottom: 50,
   },
   section: {
     marginBottom: 24,
@@ -504,7 +629,6 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     justifyContent: 'space-between',
     marginTop: 16,
-
   },
   quickActionWrapper: {
     flex: 1,
