@@ -31,38 +31,11 @@ export const employeesService = {
   // Get employees by department
   async getEmployeesByDepartment(department: string): Promise<{ employees: Employee[]; error: string | null }> {
     try {
-      const { data, error } = await supabase
-        .from('profiles')
-        .select(`
-          *,
-          attendance_records (
-            status,
-            clock_in,
-            date
-          )
-        `)
-        .eq('department', department)
-        .order('name');
-
-      if (error) {
-        return { employees: [], error: handleSupabaseError(error) };
-      }
-
-      const employees = data.map((profile: any) => this.mapEmployeeRecord(profile));
-      return { employees, error: null };
-    } catch (error) {
-      return { employees: [], error: handleSupabaseError(error) };
-    }
-  },
-
-  // Search employees
-  async searchEmployees(query: string): Promise<{ employees: Employee[]; error: string | null }> {
-    try {
-      // First, get all matching profiles
-      const { data: matchingProfiles, error: profilesError } = await supabase
+      // First, get all profiles in the department
+      const { data: departmentProfiles, error: profilesError } = await supabase
         .from('profiles')
         .select('*')
-        .or(`name.ilike.%${query}%,position.ilike.%${query}%,department.ilike.%${query}%,employee_id.ilike.%${query}%`)
+        .eq('department', department)
         .order('name');
 
       if (profilesError) {
@@ -71,7 +44,7 @@ export const employeesService = {
 
       // Then get today's attendance records for these profiles
       const today = new Date().toISOString().split('T')[0];
-      const profileIds = matchingProfiles.map(p => p.id);
+      const profileIds = departmentProfiles.map(p => p.id);
       
       const { data, error } = await supabase
         .from('attendance_records')
@@ -80,14 +53,14 @@ export const employeesService = {
         .eq('date', today);
 
       if (error) {
-        console.log('No attendance records found for search results');
+        console.log('No attendance records found for department');
       }
 
       // Create employee map
       const employeeMap = new Map();
       
-      // Add all matching profiles
-      matchingProfiles.forEach(profile => {
+      // Add all department profiles
+      departmentProfiles.forEach(profile => {
         employeeMap.set(profile.id, {
           profile,
           attendance: null
@@ -112,6 +85,33 @@ export const employeesService = {
         this.mapEmployeeRecordFromSeparateData(item.profile, item.attendance)
       );
       
+      return { employees, error: null };
+    } catch (error) {
+      return { employees: [], error: handleSupabaseError(error) };
+    }
+  },
+
+  // Search employees
+  async searchEmployees(query: string): Promise<{ employees: Employee[]; error: string | null }> {
+    try {
+      const { data, error } = await supabase
+        .from('profiles')
+        .select(`
+          *,
+          attendance_records (
+            status,
+            clock_in,
+            date
+          )
+        `)
+        .or(`name.ilike.%${query}%,position.ilike.%${query}%,department.ilike.%${query}%,employee_id.ilike.%${query}%`)
+        .order('name');
+
+      if (error) {
+        return { employees: [], error: handleSupabaseError(error) };
+      }
+
+      const employees = data.map((profile: any) => this.mapEmployeeRecord(profile));
       return { employees, error: null };
     } catch (error) {
       return { employees: [], error: handleSupabaseError(error) };
