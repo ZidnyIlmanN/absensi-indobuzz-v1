@@ -9,9 +9,8 @@ import {
   Dimensions,
   RefreshControl,
   Image,
-  Animated,
 } from 'react-native';
-import { LinearGradient } from 'expo-linear-gradient';
+import { LinearGradientWrapper } from '@/components/LinearGradientWrapper';
 import { StatusBar } from 'expo-status-bar';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { router } from 'expo-router';
@@ -35,7 +34,6 @@ export default function HomeScreen() {
   const [refreshing, setRefreshing] = useState(false);
   const [greeting, setGreeting] = useState('');
   const [greetingIcon, setGreetingIcon] = useState<React.ReactNode>(null);
-  const fadeAnim = useState(new Animated.Value(1))[0];
 
   useEffect(() => {
     const timer = setInterval(() => {
@@ -72,27 +70,10 @@ export default function HomeScreen() {
       newIcon = <Moon size={20} color="rgba(255, 255, 255, 0.9)" />;
     }
 
-    // Only update if greeting has changed to trigger animation
     if (newGreeting !== greeting) {
-      // Fade out
-      Animated.timing(fadeAnim, {
-        toValue: 0,
-        duration: 200,
-        useNativeDriver: true,
-      }).start(() => {
-        // Update content
-        setGreeting(newGreeting);
-        setGreetingIcon(newIcon);
-        
-        // Fade in
-        Animated.timing(fadeAnim, {
-          toValue: 1,
-          duration: 300,
-          useNativeDriver: true,
-        }).start();
-      });
+      setGreeting(newGreeting);
+      setGreetingIcon(newIcon);
     } else if (!greeting) {
-      // Initial load
       setGreeting(newGreeting);
       setGreetingIcon(newIcon);
     }
@@ -218,7 +199,7 @@ export default function HomeScreen() {
           contentContainerStyle={styles.scrollViewContent}
         >
           {/* Enhanced Header */}
-          <LinearGradient
+          <LinearGradientWrapper
             colors={['#667eea', '#4A90E2', 'rgba(255, 255, 255, 0.1)']}
             locations={[0, 0.6, 1]}
             style={[styles.header, { paddingTop: insets.top + 20 }]}
@@ -249,12 +230,12 @@ export default function HomeScreen() {
                 </TouchableOpacity>
 
                 <View style={styles.userInfo}>
-                  <Animated.View style={[styles.greetingContainer, { opacity: fadeAnim }]}>
+                  <View style={styles.greetingContainer}>
                     <View style={styles.greetingRow}>
                       {greetingIcon}
                       <Text style={styles.greeting}>{greeting},</Text>
                     </View>
-                  </Animated.View>
+                  </View>
                   <Text style={styles.userName}>{user?.name || 'Employee Name'}</Text>
                   <Text style={styles.userRole}>{user?.position || 'Software Developer'}</Text>
                 </View>
@@ -278,7 +259,7 @@ export default function HomeScreen() {
                 </View>
               </View>
             </View>
-          </LinearGradient>
+          </LinearGradientWrapper>
 
           <View style={styles.content}> {/* Closing tag added here */}
           {/* Attendance Card */}
