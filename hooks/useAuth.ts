@@ -38,8 +38,8 @@ export function useAuth() {
           return;
         }
 
-        // If no stored session, check current Supabase session
-        const currentSessionResult = await authService.getCurrentSession();
+        // If no stored session, check current Supabase session using safe method
+        const currentSessionResult = await authService.getCurrentSessionSafe();
         console.log('[useAuth] Current session result:', { user: currentSessionResult.user, error: currentSessionResult.error });
         
         setAuthState({
@@ -58,7 +58,19 @@ export function useAuth() {
       }
     };
 
+    // Add timeout to prevent indefinite loading
+    const timeout = setTimeout(() => {
+      console.warn('[useAuth] Auth initialization timeout');
+      setAuthState(prev => ({
+        ...prev,
+        isLoading: false,
+        error: 'Authentication timeout - please try again',
+      }));
+    }, 15000); // Increase timeout to 15 seconds
+
     initializeAuth();
+
+    return () => clearTimeout(timeout);
 
     // Listen to auth changes
     const { data: { subscription } } = authService.onAuthStateChange((user) => {
