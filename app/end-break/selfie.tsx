@@ -15,6 +15,7 @@ import { router } from 'expo-router';
 import { CameraView, CameraType, useCameraPermissions } from 'expo-camera';
 import { ArrowLeft, Camera, RotateCcw, CircleCheck as CheckCircle, RefreshCw } from 'lucide-react-native';
 import { useAppContext } from '@/context/AppContext';
+import { imageService } from '@/services/imageService';
 
 const { width, height } = Dimensions.get('window');
 
@@ -80,11 +81,19 @@ export default function EndBreakSelfieScreen() {
       // Simulate API call for face verification
       await new Promise(resolve => setTimeout(resolve, 2000));
 
+      // Upload selfie first
+      const uploadResult = await imageService.uploadSelfie(user.id, capturedImage, 'break_end');
+      
+      if (uploadResult.error) {
+        Alert.alert('Upload Failed', uploadResult.error);
+        return;
+      }
+
       const { error } = await addActivity('break_end', {
         latitude: currentAttendance.location.latitude,
         longitude: currentAttendance.location.longitude,
         address: currentAttendance.location.address,
-      }, capturedImage);
+      }, uploadResult.url || undefined);
 
       if (error) {
         Alert.alert('End Break Failed', error);
@@ -93,15 +102,14 @@ export default function EndBreakSelfieScreen() {
         Alert.alert(
           'Success!',
           'Break ended successfully. Welcome back!',
-          [{ text: 'OK' }]
+          [{ text: 'OK', onPress: () => router.replace('/(tabs)') }]
         );
-        router.replace('/(tabs)');
       }
     } catch (error) {
       console.error('Error submitting end break:', error);
       Alert.alert(
-        'Verification Failed',
-        'Face verification failed. Please try again with better lighting.',
+        'Upload Failed',
+        'Failed to upload selfie. Please try again with better lighting.',
         [{ text: 'OK' }]
       );
     } finally {

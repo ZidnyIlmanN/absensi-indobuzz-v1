@@ -32,6 +32,7 @@ const features = [
   { title: 'Settings', icon: <Settings size={24} color="#607D8B" />, route: '/settings' as any },
   { title: 'Help', icon: <HelpCircle size={24} color="#795548" />, route: '/help' as any },
   { title: 'Notifications', icon: <Bell size={24} color="#F44336" />, route: '/notifications' as any },
+  { title: 'Selfie Gallery', icon: <Camera size={24} color="#E91E63" />, route: '/selfie-gallery' as any },
 ];
 
 export default function LihatSemuaScreen() {
