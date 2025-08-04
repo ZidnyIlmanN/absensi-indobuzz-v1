@@ -1,4 +1,4 @@
-import React, { useEffect } from 'react';
+import React, { useEffect, useState } from 'react';
 import { Stack, useRouter, useSegments } from 'expo-router';
 import { AppProvider, useAppContext } from '../context/AppContext';
 import SplashScreen from './splash'; // Impor splash screen Anda
@@ -8,6 +8,7 @@ function RootLayoutNav() {
   const { isAuthenticated, isLoading } = useAppContext();
   const segments = useSegments();
   const router = useRouter();
+  const [hasRedirected, setHasRedirected] = useState(false);
 
   useEffect(() => {
     // Jangan lakukan apa-apa jika masih loading
@@ -57,20 +58,28 @@ function RootLayoutNav() {
       isAllFeaturesRoute,
     });
 
+    // Prevent redirect loops
+    if (hasRedirected) {
+      console.log('Routing check - already redirected, skipping');
+      return;
+    }
+
     if (isAuthenticated && !inTabsGroup && !isLiveAttendanceProtected && !isClockInRoute && !isShiftScheduleRoute && !isAttendanceHistoryRoute && !isClockOutRoute && !isStartBreakRoute && !isEndBreakRoute && !isTimeOffRoute && !isReimburseRoute && !isSettingsRoute && !isNotificationsRoute && !isPrivacyRoute && !isHelpRoute && segments[0] !== 'edit-profile' && !isAllFeaturesRoute) {
       // Pengguna sudah login tapi tidak berada di grup (tabs) atau edit-profile,
       // arahkan ke halaman utama.
       console.log('Routing check - redirecting to /(tabs)');
+      setHasRedirected(true);
       router.replace('/(tabs)');
     } else if (!isAuthenticated && !inAuthGroup) {
       // Pengguna belum login dan tidak berada di grup (auth),
       // arahkan ke halaman login.
       console.log('Routing check - redirecting to /(auth)/login');
+      setHasRedirected(true);
       router.replace('/(auth)/login');
     } else {
       console.log('Routing check - no redirect needed');
     }
-  }, [isAuthenticated, isLoading, segments]);
+  }, [isAuthenticated, isLoading, segments, hasRedirected]);
 
   // Tampilkan splash screen selama data auth sedang dimuat
   if (isLoading) {
