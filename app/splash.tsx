@@ -1,5 +1,5 @@
 import React, { useEffect } from 'react';
-import { View, Text, StyleSheet, Animated } from 'react-native';
+import { View, Text, StyleSheet, Animated, Alert } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import { Clock } from 'lucide-react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
@@ -26,6 +26,21 @@ export default function SplashScreen() {
       }),
     ]).start();
   }, []);
+
+  // Add timeout to prevent indefinite loading
+  useEffect(() => {
+    if (isLoading) {
+      const timeout = setTimeout(() => {
+        Alert.alert(
+          'Loading Taking Too Long',
+          'The app is taking longer than expected to load. Please try restarting the app.',
+          [{ text: 'OK' }]
+        );
+      }, 15000); // 15 seconds timeout
+
+      return () => clearTimeout(timeout);
+    }
+  }, [isLoading]);
 
   return (
     <LinearGradient
