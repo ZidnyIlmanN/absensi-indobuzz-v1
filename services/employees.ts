@@ -58,24 +58,60 @@ export const employeesService = {
   // Search employees
   async searchEmployees(query: string): Promise<{ employees: Employee[]; error: string | null }> {
     try {
-      const { data, error } = await supabase
+      // First, get all matching profiles
+      const { data: matchingProfiles, error: profilesError } = await supabase
         .from('profiles')
-        .select(`
-          *,
-          attendance_records (
-            status,
-            clock_in,
-            date
-          )
-        `)
+        .select('*')
         .or(`name.ilike.%${query}%,position.ilike.%${query}%,department.ilike.%${query}%,employee_id.ilike.%${query}%`)
         .order('name');
 
-      if (error) {
-        return { employees: [], error: handleSupabaseError(error) };
+      if (profilesError) {
+        return { employees: [], error: handleSupabaseError(profilesError) };
       }
 
-      const employees = data.map((profile: any) => this.mapEmployeeRecord(profile));
+      // Then get today's attendance records for these profiles
+      const today = new Date().toISOString().split('T')[0];
+      const profileIds = matchingProfiles.map(p => p.id);
+      
+      const { data, error } = await supabase
+        .from('attendance_records')
+        .select('*')
+        .in('user_id', profileIds)
+        .eq('date', today);
+
+      if (error) {
+        console.log('No attendance records found for search results');
+      }
+
+      // Create employee map
+      const employeeMap = new Map();
+      
+      // Add all matching profiles
+      matchingProfiles.forEach(profile => {
+        employeeMap.set(profile.id, {
+          profile,
+          attendance: null
+        });
+      });
+      
+      // Add attendance data where available
+      if (data && !error) {
+        data.forEach((attendance: any) => {
+          if (employeeMap.has(attendance.user_id)) {
+            const existing = employeeMap.get(attendance.user_id);
+            employeeMap.set(attendance.user_id, {
+              ...existing,
+              attendance: attendance
+            });
+          }
+        });
+      }
+      
+      // Convert to employee objects
+      const employees = Array.from(employeeMap.values()).map((item: any) => 
+        this.mapEmployeeRecordFromSeparateData(item.profile, item.attendance)
+      );
+      
       return { employees, error: null };
     } catch (error) {
       return { employees: [], error: handleSupabaseError(error) };
@@ -154,61 +190,6 @@ export const employeesService = {
       .subscribe();
 
     return subscription;
-  },
-
-  // Helper function to map separate profile and attendance data to Employee
-  mapEmployeeRecordFromSeparateData(profile: any, attendance: any): Employee {
-    let status: Employee['status'] = 'offline';
-    
-    if (attendance) {
-      switch (attendance.status) {
-        case 'working':
-          status = 'online';
-          break;
-        case 'break':
-          status = 'break';
-          break;
-        case 'completed':
-          status = 'offline';
-          break;
-        default:
-          status = 'offline';
-      }
-    }
-
-    return {
-      id: profile.id,
-      name: profile.name,
-      position: profile.position || '',
-      department: profile.department || '',
-      avatar: profile.avatar_url || '',
-      status,
-      workHours: profile.work_schedule || '09:00-18:00',
-      location: profile.location || '',
-      phone: profile.phone || '',
-      email: profile.email,
-      currentAttendance: attendance ? {
-        id: attendance.id,
-        userId: profile.id,
-        clockIn: new Date(attendance.clock_in),
-        clockOut: attendance.clock_out ? new Date(attendance.clock_out) : undefined,
-        date: attendance.date,
-        workHours: attendance.work_hours || 0,
-        breakTime: attendance.break_time || 0,
-        overtimeHours: attendance.overtime_hours || 0,
-        clientVisitTime: attendance.client_visit_time || 0,
-        status: attendance.status,
-        location: {
-          latitude: parseFloat(attendance.location_lat || '0'),
-          longitude: parseFloat(attendance.location_lng || '0'),
-          address: attendance.location_address || '',
-        },
-        selfieUrl: attendance.selfie_url,
-        notes: attendance.notes,
-        activities: [],
-        breakStartTime: null,
-      } : undefined,
-    };
   },
 
   // Helper function to map database record to Employee
