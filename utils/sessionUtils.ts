@@ -1,3 +1,4 @@
+import React from 'react';
 import { AppState, AppStateStatus } from 'react-native';
 import { sessionManager } from '@/services/sessionManager';
 

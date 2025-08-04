@@ -1,8 +1,8 @@
 import React from 'react';
-import { AuthGuard } from '@/components/AuthGuard';
 import { Tabs } from 'expo-router';
 import { Home, Users, FileText, MessageCircle, User } from 'lucide-react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import { AuthGuard } from '@/components/AuthGuard';
 
 function TabLayout() {
   const insets = useSafeAreaInsets();

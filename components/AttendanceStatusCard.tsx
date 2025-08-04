@@ -57,9 +57,11 @@ export const AttendanceStatusCard = ({
           <View style={styles.iconContainer}>
             <ArrowLeft size={20} color="#4CAF50" />
           </View>
-          <Text style={styles.text}>
-            Presensi Masuk <Text style={styles.time}>{elapsedClockIn}</Text> yang lalu
-          </Text>
+          <View style={styles.textContainer}>
+            <Text style={styles.text}>
+              Presensi Masuk <Text style={styles.time}>{elapsedClockIn}</Text> yang lalu
+            </Text>
+          </View>
           <ChevronRight size={20} color="#999" />
         </TouchableOpacity>
       )}
@@ -70,9 +72,11 @@ export const AttendanceStatusCard = ({
           <View style={styles.iconContainer}>
             <Coffee size={20} color="#E91E63" />
           </View>
-          <Text style={styles.text}>
-            Istirahat <Text style={styles.time}>{elapsedBreak}</Text> yang lalu
-          </Text>
+          <View style={styles.textContainer}>
+            <Text style={styles.text}>
+              Istirahat <Text style={styles.time}>{elapsedBreak}</Text> yang lalu
+            </Text>
+          </View>
           <ChevronRight size={20} color="#999" />
         </TouchableOpacity>
       )}
@@ -108,8 +112,10 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     marginRight: 12,
   },
-  text: {
+  textContainer: {
     flex: 1,
+  },
+  text: {
     fontSize: 16,
     color: '#333',
   },

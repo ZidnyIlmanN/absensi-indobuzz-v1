@@ -1,5 +1,5 @@
 import React, { useEffect } from 'react';
-import { View, StyleSheet } from 'react-native';
+import { View, Text, StyleSheet } from 'react-native';
 import { router, useSegments } from 'expo-router';
 import { useAppContext } from '@/context/AppContext';
 import SplashScreen from '@/app/splash';
@@ -32,14 +32,11 @@ export function AuthGuard({ children }: AuthGuardProps) {
     return <SplashScreen />;
   }
 
-  return <>{children}</>;
+  return <View style={styles.container}>{children}</View>;
 }
 
 const styles = StyleSheet.create({
-  loadingContainer: {
+  container: {
     flex: 1,
-    justifyContent: 'center',
-    alignItems: 'center',
-    backgroundColor: '#F8F9FA',
   },
 });
