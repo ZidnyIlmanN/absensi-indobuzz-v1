@@ -5,75 +5,107 @@ export const employeesService = {
   // Get all employees
   async getAllEmployees(): Promise<{ employees: Employee[]; error: string | null }> {
     try {
-      // First, get all profiles
-      const { data: allProfiles, error: profilesError } = await supabase
+      // Get all profiles with their today's attendance record (if any)
+      const today = new Date().toISOString().split('T')[0];
+      
+      const { data: profiles, error: profilesError } = await supabase
         .from('profiles')
-        .select('*')
+        .select(`
+          *,
+          attendance_records!left (
+            id,
+            status,
+            clock_in,
+            clock_out,
+            date,
+            work_hours,
+            break_time,
+            overtime_hours,
+            client_visit_time,
+            location_lat,
+            location_lng,
+            location_address,
+            selfie_url,
+            notes
+          )
+        `)
         .order('name');
 
       if (profilesError) {
         return { employees: [], error: handleSupabaseError(profilesError) };
       }
 
-      // Then get attendance records for each profile
-      const today = new Date().toISOString().split('T')[0];
-      
-      const { data, error } = await supabase
-        .from('attendance_records')
-        .select(`
-          *,
-          profiles!inner (
-            id,
-            name,
-            email,
-            phone,
-            position,
-            department,
-            avatar_url,
-            employee_id,
-            location,
-            work_schedule
-          )
-        `)
-        .eq('date', today)
-        .order('created_at', { ascending: false });
-
-      if (error) {
-        console.log('No attendance records for today, showing all employees as offline');
-      }
-
-      // Create a map of employees with their attendance data
-      const employeeMap = new Map();
-      
-      // Add all profiles first (ensures all employees are shown)
-      allProfiles.forEach(profile => {
-        employeeMap.set(profile.id, {
-          profile,
-          attendance: null
-        });
+      // Map profiles to employees, filtering for today's attendance
+      const employees = profiles.map((profile: any) => {
+        // Find today's attendance record
+        const todayAttendance = profile.attendance_records?.find((record: any) => 
+          record.date === today
+        );
+        
+        return this.mapEmployeeRecord(profile, todayAttendance);
       });
-      
-      // Add attendance data where available
-      if (data && !error) {
-        data.forEach((attendance: any) => {
-          if (employeeMap.has(attendance.user_id)) {
-            employeeMap.set(attendance.user_id, {
-              profile: attendance.profiles,
-              attendance: attendance
-            });
-          }
-        });
-      }
-      
-      // Convert map to employee objects
-      const employees = Array.from(employeeMap.values()).map((item: any) => 
-        this.mapEmployeeRecordFromSeparateData(item.profile, item.attendance)
-      );
       
       return { employees, error: null };
     } catch (error) {
       return { employees: [], error: handleSupabaseError(error) };
     }
+  },
+
+  // Helper function to map profile with optional attendance to Employee
+  mapEmployeeRecord(profile: any, todayAttendance?: any): Employee {
+    let status: Employee['status'] = 'offline';
+    
+    if (todayAttendance) {
+      switch (todayAttendance.status) {
+        case 'working':
+          status = 'online';
+          break;
+        case 'break':
+          status = 'break';
+          break;
+        default:
+          status = 'offline';
+      }
+    }
+
+    return {
+      id: profile.id,
+      name: profile.name,
+      position: profile.position || '',
+      department: profile.department || '',
+      avatar: profile.avatar_url || '',
+      status,
+      workHours: profile.work_schedule || '09:00-18:00',
+      location: profile.location || '',
+      phone: profile.phone || '',
+      email: profile.email,
+      currentAttendance: todayAttendance ? {
+        id: todayAttendance.id,
+        userId: profile.id,
+        clockIn: new Date(todayAttendance.clock_in),
+        clockOut: todayAttendance.clock_out ? new Date(todayAttendance.clock_out) : undefined,
+        date: todayAttendance.date,
+        workHours: todayAttendance.work_hours || 0,
+        breakTime: todayAttendance.break_time || 0,
+        overtimeHours: todayAttendance.overtime_hours || 0,
+        clientVisitTime: todayAttendance.client_visit_time || 0,
+        status: todayAttendance.status,
+        location: {
+          latitude: parseFloat(todayAttendance.location_lat || '0'),
+          longitude: parseFloat(todayAttendance.location_lng || '0'),
+          address: todayAttendance.location_address || '',
+        },
+        selfieUrl: todayAttendance.selfie_url,
+        notes: todayAttendance.notes,
+        activities: [],
+        breakStartTime: null,
+      } : undefined,
+    };
+  },
+
+  // Add a new helper function for the separate data mapping (keeping for backward compatibility)
+  mapEmployeeRecordFromSeparateData(profile: any, attendance: any): Employee {
+    return this.mapEmployeeRecord(profile, attendance);
   },
 
   // Get employees by department
@@ -158,7 +190,7 @@ export const employeesService = {
       }
 
       return {
-        employee: this.mapEmployeeRecordFromSeparateData(profile, data),
+        employee: this.mapEmployeeRecord(profile, data),
         error: null,
       };
     } catch (error) {
@@ -209,60 +241,5 @@ export const employeesService = {
       .subscribe();
 
     return subscription;
-  },
-
-  // Helper function to map database record to Employee
-  mapEmployeeRecord(data: any): Employee {
-    const todayAttendance = data.attendance_records?.find((record: any) => 
-      record.date === new Date().toISOString().split('T')[0]
-    );
-
-    let status: Employee['status'] = 'offline';
-    if (todayAttendance) {
-      switch (todayAttendance.status) {
-        case 'working':
-          status = 'online';
-          break;
-        case 'break':
-          status = 'break';
-          break;
-        default:
-          status = 'offline';
-      }
-    }
-
-    return {
-      id: data.id,
-      name: data.name,
-      position: data.position || '',
-      department: data.department || '',
-      avatar: data.avatar_url || '',
-      status,
-      workHours: data.work_schedule || '09:00-18:00',
-      location: data.location || '',
-      phone: data.phone || '',
-      email: data.email,
-      currentAttendance: todayAttendance ? {
-        id: todayAttendance.id,
-        userId: data.id,
-        clockIn: new Date(todayAttendance.clock_in),
-        clockOut: todayAttendance.clock_out ? new Date(todayAttendance.clock_out) : undefined,
-        date: todayAttendance.date,
-        workHours: todayAttendance.work_hours || 0,
-        breakTime: todayAttendance.break_time || 0,
-        overtimeHours: todayAttendance.overtime_hours || 0,
-        clientVisitTime: todayAttendance.client_visit_time || 0,
-        status: todayAttendance.status,
-        location: {
-          latitude: parseFloat(todayAttendance.location_lat || '0'),
-          longitude: parseFloat(todayAttendance.location_lng || '0'),
-          address: todayAttendance.location_address || '',
-        },
-        selfieUrl: todayAttendance.selfie_url,
-        notes: todayAttendance.notes,
-        activities: [],
-        breakStartTime: null,
-      } : undefined,
-    };
   },
 };
