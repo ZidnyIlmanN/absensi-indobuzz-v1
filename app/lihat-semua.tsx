@@ -7,19 +7,7 @@ import {
   TouchableOpacity,
 } from 'react-native';
 import { router } from 'expo-router';
-import {
-  Grid,
-  TrendingUp,
-  Calendar,
-  Clock,
-  DollarSign,
-  Users,
-  FileText,
-  Settings,
-  HelpCircle,
-  Bell,
-  ArrowLeft,
-} from 'lucide-react-native';
+import { Grid2x2 as Grid, TrendingUp, Calendar, Clock, DollarSign, Users, FileText, Settings, CircleHelp as HelpCircle, Bell, ArrowLeft } from 'lucide-react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 const features = [
