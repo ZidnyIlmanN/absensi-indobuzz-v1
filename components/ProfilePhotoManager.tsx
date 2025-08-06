@@ -38,20 +38,35 @@ export function ProfilePhotoManager({
       return;
     }
 
+    // Validate image before processing
+    const validation = await imageService.validateImageFile(imageUri);
+    if (!validation.isValid) {
+      setUploadError(validation.error || 'Invalid image file');
+      setTimeout(() => setUploadError(null), 3000);
+      return;
+    }
+
     setIsUploading(true);
     setUploadSuccess(false);
     setUploadError(null);
 
     try {
+      console.log('🚀 Starting profile photo update for user:', user.id);
+      console.log('📷 Image URI:', imageUri);
+      
       const result = await imageService.updateProfilePhotoComplete(user.id, imageUri);
 
       if (result.error) {
+        console.error('❌ Profile photo update failed:', result.error);
         setUploadError(result.error);
         setTimeout(() => setUploadError(null), 3000); // Hide error after 3s
         return;
       }
 
       if (result.avatarUrl) {
+        console.log('✅ Profile photo updated successfully:', result.avatarUrl);
+        
+        // Update user profile in context
         await updateProfile({ avatar: result.avatarUrl });
         
         setUploadSuccess(true);
@@ -59,10 +74,12 @@ export function ProfilePhotoManager({
 
         onPhotoUpdated?.(result.avatarUrl);
       } else {
+        console.error('❌ No avatar URL returned from upload');
         setUploadError('No avatar URL returned');
         setTimeout(() => setUploadError(null), 3000);
       }
     } catch (error) {
+      console.error('❌ Profile photo update exception:', error);
       const errorMessage = error instanceof Error ? error.message : 'Unknown error';
       setUploadError(errorMessage);
       setTimeout(() => setUploadError(null), 3000);
@@ -72,7 +89,13 @@ export function ProfilePhotoManager({
   };
 
   const getDisplayUrl = () => {
-    return currentAvatarUrl || user?.avatar || `https://ui-avatars.com/api/?name=${encodeURIComponent(user?.name || 'User')}&background=4A90E2&color=fff&size=${size}`;
+    // Add cache busting for updated avatars
+    const baseUrl = currentAvatarUrl || user?.avatar;
+    if (baseUrl && !baseUrl.includes('ui-avatars.com')) {
+      const separator = baseUrl.includes('?') ? '&' : '?';
+      return `${baseUrl}${separator}t=${Date.now()}`;
+    }
+    return baseUrl || `https://ui-avatars.com/api/?name=${encodeURIComponent(user?.name || 'User')}&background=4A90E2&color=fff&size=${size}`;
   };
 
   return (
