@@ -75,6 +75,8 @@ export const AppProvider = ({ children }: { children: ReactNode }) => {
 
   // Initialize session monitoring
   useEffect(() => {
+    let timeoutId: any = null;
+    
     if (auth.isAuthenticated) {
       sessionMonitor.startMonitoring({
         onSessionExpired: () => {
@@ -92,8 +94,14 @@ export const AppProvider = ({ children }: { children: ReactNode }) => {
       sessionMonitor.stopMonitoring();
     }
 
+    // Add timeout to prevent indefinite session monitoring initialization
+    timeoutId = setTimeout(() => {
+      console.warn('Session monitoring initialization timeout');
+    }, 5000); // 5 seconds timeout
+
     return () => {
       sessionMonitor.stopMonitoring();
+      if (timeoutId) clearTimeout(timeoutId);
     };
   }, [auth.isAuthenticated]);
   // Calculate real-time work hours
