@@ -30,6 +30,7 @@ export function ProfilePhotoManager({
   const [showImagePicker, setShowImagePicker] = useState(false);
   const [isUploading, setIsUploading] = useState(false);
   const [uploadSuccess, setUploadSuccess] = useState(false);
+  const [uploadError, setUploadError] = useState<string | null>(null);
 
   const handleImageSelected = async (imageUri: string) => {
     if (!user) {
@@ -37,40 +38,34 @@ export function ProfilePhotoManager({
       return;
     }
 
-    console.log('Profile photo selected:', imageUri);
     setIsUploading(true);
     setUploadSuccess(false);
+    setUploadError(null);
 
     try {
-      // Upload and update profile photo
       const result = await imageService.updateProfilePhotoComplete(user.id, imageUri);
 
       if (result.error) {
-        console.error('Profile photo upload failed:', result.error);
-        Alert.alert('Upload Failed', result.error);
+        setUploadError(result.error);
+        setTimeout(() => setUploadError(null), 3000); // Hide error after 3s
         return;
       }
 
       if (result.avatarUrl) {
-        console.log('Profile photo uploaded successfully:', result.avatarUrl);
-        // Update local context
         await updateProfile({ avatar: result.avatarUrl });
         
-        // Show success feedback
         setUploadSuccess(true);
-        setTimeout(() => setUploadSuccess(false), 2000);
+        setTimeout(() => setUploadSuccess(false), 2000); // Hide success after 2s
 
-        // Notify parent component
         onPhotoUpdated?.(result.avatarUrl);
-
-        Alert.alert('Success', 'Profile photo updated successfully!');
       } else {
-        console.error('No avatar URL returned from upload');
-        Alert.alert('Upload Failed', 'No avatar URL returned from upload');
+        setUploadError('No avatar URL returned');
+        setTimeout(() => setUploadError(null), 3000);
       }
     } catch (error) {
-      console.error('Profile photo update error:', error);
-      Alert.alert('Error', `Failed to update profile photo: ${error instanceof Error ? error.message : 'Unknown error'}`);
+      const errorMessage = error instanceof Error ? error.message : 'Unknown error';
+      setUploadError(errorMessage);
+      setTimeout(() => setUploadError(null), 3000);
     } finally {
       setIsUploading(false);
     }
@@ -88,34 +83,35 @@ export function ProfilePhotoManager({
           style={[styles.photo, { width: size, height: size }]} 
         />
         
-        {/* Loading Overlay */}
         {isUploading && (
           <View style={[styles.loadingOverlay, { width: size, height: size }]}>
             <LoadingSpinner size="small" color="white" />
           </View>
         )}
 
-        {/* Success Overlay */}
         {uploadSuccess && (
           <View style={[styles.successOverlay, { width: size, height: size }]}>
-            <Check size={24} color="white" />
+            <Check size={size * 0.4} color="white" />
           </View>
         )}
 
-        {/* Edit Button */}
-        {showEditButton && (
+        {uploadError && (
+          <View style={[styles.errorOverlay, { width: size, height: size }]}>
+            <Text style={styles.errorText}>{uploadError}</Text>
+          </View>
+        )}
+
+        {showEditButton && !isUploading && !uploadSuccess && (
           <TouchableOpacity
-            style={[styles.editButton, { bottom: size * 0.05, right: size * 0.05 }]}
+            style={[styles.editButton, { width: size * 0.3, height: size * 0.3 }]}
             onPress={() => setShowImagePicker(true)}
-            disabled={isUploading}
             activeOpacity={0.8}
           >
-            <Camera size={size > 100 ? 20 : 16} color="white" />
+            <Camera size={size * 0.15} color="white" />
           </TouchableOpacity>
         )}
       </View>
 
-      {/* Image Picker Modal */}
       <ImagePickerModal
         visible={showImagePicker}
         onClose={() => setShowImagePicker(false)}
@@ -133,28 +129,30 @@ export function ProfilePhotoManager({
 const styles = StyleSheet.create({
   container: {
     alignItems: 'center',
+    marginVertical: 20,
   },
   photoContainer: {
     position: 'relative',
     borderRadius: 999,
-    overflow: 'hidden',
-    elevation: 4,
+    overflow: 'visible', // Allow button to sit on top
     shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.1,
-    shadowRadius: 4,
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.2,
+    shadowRadius: 8,
+    elevation: 10,
   },
   photo: {
     borderRadius: 999,
     borderWidth: 3,
     borderColor: 'white',
+    backgroundColor: '#E0E0E0',
   },
   loadingOverlay: {
     position: 'absolute',
     top: 0,
     left: 0,
     borderRadius: 999,
-    backgroundColor: 'rgba(0, 0, 0, 0.7)',
+    backgroundColor: 'rgba(0, 0, 0, 0.6)',
     justifyContent: 'center',
     alignItems: 'center',
   },
@@ -163,24 +161,35 @@ const styles = StyleSheet.create({
     top: 0,
     left: 0,
     borderRadius: 999,
-    backgroundColor: 'rgba(76, 175, 80, 0.9)',
+    backgroundColor: 'rgba(26, 188, 156, 0.8)',
     justifyContent: 'center',
     alignItems: 'center',
   },
-  editButton: {
+  errorOverlay: {
     position: 'absolute',
-    backgroundColor: '#4A90E2',
+    top: 0,
+    left: 0,
     borderRadius: 999,
-    width: 36,
-    height: 36,
+    backgroundColor: 'rgba(231, 76, 60, 0.8)',
     justifyContent: 'center',
     alignItems: 'center',
-    borderWidth: 3,
+    padding: 10,
+  },
+  errorText: {
+    color: 'white',
+    textAlign: 'center',
+    fontSize: 12,
+  },
+  editButton: {
+    position: 'absolute',
+    bottom: 5,
+    right: 5,
+    backgroundColor: '#3498db',
+    borderRadius: 999,
+    justifyContent: 'center',
+    alignItems: 'center',
+    borderWidth: 2,
     borderColor: 'white',
-    elevation: 4,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.2,
-    shadowRadius: 4,
+    elevation: 5,
   },
 });
