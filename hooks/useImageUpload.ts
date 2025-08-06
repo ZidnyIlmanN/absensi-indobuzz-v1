@@ -121,6 +121,22 @@ export function useImageUpload(options: UseImageUploadOptions = {}) {
     imageUri: string
   ) => {
     try {
+      // Validate image first
+      const validation = await imageService.validateImageFile(imageUri);
+      if (!validation.isValid) {
+        const errorMessage = validation.error || 'Invalid image file';
+        setUploadState(prev => ({
+          ...prev,
+          isUploading: false,
+          error: errorMessage,
+        }));
+        onUploadError?.(errorMessage);
+        if (autoShowAlerts) {
+          Alert.alert('Invalid Image', errorMessage);
+        }
+        return { url: null, error: errorMessage };
+      }
+      
       setUploadState({
         isUploading: true,
         progress: 0,
@@ -131,9 +147,10 @@ export function useImageUpload(options: UseImageUploadOptions = {}) {
       onUploadStart?.();
       updateProgress(10);
 
+      updateProgress(30);
       const result = await imageService.updateProfilePhotoComplete(userId, imageUri);
 
-      updateProgress(80);
+      updateProgress(90);
 
       if (result.error) {
         setUploadState(prev => ({
