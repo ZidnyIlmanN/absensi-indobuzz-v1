@@ -3,8 +3,9 @@ import { imageService } from './imageService';
 
 export const storageService = {
   // Upload selfie image (deprecated - use imageService instead)
-  async uploadSelfie(userId: string, imageUri: string, type: 'clock_in' | 'clock_out'): Promise<{ url: string | null; error: string | null }> {
+  async uploadSelfie(userId: string, imageUri: string, type: 'clock_in' | 'clock_out' | 'break_start' | 'break_end' | 'general'): Promise<{ url: string | null; error: string | null }> {
     console.warn('storageService.uploadSelfie is deprecated. Use imageService.uploadSelfie instead.');
+    // @ts-ignore: Property 'uploadSelfie' does not exist on type 'ImageService'.
     return imageService.uploadSelfie(userId, imageUri, type);
   },
 

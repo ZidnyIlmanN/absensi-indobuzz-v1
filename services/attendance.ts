@@ -15,7 +15,6 @@ export interface ClockOutData {
   attendanceId: string;
   selfieUrl?: string;
   notes?: string;
-  selfieUrl?: string;
   workHours: number;
   breakTime: number;
   overtimeHours: number;
@@ -50,7 +49,7 @@ export const attendanceService = {
           return { attendance: null, error: `Failed to upload selfie: ${uploadResult.error}` };
         }
         
-        uploadedSelfieUrl = uploadResult.url;
+        uploadedSelfieUrl = uploadResult.url || undefined;
       }
 
       const now = new Date();
@@ -126,7 +125,7 @@ export const attendanceService = {
             return { error: `Failed to upload selfie: ${uploadResult.error}` };
           }
           
-          uploadedSelfieUrl = uploadResult.url;
+          uploadedSelfieUrl = uploadResult.url || undefined;
         }
       }
 
@@ -192,7 +191,7 @@ export const attendanceService = {
           return { error: `Failed to upload selfie: ${uploadResult.error}` };
         }
         
-        uploadedSelfieUrl = uploadResult.url;
+        uploadedSelfieUrl = uploadResult.url || undefined;
       }
 
       const { error } = await supabase

@@ -1,7 +1,158 @@
 import { supabase, handleSupabaseError } from '@/lib/supabase';
 import * as ImagePicker from 'expo-image-picker';
 import * as ImageManipulator from 'expo-image-manipulator';
+import * as FileSystem from 'expo-file-system';
 import { Platform } from 'react-native';
+
+const uriToBlob = async (uri: string): Promise<Blob> => {
+  try {
+    if (!uri || uri.trim() === '') {
+      throw new Error('Invalid URI provided');
+    }
+
+    console.log('🔄 Converting URI to blob:', uri);
+
+    // Method 1: Untuk file:// URIs
+    if (uri.startsWith('file://')) {
+      try {
+        const fileInfo = await FileSystem.getInfoAsync(uri);
+        console.log('📁 File info:', fileInfo);
+        
+        if (!fileInfo.exists) {
+          throw new Error('File does not exist');
+        }
+        
+        if (fileInfo.size === 0) {
+          throw new Error('File is empty');
+        }
+
+        // Baca file sebagai base64
+        console.log('📖 Reading file as base64...');
+        const base64 = await FileSystem.readAsStringAsync(uri, {
+          encoding: FileSystem.EncodingType.Base64,
+        });
+
+        if (!base64 || base64.length === 0) {
+          throw new Error('Failed to read file as base64');
+        }
+
+        console.log('✅ Base64 read successful, length:', base64.length);
+
+        // PERBAIKAN 1: Validasi base64 format
+        const base64Regex = /^[A-Za-z0-9+/]*={0,2}$/;
+        if (!base64Regex.test(base64)) {
+          throw new Error('Invalid base64 format');
+        }
+
+        // PERBAIKAN 2: Gunakan fetch dengan data URL (React Native compatible)
+        const mimeType = 'image/jpeg'; // Default ke JPEG
+        const dataUrl = `data:${mimeType};base64,${base64}`;
+        
+        console.log('🔄 Creating blob from data URL...');
+        console.log('📊 Data URL length:', dataUrl.length);
+        
+        // Method A: Direct fetch dari data URL
+        try {
+          const response = await fetch(dataUrl);
+          
+          if (!response.ok) {
+            throw new Error(`Failed to process data URL: ${response.status} ${response.statusText}`);
+          }
+
+          const blob = await response.blob();
+          
+          console.log('✅ Blob created via FileSystem method:', {
+            size: blob.size,
+            type: blob.type,
+            originalFileSize: fileInfo.size,
+            base64Length: base64.length
+          });
+
+          // VALIDASI KRITIS: Pastikan blob tidak kosong
+          if (blob.size === 0) {
+            throw new Error('Generated blob is empty');
+          }
+          
+          return blob;
+        } catch (fetchError) {
+          console.warn('⚠️ Data URL fetch failed, trying alternative method:', fetchError);
+          
+          // Method B: Fallback menggunakan XMLHttpRequest untuk blob creation
+          try {
+            console.log('🔄 Trying XMLHttpRequest fallback...');
+            
+            const xhr = new XMLHttpRequest();
+            const xhrPromise = new Promise<Blob>((resolve, reject) => {
+              xhr.onload = () => {
+                if (xhr.status === 200 && xhr.response) {
+                  console.log('✅ XHR blob created:', {
+                    size: xhr.response.size,
+                    type: xhr.response.type
+                  });
+                  resolve(xhr.response);
+                } else {
+                  reject(new Error(`XHR failed: ${xhr.status}`));
+                }
+              };
+              xhr.onerror = () => reject(new Error('XHR error'));
+              xhr.ontimeout = () => reject(new Error('XHR timeout'));
+            });
+            
+            xhr.open('GET', dataUrl);
+            xhr.responseType = 'blob';
+            xhr.timeout = 10000; // 10 second timeout
+            xhr.send();
+            
+            const xhrBlob = await xhrPromise;
+            
+            if (xhrBlob.size === 0) {
+              throw new Error('XHR generated blob is empty');
+            }
+            
+            return xhrBlob;
+          } catch (xhrError) {
+            console.error('❌ XHR fallback also failed:', xhrError);
+            const fetchErrorMsg = fetchError instanceof Error ? fetchError.message : String(fetchError);
+            const xhrErrorMsg = xhrError instanceof Error ? xhrError.message : String(xhrError);
+            throw new Error(`All blob creation methods failed. Fetch: ${fetchErrorMsg}, XHR: ${xhrErrorMsg}`);
+          }
+        }
+      } catch (fsError) {
+        console.warn('⚠️ FileSystem method failed:', fsError);
+        throw fsError; // Jangan fallback, langsung throw error
+      }
+    }
+
+    // Method 2: Untuk HTTP/HTTPS URLs
+    if (uri.startsWith('http://') || uri.startsWith('https://')) {
+      console.log('🌐 Fetching from HTTP URL...');
+      const response = await fetch(uri);
+      
+      if (!response.ok) {
+        throw new Error(`Failed to fetch image: ${response.status} ${response.statusText}`);
+      }
+
+      const blob = await response.blob();
+      
+      if (blob.size === 0) {
+        throw new Error('HTTP response blob is empty');
+      }
+      
+      console.log('✅ Blob created via HTTP fetch:', {
+        size: blob.size,
+        type: blob.type
+      });
+
+      return blob;
+    }
+
+    throw new Error(`Unsupported URI format: ${uri.substring(0, 50)}...`);
+    
+  } catch (error) {
+    console.error('❌ Error converting URI to blob:', error);
+    throw error instanceof Error ? error : new Error('Failed to convert URI to blob');
+  }
+};
 
 export interface ImageUploadResult {
   url: string | null;
@@ -37,16 +188,11 @@ export class ImageService {
    */
   async requestPermissions(): Promise<{ camera: boolean; mediaLibrary: boolean }> {
     try {
-      console.log('Requesting image picker permissions...');
       const [cameraResult, mediaResult] = await Promise.all([
         ImagePicker.requestCameraPermissionsAsync(),
         ImagePicker.requestMediaLibraryPermissionsAsync(),
       ]);
 
-      console.log('Permission results:', {
-        camera: cameraResult.status,
-        mediaLibrary: mediaResult.status,
-      });
       return {
         camera: cameraResult.status === 'granted',
         mediaLibrary: mediaResult.status === 'granted',
@@ -66,30 +212,23 @@ export class ImageService {
     aspect?: [number, number];
   }): Promise<ImagePickerResult> {
     try {
-      console.log('Requesting camera permissions...');
       const permissions = await this.requestPermissions();
       
       if (!permissions.camera) {
-        console.error('Camera permission not granted');
         return {
           uri: null,
           error: 'Camera permission not granted',
         };
       }
 
-      console.log('Camera permission granted, launching camera...');
       const result = await ImagePicker.launchCameraAsync({
-        mediaTypes: ImagePicker.MediaTypeOptions.Images,
+        mediaTypes: ['images'],
         allowsEditing: options?.allowsEditing ?? true,
         aspect: options?.aspect ?? [1, 1],
         quality: options?.quality ?? 0.8,
         base64: false,
       });
 
-      console.log('Camera result:', {
-        canceled: result.canceled,
-        assetsLength: result.assets?.length,
-      });
       if (result.canceled) {
         return {
           uri: null,
@@ -137,7 +276,7 @@ export class ImageService {
       }
 
       const result = await ImagePicker.launchImageLibraryAsync({
-        mediaTypes: ImagePicker.MediaTypeOptions.Images,
+        mediaTypes: ['images'],
         allowsEditing: options?.allowsEditing ?? true,
         aspect: options?.aspect ?? [1, 1],
         quality: options?.quality ?? 0.8,
@@ -154,41 +293,6 @@ export class ImageService {
 
       if (result.assets && result.assets.length > 0) {
         const asset = result.assets[0];
-        console.log('Camera asset details:', {
-          uri: asset.uri,
-          width: asset.width,
-          height: asset.height,
-          fileSize: asset.fileSize,
-        });
-
-        // Validate the captured image
-        if (!asset.uri) {
-          return {
-            uri: null,
-            error: 'No image URI returned from camera',
-          };
-        }
-
-        // Check if file exists and has content
-        try {
-          const testResponse = await fetch(asset.uri);
-          const testBlob = await testResponse.blob();
-          console.log('Camera captured image blob size:', testBlob.size);
-          
-          if (testBlob.size === 0) {
-            return {
-              uri: null,
-              error: 'Captured image is empty',
-            };
-          }
-        } catch (testError) {
-          console.error('Error validating captured image:', testError);
-          return {
-            uri: null,
-            error: 'Cannot validate captured image',
-          };
-        }
-
         return {
           uri: asset.uri,
           error: null,
@@ -209,18 +313,13 @@ export class ImageService {
   }
 
   /**
-   * Compress and optimize image before upload
+   * PERBAIKAN: Compress and optimize image with better error handling
    */
   async compressImage(
     uri: string, 
     options: ImageCompressionOptions = { quality: 0.8 }
   ): Promise<{ uri: string | null; error: string | null }> {
     try {
-      console.log('Starting image compression for URI:', uri);
-      console.log('Requesting media library permissions...');
-      console.log('Compression options:', options);
-
-      // Validate input URI
       if (!uri || uri.trim() === '') {
         return {
           uri: null,
@@ -228,31 +327,26 @@ export class ImageService {
         };
       }
 
-      // Check if URI is accessible
-      try {
-        const testResponse = await fetch(uri);
-        if (!testResponse.ok) {
-          console.error('URI not accessible:', testResponse.status);
+      console.log('Starting image compression:', uri);
+
+      // Validasi file exists sebelum kompresi
+      if (uri.startsWith('file://')) {
+        const fileInfo = await FileSystem.getInfoAsync(uri);
+        if (!fileInfo.exists) {
           return {
             uri: null,
-            error: 'Image file not accessible',
+            error: 'Source image file does not exist',
           };
         }
-        console.log('Input image is accessible');
-      } catch (fetchError) {
-        console.error('Error testing URI accessibility:', fetchError);
-        return {
-          uri: null,
-          error: 'Cannot access image file',
-        };
+        console.log('Source file info:', fileInfo);
       }
 
-      const manipulatorOptions: ImageManipulator.ImageManipulatorOptions = {
+      const manipulatorOptions: ImageManipulator.SaveOptions = {
         compress: options.quality,
         format: options.format === 'png' ? ImageManipulator.SaveFormat.PNG : ImageManipulator.SaveFormat.JPEG,
+        base64: false, // PENTING: Pastikan base64 false untuk menghemat memory
       };
-
-      // Add resize if dimensions are specified
+      
       const actions: ImageManipulator.Action[] = [];
       if (options.maxWidth || options.maxHeight) {
         actions.push({
@@ -263,93 +357,40 @@ export class ImageService {
         });
       }
 
-      console.log('Manipulator actions:', actions);
-      console.log('Manipulator options:', manipulatorOptions);
-
       const result = await ImageManipulator.manipulateAsync(
         uri,
         actions,
         manipulatorOptions
       );
 
-      console.log('Image manipulation result:', {
-        uri: result.uri,
-        width: result.width,
-        height: result.height,
-      });
-
-      // Validate the result
       if (!result.uri) {
         return {
           uri: null,
-        console.error('Media library permission not granted');
           error: 'Image manipulation failed - no output URI',
         };
       }
 
-      // Test the manipulated image
-      try {
-      console.log('Media library permission granted, launching gallery...');
-        const testResponse = await fetch(result.uri);
-        const testBlob = await testResponse.blob();
-        console.log('Manipulated image size:', testBlob.size);
-        
-        if (testBlob.size === 0) {
-          return {
-            uri: null,
-            error: 'Image manipulation resulted in empty file',
-      console.log('Gallery result:', {
-        canceled: result.canceled,
-        assetsLength: result.assets?.length,
-      });
-          };
-        }
-      } catch (testError) {
-        console.error('Error testing manipulated image:', testError);
+      // Validasi hasil kompresi
+      const compressedFileInfo = await FileSystem.getInfoAsync(result.uri);
+      console.log('Compressed file info:', compressedFileInfo);
+      
+      if (!compressedFileInfo.exists || compressedFileInfo.size === 0) {
         return {
           uri: null,
-          error: 'Cannot verify manipulated image',
+          error: 'Compressed image is empty or invalid',
         };
       }
 
-        const asset = result.assets[0];
-        console.log('Gallery asset details:', {
-          uri: asset.uri,
-          width: asset.width,
-          height: asset.height,
-          fileSize: asset.fileSize,
-        });
-
-        // Validate the selected image
-        if (!asset.uri) {
-          return {
-            uri: null,
-            error: 'No image URI returned from gallery',
-          };
-        }
-
-        // Check if file exists and has content
-        try {
-          const testResponse = await fetch(asset.uri);
-          const testBlob = await testResponse.blob();
-          console.log('Gallery selected image blob size:', testBlob.size);
-          
-          if (testBlob.size === 0) {
-            return {
-              uri: null,
-              error: 'Selected image is empty',
-            };
-          }
-        } catch (testError) {
-          console.error('Error validating selected image:', testError);
-          return {
-            uri: null,
-            error: 'Cannot validate selected image',
-          };
-        }
+      console.log('Image compression successful:', {
+        originalUri: uri,
+        compressedUri: result.uri,
+        compressedSize: compressedFileInfo.size,
+        width: result.width,
+        height: result.height
+      });
 
       return {
-          uri: asset.uri,
+        uri: result.uri,
         error: null,
       };
     } catch (error) {
@@ -371,7 +412,6 @@ export class ImageService {
     options?: ImageCompressionOptions
   ): Promise<ImageUploadResult> {
     try {
-      // Compress image before upload
       const compressionResult = await this.compressImage(imageUri, {
         quality: 0.7,
         maxWidth: 800,
@@ -387,26 +427,27 @@ export class ImageService {
         };
       }
 
-      // Convert image URI to blob
-      const response = await fetch(compressionResult.uri);
-      const blob = await response.blob();
+      const blob = await uriToBlob(compressionResult.uri);
       
-      // Generate unique filename with timestamp
+      if (blob.size === 0) {
+        return {
+          url: null,
+          error: 'Image file is empty after processing',
+        };
+      }
+      
       const timestamp = new Date().toISOString().replace(/[:.]/g, '-');
       const fileName = `${userId}/selfies/${type}_${timestamp}.jpg`;
       
-      console.log(`Uploading selfie: ${fileName}`);
-
       const { data, error } = await supabase.storage
         .from('selfies')
         .upload(fileName, blob, {
           contentType: 'image/jpeg',
           upsert: false,
-          cacheControl: '3600', // Cache for 1 hour
+          cacheControl: '3600',
         });
 
       if (error) {
-        console.error('Selfie upload error:', error);
         return { 
           url: null, 
           error: handleSupabaseError(error),
@@ -414,12 +455,9 @@ export class ImageService {
         };
       }
 
-      // Get public URL
       const { data: { publicUrl } } = supabase.storage
         .from('selfies')
         .getPublicUrl(data.path);
-
-      console.log(`Selfie uploaded successfully: ${publicUrl}`);
 
       return { 
         url: publicUrl, 
@@ -436,7 +474,7 @@ export class ImageService {
   }
 
   /**
-   * Upload profile photo to Supabase Storage
+   * PERBAIKAN UTAMA: Upload profile photo with enhanced error handling
    */
   async uploadProfilePhoto(
     userId: string,
@@ -444,109 +482,201 @@ export class ImageService {
     options?: ImageCompressionOptions
   ): Promise<ImageUploadResult> {
     try {
-      console.log('Starting profile photo upload for user:', userId);
-      console.log('Image URI:', imageUri);
+      console.log('=== 🚀 Starting Profile Photo Upload ===');
+      console.log('👤 User ID:', userId);
+      console.log('🖼️ Original image URI:', imageUri);
 
-      // Compress image with profile-specific settings
-      const compressionResult = await this.compressImage(imageUri, {
+      // Step 1: Validasi parameter
+      if (!userId || !imageUri) {
+        return {
+          url: null,
+          error: 'User ID and image URI are required',
+        };
+      }
+
+      // Step 2: Validasi file exists untuk file:// URI
+      if (imageUri.startsWith('file://')) {
+        const fileInfo = await FileSystem.getInfoAsync(imageUri);
+        console.log('📁 Original file info:', fileInfo);
+        
+        if (!fileInfo.exists) {
+          return {
+            url: null,
+            error: 'Original image file does not exist',
+          };
+        }
+        
+        if (fileInfo.size === 0) {
+          return {
+            url: null,
+            error: 'Original image file is empty',
+          };
+        }
+      }
+
+      // Step 3: Compress image
+      console.log('🔄 Starting image compression...');
+      
+      const compressionOptions = {
         quality: 0.8,
         maxWidth: 400,
         maxHeight: 400,
-        format: 'jpeg',
+        format: 'jpeg' as const,
         ...options,
-      });
+      };
+      
+      console.log('⚙️ Compression options:', compressionOptions);
+      
+      const compressionResult = await this.compressImage(imageUri, compressionOptions);
 
       if (compressionResult.error || !compressionResult.uri) {
-        console.error('Image compression failed:', compressionResult.error);
+        console.error('❌ Compression failed:', compressionResult.error);
         return {
           url: null,
           error: compressionResult.error || 'Image compression failed',
         };
       }
 
-      console.log('Image compressed successfully, new URI:', compressionResult.uri);
+      console.log('✅ Compression successful:', compressionResult.uri);
 
-      // Convert image URI to blob
-      const response = await fetch(compressionResult.uri);
-      
-      if (!response.ok) {
-        console.error('Failed to fetch compressed image:', response.status, response.statusText);
-        return {
-          url: null,
-          error: `Failed to fetch image: ${response.status} ${response.statusText}`,
-        };
+      // Step 4: Validasi compressed file
+      if (compressionResult.uri.startsWith('file://')) {
+        const compressedInfo = await FileSystem.getInfoAsync(compressionResult.uri);
+        console.log('📁 Compressed file info:', compressedInfo);
+        
+        if (!compressedInfo.exists || compressedInfo.size === 0) {
+          return {
+            url: null,
+            error: 'Compressed image is invalid or empty',
+          };
+        }
       }
 
-      const blob = await response.blob();
+      // Step 5: Convert URI to Blob dengan debugging detail
+      console.log('🔄 Converting compressed URI to blob...');
+      let blob: Blob;
       
-      console.log('Blob created, size:', blob.size, 'type:', blob.type);
+      try {
+        blob = await uriToBlob(compressionResult.uri);
+      } catch (blobError) {
+        console.error('❌ Blob conversion failed:', blobError);
+        return {
+          url: null,
+          error: `Failed to process image: ${blobError instanceof Error ? blobError.message : 'Unknown error'}`,
+        };
+      }
+      
+      console.log('✅ Blob created successfully:', {
+        size: blob.size,
+        type: blob.type,
+        constructor: blob.constructor.name
+      });
+      
+      // VALIDASI KRITIS: Pastikan blob valid sebelum upload
+      if (!blob) {
+        console.error('❌ Blob is null or undefined');
+        return {
+          url: null,
+          error: 'Failed to create blob - blob is null',
+        };
+      }
       
       if (blob.size === 0) {
-        console.error('Blob is empty (0 bytes)');
+        console.error('❌ Blob size is 0');
         return {
           url: null,
-          error: 'Image file is empty after processing',
+          error: 'Processed image is empty - blob size is 0 bytes',
+        };
+      }
+
+      if (blob.size > 10 * 1024 * 1024) { // 10MB limit
+        console.error('❌ Blob too large:', blob.size);
+        return {
+          url: null,
+          error: 'Image is too large (max 10MB)',
         };
       }
       
-      // Use consistent filename for profile photos (will overwrite previous)
-      const fileName = `${userId}/profile/avatar.jpg`;
-      
-      console.log(`Uploading profile photo: ${fileName}`);
-
-      // Delete existing profile photo first (optional, since we're using upsert)
+      // Step 6: Test blob readability (React Native compatible)
       try {
-        await supabase.storage
-          .from('avatars')
-          .remove([fileName]);
-        console.log('Previous profile photo removed (if existed)');
-      } catch (deleteError) {
-        // Ignore delete errors - file might not exist
-        console.log('Previous profile photo not found or could not be deleted');
-      }
-
-      const { data, error } = await supabase.storage
-        .from('avatars')
-        .upload(fileName, blob, {
-          contentType: 'image/jpeg',
-          upsert: true, // Allow overwriting existing profile photo
-          cacheControl: '3600',
+        console.log('🔍 Testing blob readability...');
+        
+        // Method 1: Test dengan FileReader (React Native compatible)
+        const reader = new FileReader();
+        const readPromise = new Promise((resolve, reject) => {
+          reader.onload = () => {
+            const result = reader.result;
+            if (result && typeof result === 'string' && result.length > 0) {
+              console.log('✅ Blob is readable via FileReader, data length:', result.length);
+              resolve(result);
+            } else {
+              reject(new Error('FileReader returned empty result'));
+            }
+          };
+          reader.onerror = () => reject(new Error('FileReader failed'));
         });
+        
+        // Set timeout untuk FileReader
+        setTimeout(() => {
+          if (reader.readyState === FileReader.LOADING) {
+            reader.abort();
+          }
+        }, 5000);
+        
+        reader.readAsDataURL(blob);
+        await readPromise;
+        
+        console.log('✅ Blob readability test passed');
+      } catch (readError) {
+        console.error('❌ Blob read test failed:', readError);
+        
+        // Jangan langsung return error, coba lanjut upload
+        // Karena blob sudah terbuat dengan sukses dari data URL
+        console.log('⚠️ Continuing with upload despite read test failure...');
+      }
+      
+      // Step 7: Create filename
+      const timestamp = Date.now();
+      const fileName = `${userId}/profile/avatar_${timestamp}.jpg`;
+      
+      console.log('📤 Uploading to Supabase:', {
+        bucket: 'avatars',
+        fileName,
+        blobSize: blob.size,
+        blobType: blob.type
+      });
 
-      if (error) {
-        console.error('Profile photo upload error:', error);
+      // Step 8: Upload dengan retry
+      const uploadResult = await this.uploadWithRetry('avatars', fileName, blob);
+      
+      if (uploadResult.error) {
+        console.error('❌ Upload failed:', uploadResult.error);
         return { 
           url: null, 
-          error: handleSupabaseError(error),
+          error: uploadResult.error,
           fileName,
         };
       }
 
-      console.log('Upload successful, data:', data);
+      console.log('✅ Upload successful:', uploadResult.data);
 
-      // Get public URL with cache busting
+      // Step 9: Get public URL
       const { data: { publicUrl } } = supabase.storage
         .from('avatars')
-        .getPublicUrl(data.path, {
-          transform: {
-            width: 400,
-            height: 400,
-            quality: 80,
-          },
-        });
+        .getPublicUrl(uploadResult.data.path);
 
-      // Add timestamp to URL for cache busting
-      const cacheBustedUrl = `${publicUrl}?t=${Date.now()}`;
-
-      console.log(`Profile photo uploaded successfully: ${cacheBustedUrl}`);
+      const cacheBustedUrl = `${publicUrl}?t=${timestamp}`;
+      
+      console.log('=== 🎉 Profile Photo Upload Complete ===');
+      console.log('🔗 Final URL:', cacheBustedUrl);
 
       return { 
         url: cacheBustedUrl, 
         error: null,
-        fileName: data.path,
+        fileName: uploadResult.data.path,
       };
     } catch (error) {
-      console.error('Profile photo upload error:', error);
+      console.error('❌ Profile photo upload error:', error);
       return { 
         url: null, 
         error: error instanceof Error ? error.message : 'Upload failed',
@@ -555,10 +685,131 @@ export class ImageService {
   }
 
   /**
+   * PERBAIKAN: Upload with retry mechanism yang lebih robust
+   */
+private async uploadWithRetry(
+    bucket: string,
+    fileName: string,
+    blob: Blob,
+    maxRetries = 3
+  ): Promise<{ data: any; error: string | null }> {
+    let lastError: any = null;
+    
+    for (let attempt = 1; attempt <= maxRetries; attempt++) {
+      try {
+        console.log(`📤 Upload attempt ${attempt}/${maxRetries}`);
+        
+        // Pre-upload validation
+        console.log('🔍 Pre-upload blob validation:', {
+          size: blob.size,
+          type: blob.type,
+          constructor: blob.constructor.name,
+          isBlob: blob instanceof Blob
+        });
+        
+        if (!blob || blob.size === 0) {
+          throw new Error('Blob is empty or invalid before upload');
+        }
+
+        // Test blob before upload (React Native compatible)
+        try {
+          console.log('🔍 Pre-upload blob test...');
+          
+          // Method 1: Test dengan slice (lebih ringan)
+          const testSlice = blob.slice(0, 100);
+          console.log('✅ Blob slice test passed:', {
+            originalSize: blob.size,
+            sliceSize: testSlice.size,
+            sliceType: testSlice.type
+          });
+          
+          // Method 2: Test dengan FileReader untuk memastikan data ada
+          if (attempt === 1) { // Only test on first attempt
+            const reader = new FileReader();
+            const testPromise = new Promise((resolve, reject) => {
+              reader.onload = () => {
+                const result = reader.result;
+                if (result && typeof result === 'string' && result.startsWith('data:')) {
+                  console.log('✅ Blob contains valid data URL');
+                  resolve(result);
+                } else {
+                  reject(new Error('Blob does not contain valid data'));
+                }
+              };
+              reader.onerror = () => reject(new Error('FileReader test failed'));
+            });
+            
+            reader.readAsDataURL(testSlice);
+            await testPromise;
+          }
+          
+        } catch (sliceError) {
+          console.error('❌ Blob test failed:', sliceError);
+          // Don't throw error, just log warning since blob was created successfully
+          console.log('⚠️ Continuing with upload despite test failure...');
+        }
+        
+        const uploadOptions = {
+          contentType: blob.type || 'image/jpeg',
+          upsert: true,
+          cacheControl: '3600',
+        };
+        
+        console.log('⚙️ Upload options:', uploadOptions);
+        
+        const { data, error } = await supabase.storage
+          .from(bucket)
+          .upload(fileName, blob, uploadOptions);
+
+        if (error) {
+          lastError = error;
+          console.warn(`⚠️ Upload attempt ${attempt} failed:`, error);
+          
+          // Don't retry certain errors
+          if (error.message?.includes('Duplicate') || error.message?.includes('already exists')) {
+            console.log('ℹ️ File already exists, treating as success');
+            return { data: { path: fileName }, error: null };
+          }
+          
+          // Delay before retry
+          if (attempt < maxRetries) {
+            const delay = 1000 * attempt;
+            console.log(`⏳ Waiting ${delay}ms before retry...`);
+            await new Promise(resolve => setTimeout(resolve, delay));
+          }
+        } else {
+          console.log(`✅ Upload successful on attempt ${attempt}`);
+          console.log('📊 Upload result:', data);
+          return { data, error: null };
+        }
+      } catch (error) {
+        lastError = error;
+        console.error(`❌ Upload attempt ${attempt} error:`, error);
+        
+        if (attempt < maxRetries) {
+          const delay = 1000 * attempt;
+          console.log(`⏳ Waiting ${delay}ms before retry...`);
+          await new Promise(resolve => setTimeout(resolve, delay));
+        }
+      }
+    }
+
+    const finalError = handleSupabaseError(lastError) || 'Upload failed after all retries';
+    console.error('❌ All upload attempts failed:', finalError);
+    return { 
+      data: null, 
+      error: finalError
+    };
+  }
+
+  /**
    * Update user profile with new avatar URL
    */
   async updateProfileAvatar(userId: string, avatarUrl: string): Promise<{ error: string | null }> {
     try {
+      console.log('Updating profile avatar for user:', userId);
+      console.log('New avatar URL:', avatarUrl);
+
       const { error } = await supabase
         .from('profiles')
         .update({
@@ -568,11 +819,14 @@ export class ImageService {
         .eq('id', userId);
 
       if (error) {
+        console.error('Profile update error:', error);
         return { error: handleSupabaseError(error) };
       }
 
+      console.log('Profile avatar updated successfully');
       return { error: null };
     } catch (error) {
+      console.error('Update profile avatar error:', error);
       return { error: handleSupabaseError(error) };
     }
   }
@@ -629,11 +883,8 @@ export class ImageService {
     imageUri: string
   ): Promise<{ avatarUrl: string | null; error: string | null }> {
     try {
-      console.log('Starting complete profile photo update workflow...');
-      console.log('User ID:', userId);
-      console.log('Image URI:', imageUri);
-
-      // Validate inputs
+      console.log('Starting complete profile photo update workflow');
+      
       if (!userId || !imageUri) {
         return {
           avatarUrl: null,
@@ -641,27 +892,21 @@ export class ImageService {
         };
       }
 
-      // Upload the image
       const uploadResult = await this.uploadProfilePhoto(userId, imageUri);
       
       if (uploadResult.error || !uploadResult.url) {
-        console.error('Upload failed:', uploadResult.error);
         return {
           avatarUrl: null,
           error: uploadResult.error || 'Upload failed',
         };
       }
 
-      console.log('Upload successful, updating profile...');
-
-      // Update profile record
       const updateResult = await this.updateProfileAvatar(userId, uploadResult.url);
       
       if (updateResult.error) {
-        console.error('Profile update failed:', updateResult.error);
-        // If profile update fails, try to clean up uploaded image
+        // Rollback: delete uploaded image if profile update fails
         if (uploadResult.fileName) {
-          console.log('Cleaning up uploaded image due to profile update failure...');
+          console.log('Rolling back upload due to profile update failure');
           await this.deleteImage('avatars', uploadResult.fileName);
         }
         
