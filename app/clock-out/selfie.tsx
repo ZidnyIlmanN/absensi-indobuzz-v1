@@ -82,7 +82,7 @@ export default function ClockOutSelfieScreen() {
       }
 
       // Upload selfie first, then clock out with the uploaded URL
-      const uploadResult = await imageService.uploadSelfie(user.id, capturedImage, 'clock_out');
+      const uploadResult = await imageService.uploadSelfie(user!.id, capturedImage, 'clock_out');
       
       if (uploadResult.error) {
         Alert.alert('Upload Failed', uploadResult.error);
