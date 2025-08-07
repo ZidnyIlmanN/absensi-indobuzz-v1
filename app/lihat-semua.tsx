@@ -8,6 +8,7 @@ import {
 } from 'react-native';
 import { router } from 'expo-router';
 import { Grid2x2 as Grid, TrendingUp, Calendar, Clock, DollarSign, Users, FileText, Settings, CircleHelp as HelpCircle, Bell, ArrowLeft, Camera } from 'lucide-react-native';
+import { Cloud } from 'lucide-react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 const features = [
@@ -21,6 +22,7 @@ const features = [
   { title: 'Help', icon: <HelpCircle size={24} color="#795548" />, route: '/help' as any },
   { title: 'Notifications', icon: <Bell size={24} color="#F44336" />, route: '/notifications' as any },
   { title: 'Selfie Gallery', icon: <Camera size={24} color="#E91E63" />, route: '/selfie-gallery' as any },
+  { title: 'Weather Details', icon: <Cloud size={24} color="#87CEEB" />, route: '/weather-details' as any },
 ];
 
 export default function LihatSemuaScreen() {

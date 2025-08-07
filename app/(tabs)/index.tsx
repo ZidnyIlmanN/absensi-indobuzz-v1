@@ -19,6 +19,7 @@ import { AttendanceCard } from '@/components/AttendanceCard';
 import { AttendanceStatusCard } from '@/components/AttendanceStatusCard';
 import { QuickActionCard } from '@/components/QuickActionCard';
 import { StatsCard } from '@/components/StatsCard';
+import { WeatherDisplay } from '@/components/WeatherDisplay';
 import { LoadingSpinner } from '@/components/LoadingSpinner';
 import { ErrorBoundary } from '@/components/ErrorBoundary';
 import { useAppContext } from '@/context/AppContext';
@@ -248,16 +249,11 @@ export default function HomeScreen() {
                 <Text style={styles.currentTime}>{formatTime(currentTime)}</Text>
                 <Text style={styles.currentDate}>{formatDate(currentTime)}</Text>
               </View>
-              <View style={styles.workStatusContainer}>
-                <View style={[
-                  styles.workStatusIndicator,
-                  { backgroundColor: isWorking ? '#4CAF50' : '#FF9800' }
-                ]}>
-                  <Text style={styles.workStatusText}>
-                    {isWorking ? 'Working' : 'Off Duty'}
-                  </Text>
-                </View>
-              </View>
+              <WeatherDisplay 
+                style={styles.weatherContainer}
+                showDetailedInfo={true}
+                autoRefreshInterval={15}
+              />
             </View>
           </LinearGradientWrapper>
 
@@ -567,19 +563,8 @@ const styles = StyleSheet.create({
     color: 'rgba(0, 0, 0, 0.48)',
     fontWeight: '400',
   },
-  workStatusContainer: {
-    alignItems: 'flex-end',
-  },
-  workStatusIndicator: {
-    paddingHorizontal: 12,
-    paddingVertical: 6,
-    borderRadius: 20,
-    elevation: 2,
-  },
-  workStatusText: {
-    color: 'white',
-    fontSize: 12,
-    fontWeight: '600',
+  weatherContainer: {
+    maxWidth: 200,
   },
   content: {
     paddingHorizontal: 20,
