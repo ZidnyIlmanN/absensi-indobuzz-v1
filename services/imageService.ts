@@ -5,17 +5,19 @@ import * as FileSystem from 'expo-file-system';
 import { Platform } from 'react-native';
 
 /**
- * PERBAIKAN UTAMA: Simplified and more reliable URI to Blob conversion
+ * SOLUSI UTAMA: Konversi URI ke ArrayBuffer untuk Supabase Storage React Native
+ * Supabase Storage di React Native tidak mendukung Blob/File dengan baik,
+ * sehingga kita perlu menggunakan ArrayBuffer dari data base64
  */
-const uriToBlob = async (uri: string): Promise<Blob> => {
+const uriToArrayBuffer = async (uri: string): Promise<ArrayBuffer> => {
   try {
     if (!uri || uri.trim() === '') {
       throw new Error('Invalid URI provided');
     }
 
-    console.log('🔄 Converting URI to blob:', uri);
+    console.log('🔄 Converting URI to ArrayBuffer:', uri);
 
-    // Method 1: For HTTP/HTTPS URLs (simple and reliable)
+    // Method 1: Untuk HTTP/HTTPS URLs
     if (uri.startsWith('http://') || uri.startsWith('https://')) {
       console.log('🌐 Processing HTTP URL...');
       const response = await fetch(uri);
@@ -24,25 +26,25 @@ const uriToBlob = async (uri: string): Promise<Blob> => {
         throw new Error(`Failed to fetch image: ${response.status} ${response.statusText}`);
       }
 
-      const blob = await response.blob();
+      const arrayBuffer = await response.arrayBuffer();
       
-      if (blob.size === 0) {
-        throw new Error('HTTP response returned empty blob');
+      if (arrayBuffer.byteLength === 0) {
+        throw new Error('HTTP response returned empty data');
       }
       
-      console.log('✅ Blob created from HTTP URL:', {
-        size: blob.size,
-        type: blob.type
+      console.log('✅ ArrayBuffer created from HTTP URL:', {
+        size: arrayBuffer.byteLength,
+        type: 'ArrayBuffer'
       });
 
-      return blob;
+      return arrayBuffer;
     }
 
-    // Method 2: For file:// URIs (improved and simplified)
+    // Method 2: Untuk file:// URIs - SOLUSI UTAMA
     if (uri.startsWith('file://')) {
       console.log('📁 Processing local file...');
       
-      // Validate file exists
+      // Validasi file exists
       const fileInfo = await FileSystem.getInfoAsync(uri);
       console.log('📁 File info:', fileInfo);
       
@@ -54,71 +56,47 @@ const uriToBlob = async (uri: string): Promise<Blob> => {
         throw new Error('File is empty');
       }
 
-      // PERBAIKAN: Use fetch directly with file URI (React Native supports this)
-      try {
-        console.log('🔄 Using direct fetch for file URI...');
-        const response = await fetch(uri);
-        
-        if (!response.ok) {
-          throw new Error(`Failed to read file: ${response.status}`);
-        }
+      // PERBAIKAN UTAMA: Baca file sebagai base64 lalu konversi ke ArrayBuffer
+      console.log('🔄 Reading file as base64...');
+      const base64Data = await FileSystem.readAsStringAsync(uri, {
+        encoding: FileSystem.EncodingType.Base64,
+      });
 
-        const blob = await response.blob();
-        
-        if (blob.size === 0) {
-          throw new Error('File fetch returned empty blob');
-        }
-        
-        console.log('✅ Blob created from file URI:', {
-          size: blob.size,
-          type: blob.type,
-          originalSize: fileInfo.size
-        });
-
-        return blob;
-      } catch (fetchError) {
-        console.warn('⚠️ Direct fetch failed, trying base64 method:', fetchError);
-        
-        // Fallback: Base64 method (simplified)
-        const base64 = await FileSystem.readAsStringAsync(uri, {
-          encoding: FileSystem.EncodingType.Base64,
-        });
-
-        if (!base64 || base64.length === 0) {
-          throw new Error('Failed to read file as base64');
-        }
-
-        // Create blob from base64 (simplified approach)
-        const mimeType = 'image/jpeg';
-        const byteCharacters = atob(base64);
-        const byteNumbers = new Array(byteCharacters.length);
-        
-        for (let i = 0; i < byteCharacters.length; i++) {
-          byteNumbers[i] = byteCharacters.charCodeAt(i);
-        }
-        
-        const byteArray = new Uint8Array(byteNumbers);
-        const blob = new Blob([byteArray], { type: mimeType });
-        
-        if (blob.size === 0) {
-          throw new Error('Base64 conversion resulted in empty blob');
-        }
-        
-        console.log('✅ Blob created from base64:', {
-          size: blob.size,
-          type: blob.type,
-          base64Length: base64.length
-        });
-
-        return blob;
+      if (!base64Data || base64Data.length === 0) {
+        throw new Error('Failed to read file as base64');
       }
+
+      console.log('📊 Base64 data length:', base64Data.length);
+
+      // Konversi base64 ke ArrayBuffer
+      console.log('🔄 Converting base64 to ArrayBuffer...');
+      const binaryString = atob(base64Data);
+      const arrayBuffer = new ArrayBuffer(binaryString.length);
+      const uint8Array = new Uint8Array(arrayBuffer);
+      
+      for (let i = 0; i < binaryString.length; i++) {
+        uint8Array[i] = binaryString.charCodeAt(i);
+      }
+      
+      if (arrayBuffer.byteLength === 0) {
+        throw new Error('ArrayBuffer conversion resulted in empty data');
+      }
+      
+      console.log('✅ ArrayBuffer created from file:', {
+        originalSize: fileInfo.size,
+        base64Length: base64Data.length,
+        arrayBufferSize: arrayBuffer.byteLength,
+        type: 'ArrayBuffer'
+      });
+
+      return arrayBuffer;
     }
 
     throw new Error(`Unsupported URI format: ${uri.substring(0, 50)}...`);
     
   } catch (error) {
-    console.error('❌ Error converting URI to blob:', error);
-    throw error instanceof Error ? error : new Error('Failed to convert URI to blob');
+    console.error('❌ Error converting URI to ArrayBuffer:', error);
+    throw error instanceof Error ? error : new Error('Failed to convert URI to ArrayBuffer');
   }
 };
 
@@ -281,7 +259,7 @@ export class ImageService {
   }
 
   /**
-   * PERBAIKAN: Improved image compression with better error handling
+   * PERBAIKAN: Improved image compression dengan validasi yang lebih baik
    */
   async compressImage(
     uri: string, 
@@ -297,7 +275,7 @@ export class ImageService {
 
       console.log('🔄 Starting image compression:', uri);
 
-      // Validate source file for file:// URIs
+      // Validasi source file untuk file:// URIs
       if (uri.startsWith('file://')) {
         const fileInfo = await FileSystem.getInfoAsync(uri);
         if (!fileInfo.exists) {
@@ -306,6 +284,14 @@ export class ImageService {
             error: 'Source image file does not exist',
           };
         }
+        
+        if (fileInfo.size === 0) {
+          return {
+            uri: null,
+            error: 'Source image file is empty',
+          };
+        }
+        
         console.log('📁 Source file info:', fileInfo);
       }
 
@@ -342,7 +328,7 @@ export class ImageService {
         };
       }
 
-      // Validate compressed file
+      // Validasi compressed file
       const compressedFileInfo = await FileSystem.getInfoAsync(result.uri);
       console.log('📁 Compressed file info:', compressedFileInfo);
       
@@ -375,7 +361,7 @@ export class ImageService {
   }
 
   /**
-   * PERBAIKAN: Simplified and more reliable selfie upload
+   * SOLUSI UTAMA: Upload selfie menggunakan ArrayBuffer
    */
   async uploadSelfie(
     userId: string,
@@ -384,12 +370,20 @@ export class ImageService {
     options?: ImageCompressionOptions
   ): Promise<ImageUploadResult> {
     try {
-      console.log('=== 🚀 Starting Selfie Upload ===');
+      console.log('=== 🚀 Starting Selfie Upload (ArrayBuffer Method) ===');
       console.log('👤 User ID:', userId);
       console.log('🖼️ Image URI:', imageUri);
       console.log('📝 Type:', type);
 
-      // Step 1: Compress image
+      // Step 1: Validasi input
+      if (!userId || !imageUri) {
+        return {
+          url: null,
+          error: 'User ID and image URI are required',
+        };
+      }
+
+      // Step 2: Compress image
       const compressionResult = await this.compressImage(imageUri, {
         quality: 0.7,
         maxWidth: 800,
@@ -405,30 +399,30 @@ export class ImageService {
         };
       }
 
-      // Step 2: Convert to blob
-      const blob = await uriToBlob(compressionResult.uri);
+      // Step 3: SOLUSI UTAMA - Konversi ke ArrayBuffer
+      const arrayBuffer = await uriToArrayBuffer(compressionResult.uri);
       
-      if (blob.size === 0) {
+      if (arrayBuffer.byteLength === 0) {
         return {
           url: null,
           error: 'Processed image is empty',
         };
       }
       
-      // Step 3: Generate filename
+      // Step 4: Generate filename dengan timestamp
       const timestamp = new Date().toISOString().replace(/[:.]/g, '-');
       const fileName = `${userId}/selfies/${type}_${timestamp}.jpg`;
       
-      console.log('📤 Uploading selfie:', {
+      console.log('📤 Uploading selfie with ArrayBuffer:', {
         fileName,
-        blobSize: blob.size,
-        blobType: blob.type
+        arrayBufferSize: arrayBuffer.byteLength,
+        type: 'ArrayBuffer'
       });
 
-      // Step 4: Upload to Supabase
+      // Step 5: Upload ke Supabase menggunakan ArrayBuffer
       const { data, error } = await supabase.storage
         .from('selfies')
-        .upload(fileName, blob, {
+        .upload(fileName, arrayBuffer, {
           contentType: 'image/jpeg',
           upsert: false,
           cacheControl: '3600',
@@ -443,12 +437,36 @@ export class ImageService {
         };
       }
 
-      // Step 5: Get public URL
+      // Step 6: Get public URL
       const { data: { publicUrl } } = supabase.storage
         .from('selfies')
         .getPublicUrl(data.path);
 
       console.log('✅ Selfie upload successful:', publicUrl);
+
+      // Step 7: Verifikasi upload dengan mengecek file info
+      const { data: uploadedFileInfo, error: fileInfoError } = await supabase.storage
+        .from('selfies')
+        .list(fileName.split('/').slice(0, -1).join('/'), {
+          search: fileName.split('/').pop(),
+        });
+
+      if (!fileInfoError && uploadedFileInfo && uploadedFileInfo.length > 0) {
+        const fileInfo = uploadedFileInfo[0];
+        console.log('📊 Uploaded file verification:', {
+          name: fileInfo.name,
+          size: fileInfo.metadata?.size || 'unknown',
+          lastModified: fileInfo.updated_at
+        });
+
+        if (fileInfo.metadata?.size === 0) {
+          console.warn('⚠️ Warning: Uploaded file has 0 bytes size');
+          return {
+            url: null,
+            error: 'Upload completed but file is empty. Please try again.',
+          };
+        }
+      }
 
       return { 
         url: publicUrl, 
@@ -465,7 +483,7 @@ export class ImageService {
   }
 
   /**
-   * PERBAIKAN UTAMA: Completely rewritten profile photo upload
+   * SOLUSI UTAMA: Upload profile photo menggunakan ArrayBuffer
    */
   async uploadProfilePhoto(
     userId: string,
@@ -473,11 +491,11 @@ export class ImageService {
     options?: ImageCompressionOptions
   ): Promise<ImageUploadResult> {
     try {
-      console.log('=== 🚀 Starting Profile Photo Upload ===');
+      console.log('=== 🚀 Starting Profile Photo Upload (ArrayBuffer Method) ===');
       console.log('👤 User ID:', userId);
       console.log('🖼️ Original image URI:', imageUri);
 
-      // Step 1: Validate inputs
+      // Step 1: Validasi inputs
       if (!userId || !imageUri) {
         return {
           url: null,
@@ -485,7 +503,7 @@ export class ImageService {
         };
       }
 
-      // Step 2: Validate source file
+      // Step 2: Validasi source file
       if (imageUri.startsWith('file://')) {
         const fileInfo = await FileSystem.getInfoAsync(imageUri);
         console.log('📁 Original file info:', fileInfo);
@@ -513,7 +531,7 @@ export class ImageService {
         }
       }
 
-      // Step 3: Compress image with optimal settings
+      // Step 3: Compress image dengan optimal settings
       console.log('🔄 Starting image compression...');
       
       const compressionOptions = {
@@ -536,56 +554,55 @@ export class ImageService {
 
       console.log('✅ Compression successful:', compressionResult.uri);
 
-      // Step 4: Convert to blob with improved error handling
-      console.log('🔄 Converting to blob...');
-      let blob: Blob;
+      // Step 4: SOLUSI UTAMA - Konversi ke ArrayBuffer
+      console.log('🔄 Converting to ArrayBuffer...');
+      let arrayBuffer: ArrayBuffer;
       
       try {
-        blob = await uriToBlob(compressionResult.uri);
-      } catch (blobError) {
-        console.error('❌ Blob conversion failed:', blobError);
+        arrayBuffer = await uriToArrayBuffer(compressionResult.uri);
+      } catch (arrayBufferError) {
+        console.error('❌ ArrayBuffer conversion failed:', arrayBufferError);
         return {
           url: null,
-          error: `Failed to process image: ${blobError instanceof Error ? blobError.message : 'Unknown error'}`,
+          error: `Failed to process image: ${arrayBufferError instanceof Error ? arrayBufferError.message : 'Unknown error'}`,
         };
       }
       
-      // Step 5: Validate blob
-      console.log('🔍 Validating blob:', {
-        size: blob.size,
-        type: blob.type,
-        constructor: blob.constructor.name
+      // Step 5: Validasi ArrayBuffer
+      console.log('🔍 Validating ArrayBuffer:', {
+        size: arrayBuffer.byteLength,
+        type: 'ArrayBuffer',
+        constructor: arrayBuffer.constructor.name
       });
       
-      if (!blob || blob.size === 0) {
+      if (!arrayBuffer || arrayBuffer.byteLength === 0) {
         return {
           url: null,
           error: 'Processed image is empty',
         };
       }
 
-      if (blob.size > 2 * 1024 * 1024) { // 2MB limit for avatars
+      if (arrayBuffer.byteLength > 2 * 1024 * 1024) { // 2MB limit for avatars
         return {
           url: null,
           error: 'Compressed image is still too large (max 2MB for avatars)',
         };
       }
       
-      // Step 6: Generate filename with timestamp
+      // Step 6: Generate filename dengan timestamp
       const timestamp = Date.now();
       const fileName = `${userId}/profile/avatar_${timestamp}.jpg`;
       
-      console.log('📤 Uploading to Supabase:', {
+      console.log('📤 Uploading to Supabase with ArrayBuffer:', {
         bucket: 'avatars',
         fileName,
-        blobSize: blob.size,
-        blobType: blob.type
+        arrayBufferSize: arrayBuffer.byteLength
       });
 
-      // Step 7: Upload with single attempt (no retry for simplicity)
+      // Step 7: Upload menggunakan ArrayBuffer
       const { data, error } = await supabase.storage
         .from('avatars')
-        .upload(fileName, blob, {
+        .upload(fileName, arrayBuffer, {
           contentType: 'image/jpeg',
           upsert: true, // Allow overwrite
           cacheControl: '3600',
@@ -602,7 +619,31 @@ export class ImageService {
 
       console.log('✅ Upload successful:', data);
 
-      // Step 8: Get public URL with cache busting
+      // Step 8: Verifikasi upload
+      const { data: uploadedFileInfo, error: fileInfoError } = await supabase.storage
+        .from('avatars')
+        .list(fileName.split('/').slice(0, -1).join('/'), {
+          search: fileName.split('/').pop(),
+        });
+
+      if (!fileInfoError && uploadedFileInfo && uploadedFileInfo.length > 0) {
+        const fileInfo = uploadedFileInfo[0];
+        console.log('📊 Uploaded file verification:', {
+          name: fileInfo.name,
+          size: fileInfo.metadata?.size || 'unknown',
+          lastModified: fileInfo.updated_at
+        });
+
+        if (fileInfo.metadata?.size === 0) {
+          console.error('❌ Critical: Uploaded file has 0 bytes!');
+          return {
+            url: null,
+            error: 'Upload completed but file is empty. This indicates a Supabase Storage issue.',
+          };
+        }
+      }
+
+      // Step 9: Get public URL dengan cache busting
       const { data: { publicUrl } } = supabase.storage
         .from('avatars')
         .getPublicUrl(data.path);
@@ -627,7 +668,7 @@ export class ImageService {
   }
 
   /**
-   * Update user profile with new avatar URL
+   * Update user profile dengan avatar URL baru
    */
   async updateProfileAvatar(userId: string, avatarUrl: string): Promise<{ error: string | null }> {
     try {
@@ -671,7 +712,7 @@ export class ImageService {
   }
 
   /**
-   * Get all selfies for a user (for history/gallery view)
+   * Get all selfies untuk user (untuk history/gallery view)
    */
   async getUserSelfies(userId: string): Promise<{ urls: string[]; error: string | null }> {
     try {
@@ -700,14 +741,14 @@ export class ImageService {
   }
 
   /**
-   * PERBAIKAN: Simplified complete profile photo update workflow
+   * SOLUSI UTAMA: Complete profile photo update workflow dengan ArrayBuffer
    */
   async updateProfilePhotoComplete(
     userId: string,
     imageUri: string
   ): Promise<{ avatarUrl: string | null; error: string | null }> {
     try {
-      console.log('=== 🚀 Starting Complete Profile Photo Update ===');
+      console.log('=== 🚀 Starting Complete Profile Photo Update (ArrayBuffer Method) ===');
       
       if (!userId || !imageUri) {
         return {
@@ -716,7 +757,7 @@ export class ImageService {
         };
       }
 
-      // Step 1: Upload image
+      // Step 1: Upload image menggunakan ArrayBuffer method
       const uploadResult = await this.uploadProfilePhoto(userId, imageUri);
       
       if (uploadResult.error || !uploadResult.url) {
@@ -730,7 +771,7 @@ export class ImageService {
       const updateResult = await this.updateProfileAvatar(userId, uploadResult.url);
       
       if (updateResult.error) {
-        // Rollback: delete uploaded image if profile update fails
+        // Rollback: delete uploaded image jika profile update gagal
         if (uploadResult.fileName) {
           console.log('🔄 Rolling back upload due to profile update failure');
           await this.deleteImage('avatars', uploadResult.fileName);
@@ -757,7 +798,7 @@ export class ImageService {
   }
 
   /**
-   * PERBAIKAN: Validate image file before processing
+   * Validasi image file sebelum processing
    */
   async validateImageFile(uri: string): Promise<{ isValid: boolean; error?: string }> {
     try {
@@ -765,7 +806,7 @@ export class ImageService {
         return { isValid: false, error: 'No image URI provided' };
       }
 
-      // For file:// URIs, check file system
+      // Untuk file:// URIs, check file system
       if (uri.startsWith('file://')) {
         const fileInfo = await FileSystem.getInfoAsync(uri);
         
@@ -782,7 +823,7 @@ export class ImageService {
         }
       }
 
-      // For HTTP URLs, try to fetch headers
+      // Untuk HTTP URLs, try to fetch headers
       if (uri.startsWith('http')) {
         try {
           const response = await fetch(uri, { method: 'HEAD' });
@@ -810,7 +851,99 @@ export class ImageService {
   }
 
   /**
-   * Get storage usage for debugging
+   * Debug function untuk troubleshooting upload issues
+   */
+  async debugUploadProcess(
+    userId: string,
+    imageUri: string,
+    type: 'selfie' | 'avatar' = 'selfie'
+  ): Promise<{
+    steps: { [key: string]: any };
+    finalResult: 'success' | 'failure';
+    error?: string;
+  }> {
+    const debugSteps: { [key: string]: any } = {};
+    
+    try {
+      // Step 1: Validate input
+      debugSteps.input_validation = {
+        userId: !!userId,
+        imageUri: !!imageUri,
+        uriFormat: imageUri.startsWith('file://') ? 'file' : imageUri.startsWith('http') ? 'http' : 'unknown'
+      };
+
+      // Step 2: Check file info
+      if (imageUri.startsWith('file://')) {
+        const fileInfo = await FileSystem.getInfoAsync(imageUri);
+        debugSteps.file_info = fileInfo;
+      }
+
+      // Step 3: Test compression
+      const compressionResult = await this.compressImage(imageUri, { quality: 0.8 });
+      debugSteps.compression = {
+        success: !compressionResult.error,
+        error: compressionResult.error,
+        outputUri: compressionResult.uri
+      };
+
+      if (compressionResult.error) {
+        return {
+          steps: debugSteps,
+          finalResult: 'failure',
+          error: compressionResult.error
+        };
+      }
+
+      // Step 4: Test ArrayBuffer conversion
+      try {
+        const arrayBuffer = await uriToArrayBuffer(compressionResult.uri!);
+        debugSteps.array_buffer_conversion = {
+          success: true,
+          size: arrayBuffer.byteLength
+        };
+      } catch (arrayBufferError) {
+        debugSteps.array_buffer_conversion = {
+          success: false,
+          error: arrayBufferError instanceof Error ? arrayBufferError.message : 'Unknown error'
+        };
+        
+        return {
+          steps: debugSteps,
+          finalResult: 'failure',
+          error: 'ArrayBuffer conversion failed'
+        };
+      }
+
+      // Step 5: Test Supabase connection
+      try {
+        const { data: buckets, error: bucketsError } = await supabase.storage.listBuckets();
+        debugSteps.supabase_connection = {
+          success: !bucketsError,
+          bucketsCount: buckets?.length || 0,
+          error: bucketsError?.message
+        };
+      } catch (supabaseError) {
+        debugSteps.supabase_connection = {
+          success: false,
+          error: supabaseError instanceof Error ? supabaseError.message : 'Unknown error'
+        };
+      }
+
+      return {
+        steps: debugSteps,
+        finalResult: 'success',
+      };
+    } catch (error) {
+      return {
+        steps: debugSteps,
+        finalResult: 'failure',
+        error: error instanceof Error ? error.message : 'Debug process failed'
+      };
+    }
+  }
+
+  /**
+   * Get storage usage untuk debugging
    */
   async getStorageUsage(userId: string): Promise<{
     selfiesCount: number;
