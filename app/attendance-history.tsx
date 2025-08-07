@@ -227,7 +227,12 @@ export default function AttendanceHistoryScreen() {
           <Text style={styles.sectionTitle}>Attendance History</Text>
 
           {formattedAttendanceHistory.map((record) => (
-            <View key={record.id} style={styles.historyCard}>
+            <TouchableOpacity 
+              key={record.id} 
+              style={styles.historyCard}
+              onPress={() => router.push(`/attendance-history-detail?attendanceId=${record.id}`)}
+              activeOpacity={0.7}
+            >
               <View style={styles.historyHeader}>
                 <View style={styles.historyDate}>
                   <Calendar size={16} color="#666" />
@@ -275,7 +280,7 @@ export default function AttendanceHistoryScreen() {
                 </View>
               </View>
             </View>
-          ))}
+          </TouchableOpacity>
         </View>
       </ScrollView>
     </View>

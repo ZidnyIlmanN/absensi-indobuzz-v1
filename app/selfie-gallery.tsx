@@ -9,16 +9,18 @@ import {
   RefreshControl,
   Dimensions,
   Modal,
+  Alert,
 } from 'react-native';
 import { StatusBar } from 'expo-status-bar';
 import { LinearGradient } from 'expo-linear-gradient';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { router } from 'expo-router';
-import { ArrowLeft, Camera, Calendar, Clock, X, Download, Trash2 } from 'lucide-react-native';
+import { ArrowLeft, Camera, Calendar, Clock, X, Download, Trash2, RefreshCw } from 'lucide-react-native';
 import { useAppContext } from '@/context/AppContext';
 import { imageService } from '@/services/imageService';
 import { LoadingSpinner } from '@/components/LoadingSpinner';
 import { EmptyState } from '@/components/EmptyState';
+import { supabase } from '@/lib/supabase';
 
 const { width } = Dimensions.get('window');
 const imageSize = (width - 60) / 3; // 3 images per row with padding
@@ -32,28 +34,134 @@ interface SelfieItem {
 
 export default function SelfieGalleryScreen() {
   const insets = useSafeAreaInsets();
-  const { user } = useAppContext();
+  const { user, currentAttendance, todayActivities } = useAppContext();
   const [selfies, setSelfies] = useState<SelfieItem[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
   const [selectedSelfie, setSelectedSelfie] = useState<SelfieItem | null>(null);
   const [showModal, setShowModal] = useState(false);
+  const [realtimeSubscription, setRealtimeSubscription] = useState<any>(null);
 
   useEffect(() => {
     loadSelfies();
+    setupRealtimeSubscription();
+    
+    return () => {
+      cleanupRealtimeSubscription();
+    };
   }, []);
+
+  // Real-time subscription setup for immediate photo updates
+  const setupRealtimeSubscription = () => {
+    if (!user) return;
+
+    console.log('🔄 Setting up real-time selfie subscription for user:', user.id);
+    
+    // Subscribe to storage changes for this user's selfie folder
+    const subscription = supabase
+      .channel('selfie-uploads')
+      .on(
+        'postgres_changes',
+        {
+          event: 'INSERT',
+          schema: 'public',
+          table: 'activity_records',
+          filter: `user_id=eq.${user.id}`,
+        },
+        (payload) => {
+          console.log('📸 New activity with potential selfie detected:', payload);
+          handleRealtimeActivityUpdate(payload.new);
+        }
+      )
+      .on(
+        'postgres_changes',
+        {
+          event: 'UPDATE',
+          schema: 'public',
+          table: 'attendance_records',
+          filter: `user_id=eq.${user.id}`,
+        },
+        (payload) => {
+          console.log('📸 Attendance record updated with potential selfie:', payload);
+          handleRealtimeAttendanceUpdate(payload.new);
+        }
+      )
+      .subscribe();
+
+    setRealtimeSubscription(subscription);
+  };
+
+  const cleanupRealtimeSubscription = () => {
+    if (realtimeSubscription) {
+      console.log('🔄 Cleaning up real-time subscription');
+      supabase.removeChannel(realtimeSubscription);
+      setRealtimeSubscription(null);
+    }
+  };
+
+  // Handle real-time activity updates (break start/end, etc.)
+  const handleRealtimeActivityUpdate = (activityData: any) => {
+    if (activityData.selfie_url) {
+      console.log('📸 New selfie detected from activity:', activityData.type);
+      
+      const newSelfie: SelfieItem = {
+        url: activityData.selfie_url,
+        fileName: activityData.selfie_url.split('/').pop() || '',
+        timestamp: new Date(activityData.timestamp),
+        type: activityData.type,
+      };
+      
+      // Add to beginning of array (newest first)
+      setSelfies(prev => [newSelfie, ...prev]);
+      
+      // Show success notification
+      Alert.alert('📸 New Selfie', `${getTypeLabel(activityData.type)} selfie added to gallery!`);
+    }
+  };
+
+  // Handle real-time attendance updates (clock in/out)
+  const handleRealtimeAttendanceUpdate = (attendanceData: any) => {
+    if (attendanceData.selfie_url) {
+      console.log('📸 New selfie detected from attendance update');
+      
+      // Determine type based on whether it's a new record or update
+      const type = attendanceData.clock_out ? 'clock_out' : 'clock_in';
+      
+      const newSelfie: SelfieItem = {
+        url: attendanceData.selfie_url,
+        fileName: attendanceData.selfie_url.split('/').pop() || '',
+        timestamp: new Date(attendanceData.clock_in),
+        type: type,
+      };
+      
+      // Check if this selfie already exists to avoid duplicates
+      setSelfies(prev => {
+        const exists = prev.some(selfie => selfie.url === newSelfie.url);
+        if (exists) return prev;
+        
+        return [newSelfie, ...prev];
+      });
+      
+      // Show success notification
+      Alert.alert('📸 New Selfie', `${getTypeLabel(type)} selfie added to gallery!`);
+    }
+  };
 
   const loadSelfies = async () => {
     if (!user) return;
 
     setIsLoading(true);
     try {
+      console.log('🔄 Loading selfies for user:', user.id);
       const { urls, error } = await imageService.getUserSelfies(user.id);
       
       if (error) {
         console.error('Failed to load selfies:', error);
+        Alert.alert('Error', 'Failed to load selfies. Please try again.');
         return;
       }
+
+      console.log('📸 Loaded selfie URLs:', urls.length);
 
       // Parse selfie information from URLs
       const selfieItems: SelfieItem[] = urls.map(url => {
@@ -74,9 +182,11 @@ export default function SelfieGalleryScreen() {
       // Sort by timestamp (newest first)
       selfieItems.sort((a, b) => b.timestamp.getTime() - a.timestamp.getTime());
       
+      console.log('📸 Processed selfie items:', selfieItems.length);
       setSelfies(selfieItems);
     } catch (error) {
       console.error('Error loading selfies:', error);
+      Alert.alert('Error', 'An unexpected error occurred while loading selfies.');
     } finally {
       setIsLoading(false);
     }
@@ -84,13 +194,50 @@ export default function SelfieGalleryScreen() {
 
   const onRefresh = async () => {
     setRefreshing(true);
+    console.log('🔄 Manual refresh triggered');
     await loadSelfies();
     setRefreshing(false);
   };
 
   const handleSelfiePress = (selfie: SelfieItem) => {
+    console.log('📸 Opening selfie:', selfie.fileName);
     setSelectedSelfie(selfie);
     setShowModal(true);
+  };
+
+  const handleDeleteSelfie = async (selfie: SelfieItem) => {
+    Alert.alert(
+      'Delete Selfie',
+      'Are you sure you want to delete this selfie? This action cannot be undone.',
+      [
+        { text: 'Cancel', style: 'cancel' },
+        {
+          text: 'Delete',
+          style: 'destructive',
+          onPress: async () => {
+            try {
+              // Extract bucket and path from URL
+              const urlParts = selfie.url.split('/');
+              const bucketIndex = urlParts.findIndex(part => part === 'selfies');
+              if (bucketIndex !== -1) {
+                const path = urlParts.slice(bucketIndex + 1).join('/');
+                const { error } = await imageService.deleteImage('selfies', path);
+                
+                if (error) {
+                  Alert.alert('Error', 'Failed to delete selfie');
+                } else {
+                  setSelfies(prev => prev.filter(s => s.url !== selfie.url));
+                  setShowModal(false);
+                  Alert.alert('Success', 'Selfie deleted successfully');
+                }
+              }
+            } catch (error) {
+              Alert.alert('Error', 'Failed to delete selfie');
+            }
+          },
+        },
+      ]
+    );
   };
 
   const getTypeColor = (type: string) => {
@@ -183,9 +330,26 @@ export default function SelfieGalleryScreen() {
           </View>
         </View>
 
+        {/* Real-time Status Indicator */}
+        <View style={styles.realtimeStatus}>
+          <View style={styles.realtimeIndicator} />
+          <Text style={styles.realtimeText}>
+            Real-time sync active • Photos appear instantly
+          </Text>
+        </View>
+
         {/* Selfies Grid */}
         <View style={styles.section}>
-          <Text style={styles.sectionTitle}>Your Selfies</Text>
+          <View style={styles.sectionHeader}>
+            <Text style={styles.sectionTitle}>Your Selfies</Text>
+            <TouchableOpacity onPress={onRefresh} disabled={refreshing}>
+              <RefreshCw 
+                size={20} 
+                color={refreshing ? "#999" : "#4A90E2"} 
+                style={refreshing ? styles.spinning : undefined}
+              />
+            </TouchableOpacity>
+          </View>
           
           {isLoading ? (
             <LoadingSpinner text="Loading selfies..." />
@@ -193,7 +357,7 @@ export default function SelfieGalleryScreen() {
             <EmptyState
               icon={<Camera size={48} color="#E0E0E0" />}
               title="No selfies yet"
-              message="Your attendance selfies will appear here"
+              message="Your attendance selfies will appear here automatically"
             />
           ) : (
             <View style={styles.selfiesGrid}>
@@ -273,6 +437,14 @@ export default function SelfieGalleryScreen() {
                       {getTypeLabel(selectedSelfie.type)}
                     </Text>
                   </View>
+                  
+                  <TouchableOpacity
+                    style={styles.deleteButton}
+                    onPress={() => handleDeleteSelfie(selectedSelfie)}
+                  >
+                    <Trash2 size={16} color="#F44336" />
+                    <Text style={styles.deleteButtonText}>Delete</Text>
+                  </TouchableOpacity>
                 </View>
               </>
             )}
@@ -345,14 +517,45 @@ const styles = StyleSheet.create({
     fontSize: 12,
     color: '#666',
   },
+  realtimeStatus: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: '#E8F5E8',
+    borderRadius: 20,
+    paddingHorizontal: 12,
+    paddingVertical: 6,
+    marginBottom: 16,
+    alignSelf: 'center',
+  },
+  realtimeIndicator: {
+    width: 8,
+    height: 8,
+    borderRadius: 4,
+    backgroundColor: '#4CAF50',
+    marginRight: 8,
+  },
+  realtimeText: {
+    fontSize: 12,
+    color: '#2E7D32',
+    fontWeight: '500',
+  },
   section: {
     marginBottom: 24,
+  },
+  sectionHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: 16,
   },
   sectionTitle: {
     fontSize: 18,
     fontWeight: '600',
     color: '#1A1A1A',
-    marginBottom: 16,
+  },
+  spinning: {
+    // Add rotation animation if needed
   },
   selfiesGrid: {
     flexDirection: 'row',
@@ -448,5 +651,20 @@ const styles = StyleSheet.create({
     fontSize: 12,
     fontWeight: '600',
     color: 'white',
+  },
+  deleteButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: '#FFEBEE',
+    paddingHorizontal: 12,
+    paddingVertical: 8,
+    borderRadius: 8,
+    marginTop: 12,
+  },
+  deleteButtonText: {
+    fontSize: 12,
+    color: '#F44336',
+    marginLeft: 6,
+    fontWeight: '500',
   },
 });
