@@ -716,8 +716,6 @@ export class ImageService {
    */
   async getUserSelfies(userId: string): Promise<{ urls: string[]; error: string | null }> {
     try {
-      console.log('🔄 Fetching selfies for user:', userId);
-      
       const { data, error } = await supabase.storage
         .from('selfies')
         .list(`${userId}/selfies`, {
@@ -726,11 +724,8 @@ export class ImageService {
         });
 
       if (error) {
-        console.error('❌ Failed to list selfies:', error);
         return { urls: [], error: handleSupabaseError(error) };
       }
-
-      console.log('📸 Found selfie files:', data.length);
 
       const urls = data.map(file => {
         const { data: { publicUrl } } = supabase.storage
@@ -739,81 +734,9 @@ export class ImageService {
         return publicUrl;
       });
 
-      console.log('🔗 Generated public URLs:', urls.length);
       return { urls, error: null };
     } catch (error) {
-      console.error('❌ Error in getUserSelfies:', error);
       return { urls: [], error: handleSupabaseError(error) };
-    }
-  }
-
-  /**
-   * Subscribe to real-time selfie uploads for a user
-   */
-  subscribeToSelfieUploads(
-    userId: string, 
-    onNewSelfie: (selfieUrl: string, type: string) => void
-  ): () => void {
-    console.log('🔄 Setting up selfie upload subscription for user:', userId);
-    
-    // Listen for storage object insertions in user's selfie folder
-    const channel = supabase
-      .channel(`selfie-uploads-${userId}`)
-      .on(
-        'postgres_changes',
-        {
-          event: 'INSERT',
-          schema: 'storage',
-          table: 'objects',
-          filter: `bucket_id=eq.selfies`,
-        },
-        (payload) => {
-          const objectName = payload.new.name;
-          
-          // Check if this object belongs to the current user
-          if (objectName.startsWith(`${userId}/selfies/`)) {
-            console.log('📸 New selfie uploaded:', objectName);
-            
-            // Extract type from filename
-            const fileName = objectName.split('/').pop() || '';
-            const type = fileName.split('_')[0];
-            
-            // Generate public URL
-            const { data: { publicUrl } } = supabase.storage
-              .from('selfies')
-              .getPublicUrl(objectName);
-            
-            onNewSelfie(publicUrl, type);
-          }
-        }
-      )
-      .subscribe();
-
-    // Return cleanup function
-    return () => {
-      console.log('🔄 Cleaning up selfie upload subscription');
-      supabase.removeChannel(channel);
-    };
-  }
-
-  /**
-   * Get real-time selfie count for user
-   */
-  async getRealTimeSelfieCount(userId: string): Promise<{ count: number; error: string | null }> {
-    try {
-      const { data, error } = await supabase.storage
-        .from('selfies')
-        .list(`${userId}/selfies`, {
-          limit: 1000, // Get all to count
-        });
-
-      if (error) {
-        return { count: 0, error: handleSupabaseError(error) };
-      }
-
-      return { count: data.length, error: null };
-    } catch (error) {
-      return { count: 0, error: handleSupabaseError(error) };
     }
   }
 
