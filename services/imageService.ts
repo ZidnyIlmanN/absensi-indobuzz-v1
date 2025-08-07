@@ -716,8 +716,6 @@ export class ImageService {
    */
   async getUserSelfies(userId: string): Promise<{ urls: string[]; error: string | null }> {
     try {
-      console.log('🔍 Getting user selfies for:', userId);
-      
       const { data, error } = await supabase.storage
         .from('selfies')
         .list(`${userId}/selfies`, {
@@ -726,13 +724,7 @@ export class ImageService {
         });
 
       if (error) {
-        console.error('❌ Failed to list selfies:', error);
         return { urls: [], error: handleSupabaseError(error) };
-      }
-
-      if (!data || data.length === 0) {
-        console.log('📷 No selfies found for user');
-        return { urls: [], error: null };
       }
 
       const urls = data.map(file => {
@@ -742,99 +734,10 @@ export class ImageService {
         return publicUrl;
       });
 
-      console.log(`✅ Found ${urls.length} selfies for user`);
       return { urls, error: null };
     } catch (error) {
-      console.error('❌ Error getting user selfies:', error);
       return { urls: [], error: handleSupabaseError(error) };
     }
-  }
-
-  /**
-   * Get selfies for a specific attendance record
-   */
-  async getAttendanceSelfies(attendanceId: string): Promise<{ selfies: Array<{ type: string; url: string; timestamp: Date }> | null; error: string | null }> {
-    try {
-      console.log('🔍 Getting selfies for attendance:', attendanceId);
-      
-      // Get attendance record and its activities
-      const { data: attendance, error: attendanceError } = await supabase
-        .from('attendance_records')
-        .select(`
-          *,
-          activity_records (*)
-        `)
-        .eq('id', attendanceId)
-        .single();
-
-      if (attendanceError) {
-        console.error('❌ Failed to get attendance record:', attendanceError);
-        return { selfies: null, error: handleSupabaseError(attendanceError) };
-      }
-
-      const selfies: Array<{ type: string; url: string; timestamp: Date }> = [];
-
-      // Add clock in selfie
-      if (attendance.selfie_url) {
-        selfies.push({
-          type: 'clock_in',
-          url: attendance.selfie_url,
-          timestamp: new Date(attendance.clock_in),
-        });
-      }
-
-      // Add activity selfies
-      if (attendance.activity_records) {
-        attendance.activity_records.forEach((activity: any) => {
-          if (activity.selfie_url) {
-            selfies.push({
-              type: activity.type,
-              url: activity.selfie_url,
-              timestamp: new Date(activity.timestamp),
-            });
-          }
-        });
-      }
-
-      // Sort by timestamp
-      selfies.sort((a, b) => a.timestamp.getTime() - b.timestamp.getTime());
-
-      console.log(`✅ Found ${selfies.length} selfies for attendance record`);
-      return { selfies, error: null };
-    } catch (error) {
-      console.error('❌ Error getting attendance selfies:', error);
-      return { selfies: null, error: handleSupabaseError(error) };
-    }
-  }
-
-  /**
-   * Subscribe to real-time selfie updates
-   */
-  subscribeToSelfieUpdates(userId: string, callback: (selfie: SelfieItem) => void): () => void {
-    console.log('🔔 Setting up real-time selfie subscription for user:', userId);
-    
-    return subscribeToTable(
-      'activity_records',
-      (payload) => {
-        console.log('📸 Real-time selfie update:', payload);
-        
-        if (payload.eventType === 'INSERT' && 
-            payload.new.user_id === userId && 
-            payload.new.selfie_url) {
-          
-          const newSelfie: SelfieItem = {
-            url: payload.new.selfie_url,
-            fileName: payload.new.selfie_url.split('/').pop() || '',
-            timestamp: new Date(payload.new.timestamp),
-            type: payload.new.type,
-            id: payload.new.id,
-          };
-          
-          callback(newSelfie);
-        }
-      },
-      `user_id=eq.${userId}`
-    );
   }
 
   /**

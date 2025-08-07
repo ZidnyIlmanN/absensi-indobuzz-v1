@@ -9,18 +9,16 @@ import {
   RefreshControl,
   Dimensions,
   Modal,
-  Alert,
 } from 'react-native';
 import { StatusBar } from 'expo-status-bar';
 import { LinearGradient } from 'expo-linear-gradient';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { router } from 'expo-router';
-import { ArrowLeft, Camera, Calendar, Clock, X, Download, Trash2, RefreshCw } from 'lucide-react-native';
+import { ArrowLeft, Camera, Calendar, Clock, X, Download, Trash2 } from 'lucide-react-native';
 import { useAppContext } from '@/context/AppContext';
 import { imageService } from '@/services/imageService';
 import { LoadingSpinner } from '@/components/LoadingSpinner';
 import { EmptyState } from '@/components/EmptyState';
-import { subscribeToTable } from '@/lib/supabase';
 
 const { width } = Dimensions.get('window');
 const imageSize = (width - 60) / 3; // 3 images per row with padding
@@ -30,70 +28,30 @@ interface SelfieItem {
   fileName: string;
   timestamp: Date;
   type: string;
-  id?: string;
 }
 
 export default function SelfieGalleryScreen() {
   const insets = useSafeAreaInsets();
-  const { user, currentAttendance, todayActivities } = useAppContext();
+  const { user } = useAppContext();
   const [selfies, setSelfies] = useState<SelfieItem[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
   const [selectedSelfie, setSelectedSelfie] = useState<SelfieItem | null>(null);
   const [showModal, setShowModal] = useState(false);
-  const [realTimeEnabled, setRealTimeEnabled] = useState(true);
 
   useEffect(() => {
     loadSelfies();
-    
-    // Set up real-time subscription for new selfies
-    let unsubscribe: (() => void) | null = null;
-    
-    if (realTimeEnabled && user) {
-      unsubscribe = subscribeToTable(
-        'activity_records',
-        (payload) => {
-          console.log('Real-time activity update:', payload);
-          if (payload.eventType === 'INSERT' && payload.new.user_id === user.id && payload.new.selfie_url) {
-            // New activity with selfie added, refresh gallery
-            loadSelfies();
-          }
-        },
-        `user_id=eq.${user.id}`
-      );
-    }
-    
-    return () => {
-      if (unsubscribe) {
-        unsubscribe();
-      }
-    };
   }, []);
 
-  // Watch for changes in current attendance and activities to update gallery
-  useEffect(() => {
-    if (currentAttendance || todayActivities.length > 0) {
-      // Debounce the reload to avoid too frequent updates
-      const timeoutId = setTimeout(() => {
-        loadSelfies();
-      }, 1000);
-      
-      return () => clearTimeout(timeoutId);
-    }
-  }, [currentAttendance?.selfieUrl, todayActivities.length]);
   const loadSelfies = async () => {
     if (!user) return;
 
-    if (!refreshing) {
-      setIsLoading(true);
-    }
-    
+    setIsLoading(true);
     try {
       const { urls, error } = await imageService.getUserSelfies(user.id);
       
       if (error) {
         console.error('Failed to load selfies:', error);
-        Alert.alert('Error', 'Failed to load selfies: ' + error);
         return;
       }
 
@@ -110,7 +68,6 @@ export default function SelfieGalleryScreen() {
           fileName,
           timestamp: isNaN(timestamp.getTime()) ? new Date() : timestamp,
           type,
-          id: fileName, // Use filename as unique ID
         };
       });
 
@@ -118,10 +75,8 @@ export default function SelfieGalleryScreen() {
       selfieItems.sort((a, b) => b.timestamp.getTime() - a.timestamp.getTime());
       
       setSelfies(selfieItems);
-      console.log(`Loaded ${selfieItems.length} selfies`);
     } catch (error) {
       console.error('Error loading selfies:', error);
-      Alert.alert('Error', 'Failed to load selfies');
     } finally {
       setIsLoading(false);
     }
@@ -138,13 +93,6 @@ export default function SelfieGalleryScreen() {
     setShowModal(true);
   };
 
-  const handleToggleRealTime = () => {
-    setRealTimeEnabled(!realTimeEnabled);
-    if (!realTimeEnabled) {
-      // Re-enable and reload
-      loadSelfies();
-    }
-  };
   const getTypeColor = (type: string) => {
     switch (type) {
       case 'clock_in':
@@ -200,26 +148,7 @@ export default function SelfieGalleryScreen() {
             <ArrowLeft size={24} color="white" />
           </TouchableOpacity>
           <Text style={styles.headerTitle}>Selfie Gallery</Text>
-          <TouchableOpacity
-            style={styles.refreshButton}
-            onPress={handleToggleRealTime}
-          >
-            <RefreshCw 
-              size={20} 
-              color={realTimeEnabled ? "#4CAF50" : "rgba(255,255,255,0.6)"} 
-            />
-          </TouchableOpacity>
-        </View>
-        
-        {/* Real-time indicator */}
-        <View style={styles.realTimeIndicator}>
-          <View style={[
-            styles.realTimeDot,
-            { backgroundColor: realTimeEnabled ? '#4CAF50' : '#999' }
-          ]} />
-          <Text style={styles.realTimeText}>
-            {realTimeEnabled ? 'Live Updates On' : 'Live Updates Off'}
-          </Text>
+          <View style={styles.placeholder} />
         </View>
       </LinearGradient>
 
@@ -258,14 +187,6 @@ export default function SelfieGalleryScreen() {
         <View style={styles.section}>
           <Text style={styles.sectionTitle}>Your Selfies</Text>
           
-          {/* Loading indicator for real-time updates */}
-          {isLoading && selfies.length > 0 && (
-            <View style={styles.updateIndicator}>
-              <LoadingSpinner size="small" color="#4A90E2" />
-              <Text style={styles.updateText}>Checking for new photos...</Text>
-            </View>
-          )}
-          
           {isLoading ? (
             <LoadingSpinner text="Loading selfies..." />
           ) : selfies.length === 0 ? (
@@ -273,25 +194,17 @@ export default function SelfieGalleryScreen() {
               icon={<Camera size={48} color="#E0E0E0" />}
               title="No selfies yet"
               message="Your attendance selfies will appear here"
-              actionText="Refresh"
-              onAction={loadSelfies}
             />
           ) : (
             <View style={styles.selfiesGrid}>
               {selfies.map((selfie, index) => (
                 <TouchableOpacity
-                  key={selfie.id || index}
+                  key={index}
                   style={styles.selfieItem}
                   onPress={() => handleSelfiePress(selfie)}
                   activeOpacity={0.8}
                 >
-                  <Image 
-                    source={{ uri: selfie.url }} 
-                    style={styles.selfieImage}
-                    onError={() => {
-                      console.error('Failed to load selfie:', selfie.url);
-                    }}
-                  />
+                  <Image source={{ uri: selfie.url }} style={styles.selfieImage} />
                   
                   <View style={styles.selfieOverlay}>
                     <View style={[
@@ -400,56 +313,6 @@ const styles = StyleSheet.create({
   placeholder: {
     width: 40,
   },
-  refreshButton: {
-    width: 40,
-    height: 40,
-    borderRadius: 20,
-    backgroundColor: 'rgba(255, 255, 255, 0.2)',
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  realTimeIndicator: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
-    marginTop: 8,
-  },
-  realTimeDot: {
-    width: 8,
-    height: 8,
-    borderRadius: 4,
-    marginRight: 6,
-  },
-  realTimeText: {
-    fontSize: 12,
-    color: 'rgba(255, 255, 255, 0.8)',
-    fontWeight: '500',
-  },
-  refreshButton: {
-    width: 40,
-    height: 40,
-    borderRadius: 20,
-    backgroundColor: 'rgba(255, 255, 255, 0.2)',
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  realTimeIndicator: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
-    marginTop: 8,
-  },
-  realTimeDot: {
-    width: 8,
-    height: 8,
-    borderRadius: 4,
-    marginRight: 6,
-  },
-  realTimeText: {
-    fontSize: 12,
-    color: 'rgba(255, 255, 255, 0.8)',
-    fontWeight: '500',
-  },
   content: {
     flex: 1,
     paddingHorizontal: 20,
@@ -484,40 +347,6 @@ const styles = StyleSheet.create({
   },
   section: {
     marginBottom: 24,
-  },
-  updateIndicator: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
-    backgroundColor: '#E3F2FD',
-    paddingVertical: 8,
-    paddingHorizontal: 16,
-    borderRadius: 20,
-    marginBottom: 16,
-    alignSelf: 'center',
-  },
-  updateText: {
-    fontSize: 12,
-    color: '#4A90E2',
-    marginLeft: 8,
-    fontWeight: '500',
-  },
-  updateIndicator: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
-    backgroundColor: '#E3F2FD',
-    paddingVertical: 8,
-    paddingHorizontal: 16,
-    borderRadius: 20,
-    marginBottom: 16,
-    alignSelf: 'center',
-  },
-  updateText: {
-    fontSize: 12,
-    color: '#4A90E2',
-    marginLeft: 8,
-    fontWeight: '500',
   },
   sectionTitle: {
     fontSize: 18,

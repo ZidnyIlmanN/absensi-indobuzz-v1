@@ -47,7 +47,6 @@ export interface ActivityRecord {
   };
   notes?: string;
   selfieUrl?: string;
-  selfieUrl?: string;
 }
 
 export interface Request {
