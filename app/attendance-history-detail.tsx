@@ -14,19 +14,7 @@ import { StatusBar } from 'expo-status-bar';
 import { LinearGradient } from 'expo-linear-gradient';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { router, useLocalSearchParams } from 'expo-router';
-import { 
-  ArrowLeft, 
-  Calendar, 
-  Clock, 
-  LogIn, 
-  LogOut, 
-  Coffee, 
-  Camera, 
-  X,
-  ImageIcon,
-  AlertCircle,
-  RefreshCw,
-} from 'lucide-react-native';
+import { ArrowLeft, Calendar, Clock, LogIn, LogOut, Coffee, Camera, X, Image as ImageIcon, CircleAlert as AlertCircle, RefreshCw } from 'lucide-react-native';
 import { useAppContext } from '@/context/AppContext';
 import { LoadingSpinner } from '@/components/LoadingSpinner';
 import { EmptyState } from '@/components/EmptyState';
