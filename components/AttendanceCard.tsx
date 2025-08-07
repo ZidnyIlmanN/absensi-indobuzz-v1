@@ -37,6 +37,7 @@ export function AttendanceCard({
   const hasTakenBreak = todayActivities.some(
     (act) => act.type === 'break_start' || act.type === 'break_end'
   );
+  
   const renderActionButtons = () => {
     if (!isWorking) {
       return (
@@ -78,19 +79,20 @@ export function AttendanceCard({
 
     return (
       <View style={styles.buttonRow}>
-          <TouchableOpacity
-            style={[styles.halfButton, { backgroundColor: '#FF9800' }]}
-            onPress={() => router.push('/start-break/selfie')}
-            disabled={isLoading || hasTakenBreak}
-            activeOpacity={0.8}
-          >
-            <View style={styles.buttonContent}>
-              <Coffee size={20} color="white" />
-              <Text style={[styles.buttonText, { color: 'white' }]}>
-                {hasTakenBreak ? 'Break Used' : 'Start Break'}
-              </Text>
-            </View>
-          </TouchableOpacity>
+        <TouchableOpacity
+          style={[styles.halfButton, { backgroundColor: '#FF9800' }]}
+          onPress={() => router.push('/start-break/selfie')}
+          disabled={isLoading || hasTakenBreak}
+          activeOpacity={0.8}
+        >
+          <View style={styles.buttonContent}>
+            <Coffee size={20} color="white" />
+            <Text style={[styles.buttonText, { color: 'white' }]}>
+              {hasTakenBreak ? 'Break Used' : 'Start Break'}
+            </Text>
+          </View>
+        </TouchableOpacity>
+        
         <TouchableOpacity
           style={[styles.halfButton, { backgroundColor: '#F44336' }]}
           onPress={() => router.push('/clock-out/selfie')}

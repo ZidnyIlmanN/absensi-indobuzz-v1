@@ -205,7 +205,7 @@ export const attendanceService = {
           location_lng: data.location?.longitude,
           location_address: data.location?.address,
           notes: data.notes,
-          selfie_url: uploadedSelfieUrl,
+          selfie_url: uploadedSelfieUrl || data.selfieUrl,
         });
 
       if (error) {

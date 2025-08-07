@@ -21,7 +21,7 @@ interface AppContextType {
   attendanceHistory: AttendanceRecord[];
   clockIn: (location: { latitude: number; longitude: number; address: string }, selfieUrl?: string) => Promise<{ error: string | null }>;
   clockOut: (selfieUrl?: string, notes?: string) => Promise<{ error: string | null }>;
-  addActivity: (type: ActivityRecord['type'], location?: { latitude: number; longitude: number; address: string }, notes?: string) => Promise<{ error: string | null }>;
+  addActivity: (type: ActivityRecord['type'], location?: { latitude: number; longitude: number; address: string }, notes?: string, selfieUrl?: string) => Promise<{ error: string | null }>;
   updateAttendanceStatus: (status: AttendanceRecord['status']) => Promise<{ error: string | null }>;
   
   // Requests

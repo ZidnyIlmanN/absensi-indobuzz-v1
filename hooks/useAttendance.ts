@@ -144,7 +144,8 @@ export function useAttendance(userId: string | null) {
   const addActivity = async (
     type: ActivityRecord['type'],
     location?: { latitude: number; longitude: number; address: string },
-    notes?: string
+    notes?: string,
+    selfieUrl?: string
   ) => {
     if (!userId || !attendanceState.currentAttendance) {
       return { error: 'No active attendance record' };
@@ -156,6 +157,7 @@ export function useAttendance(userId: string | null) {
       type,
       location,
       notes,
+      selfieUrl,
     });
 
     if (!error) {

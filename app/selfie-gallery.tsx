@@ -425,6 +425,31 @@ const styles = StyleSheet.create({
     color: 'rgba(255, 255, 255, 0.8)',
     fontWeight: '500',
   },
+  refreshButton: {
+    width: 40,
+    height: 40,
+    borderRadius: 20,
+    backgroundColor: 'rgba(255, 255, 255, 0.2)',
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  realTimeIndicator: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginTop: 8,
+  },
+  realTimeDot: {
+    width: 8,
+    height: 8,
+    borderRadius: 4,
+    marginRight: 6,
+  },
+  realTimeText: {
+    fontSize: 12,
+    color: 'rgba(255, 255, 255, 0.8)',
+    fontWeight: '500',
+  },
   content: {
     flex: 1,
     paddingHorizontal: 20,
@@ -459,6 +484,23 @@ const styles = StyleSheet.create({
   },
   section: {
     marginBottom: 24,
+  },
+  updateIndicator: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: '#E3F2FD',
+    paddingVertical: 8,
+    paddingHorizontal: 16,
+    borderRadius: 20,
+    marginBottom: 16,
+    alignSelf: 'center',
+  },
+  updateText: {
+    fontSize: 12,
+    color: '#4A90E2',
+    marginLeft: 8,
+    fontWeight: '500',
   },
   updateIndicator: {
     flexDirection: 'row',
