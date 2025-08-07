@@ -93,6 +93,7 @@ export const attendanceService = {
         userId: data.userId,
         type: 'clock_in',
         location: data.location,
+        selfieUrl: uploadedSelfieUrl,
       });
 
       return {
@@ -169,6 +170,7 @@ export const attendanceService = {
             longitude: attendance.location_lng,
             address: attendance.location_address,
           },
+          selfieUrl: uploadedSelfieUrl,
         });
       }
 
@@ -262,7 +264,16 @@ export const attendanceService = {
         .from('attendance_records')
         .select(`
           *,
-          activity_records (*)
+          activity_records (
+            id,
+            type,
+            timestamp,
+            location_lat,
+            location_lng,
+            location_address,
+            notes,
+            selfie_url
+          )
         `)
         .eq('user_id', userId)
         .eq('date', today)
@@ -293,7 +304,16 @@ export const attendanceService = {
         .from('attendance_records')
         .select(`
           *,
-          activity_records (*)
+          activity_records (
+            id,
+            type,
+            timestamp,
+            location_lat,
+            location_lng,
+            location_address,
+            notes,
+            selfie_url
+          )
         `)
         .eq('user_id', userId)
         .order('date', { ascending: false })
@@ -391,6 +411,7 @@ mapAttendanceRecord(data: any): AttendanceRecord {
         address: data.location_address,
       } : undefined,
       notes: data.notes,
+      selfieUrl: data.selfie_url,
       selfieUrl: data.selfie_url,
     };
   },

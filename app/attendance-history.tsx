@@ -16,6 +16,11 @@ import { router } from 'expo-router';
 import { ArrowLeft, Clock, Calendar, TrendingUp, Users, LogIn, LogOut, Coffee } from 'lucide-react-native';
 import { useAppContext } from '@/context/AppContext';
 import { LoadingSpinner } from '@/components/LoadingSpinner';
+import { AttendanceDetailModal } from '@/components/AttendanceDetailModal';
+import { AttendanceHistoryCard } from '@/components/AttendanceHistoryCard';
+import { AttendanceRecord } from '@/types';
+import { AttendanceDetailModal } from '@/components/AttendanceDetailModal';
+import { AttendanceRecord } from '@/types';
 
 const { width } = Dimensions.get('window');
 
@@ -24,6 +29,10 @@ export default function AttendanceHistoryScreen() {
   const { currentAttendance, todayActivities, isWorking, workHours, attendanceHistory: contextAttendanceHistory, refreshData } = useAppContext();
   const [currentTime, setCurrentTime] = useState(new Date());
   const [refreshing, setRefreshing] = useState(false);
+  const [selectedAttendance, setSelectedAttendance] = useState<AttendanceRecord | null>(null);
+  const [showDetailModal, setShowDetailModal] = useState(false);
+  const [selectedAttendance, setSelectedAttendance] = useState<AttendanceRecord | null>(null);
+  const [showDetailModal, setShowDetailModal] = useState(false);
 
   useEffect(() => {
     const timer = setInterval(() => {
@@ -44,6 +53,24 @@ export default function AttendanceHistoryScreen() {
     setRefreshing(false);
   };
 
+  const handleAttendancePress = (attendance: AttendanceRecord, displayWorkHours: string) => {
+    setSelectedAttendance(attendance);
+    setShowDetailModal(true);
+  };
+
+  const closeDetailModal = () => {
+    setShowDetailModal(false);
+    setSelectedAttendance(null);
+  };
+  const handleAttendancePress = (attendance: AttendanceRecord, displayWorkHours: string) => {
+    setSelectedAttendance(attendance);
+    setShowDetailModal(true);
+  };
+
+  const closeDetailModal = () => {
+    setShowDetailModal(false);
+    setSelectedAttendance(null);
+  };
   // Calculate stats from attendance history
   const calculateStats = () => {
     // Include current attendance in the history for calculations
@@ -126,43 +153,6 @@ export default function AttendanceHistoryScreen() {
   }
 
   // Map the attendance records to the format expected by the UI
-  const formattedAttendanceHistory = allAttendanceRecords.map(record => {
-    const clockInTime = record.clockIn ? record.clockIn.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) : 'N/A';
-    const clockOutTime = record.clockOut ? record.clockOut.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) : (record.status === 'working' ? 'Working...' : 'N/A');
-    // For current attendance, use the real-time calculated work hours from AppContext
-    // For historical records, calculate work hours from clock in/out timestamps
-    const recordWorkHours = record.id === currentAttendance?.id 
-      ? workHours 
-      : formatHoursToHHMM(calculateWorkHours(record.clockIn, record.clockOut));
-
-    // Use activities from the record if available, otherwise use todayActivities for current record
-    const recordActivities = record.activities && record.activities.length > 0 
-      ? record.activities 
-      : (record.id === currentAttendance?.id ? todayActivities : []);
-    const { breakStarted, breakEnded } = getBreakTimes(recordActivities);
-
-    return {
-      id: record.id,
-      date: record.clockIn ? record.clockIn.toLocaleDateString('en-US', { day: 'numeric', month: 'short', year: 'numeric' }) : 'N/A',
-      clockIn: clockInTime,
-      clockOut: clockOutTime,
-      workHours: recordWorkHours,
-      status: record.status,
-      breakStarted: breakStarted,
-      breakEnded: breakEnded,
-    };
-  });
-
-  const getStatusColor = (status: string) => {
-    switch (status) {
-      case 'working':
-        return '#4CAF50';
-      case 'completed':
-        return '#4A90E2';
-      default:
-        return '#9E9E9E';
-    }
-  };
 
   return (
     <View style={styles.container}>
@@ -226,58 +216,41 @@ export default function AttendanceHistoryScreen() {
         <View style={styles.section}>
           <Text style={styles.sectionTitle}>Attendance History</Text>
 
-          {formattedAttendanceHistory.map((record) => (
-            <View key={record.id} style={styles.historyCard}>
-              <View style={styles.historyHeader}>
-                <View style={styles.historyDate}>
-                  <Calendar size={16} color="#666" />
-                  <Text style={styles.historyDateText}>{record.date}</Text>
-                </View>
-                <View style={[
-                  styles.statusBadge,
-                  { backgroundColor: getStatusColor(record.status) }
-                ]}>
-                  <Text style={styles.statusBadgeText}>
-                    {record.status === 'working' ? 'Working' : 'Completed'}
-                  </Text>
-                </View>
-              </View>
-              
-              <View style={styles.historyDetails}>
-                <View style={styles.historyItem}>
-                  <LogIn size={16} color="#4CAF50" />
-                  <Text style={styles.historyLabel}>Clock In</Text>
-                  <Text style={styles.historyValue}>{record.clockIn}</Text>
-                </View>
+          {allAttendanceRecords.map((record, index) => {
+            const recordWorkHours = record.id === currentAttendance?.id 
+              ? workHours 
+              : formatHoursToHHMM(calculateWorkHours(record.clockIn, record.clockOut));
 
-                <View style={styles.historyItem}>
-                  <Coffee size={16} color="#FFA500" />
-                  <Text style={styles.historyLabel}>Break Started</Text>
-                  <Text style={styles.historyValue}>{record.breakStarted}</Text>
-                </View>
-
-                <View style={styles.historyItem}>
-                  <Coffee size={16} color="#FF8C00" />
-                  <Text style={styles.historyLabel}>Break Ended</Text>
-                  <Text style={styles.historyValue}>{record.breakEnded}</Text>
-                </View>
-                
-                <View style={styles.historyItem}>
-                  <LogOut size={16} color="#F44336" />
-                  <Text style={styles.historyLabel}>Clock Out</Text>
-                  <Text style={styles.historyValue}>{record.clockOut}</Text>
-                </View>
-                
-                <View style={styles.historyItem}>
-                  <Clock size={16} color="#4A90E2" />
-                  <Text style={styles.historyLabel}>Work Hours</Text>
-                  <Text style={styles.historyValue}>{record.workHours}</Text>
-                </View>
-              </View>
-            </View>
-          ))}
+            return (
+              <AttendanceHistoryCard
+                key={record.id}
+                record={record}
+                workHours={recordWorkHours}
+                onPress={() => handleAttendancePress(record, recordWorkHours)}
+                index={index}
+              />
+            );
+          })}
         </View>
       </ScrollView>
+
+      {/* Attendance Detail Modal */}
+      <AttendanceDetailModal
+        visible={showDetailModal}
+        onClose={closeDetailModal}
+        attendance={selectedAttendance}
+        workHours={selectedAttendance?.id === currentAttendance?.id ? workHours : 
+          selectedAttendance ? formatHoursToHHMM(calculateWorkHours(selectedAttendance.clockIn, selectedAttendance.clockOut)) : '00:00'}
+      />
+
+      {/* Attendance Detail Modal */}
+      <AttendanceDetailModal
+        visible={showDetailModal}
+        onClose={closeDetailModal}
+        attendance={selectedAttendance}
+        workHours={selectedAttendance?.id === currentAttendance?.id ? workHours : 
+          selectedAttendance ? formatHoursToHHMM(calculateWorkHours(selectedAttendance.clockIn, selectedAttendance.clockOut)) : '00:00'}
+      />
     </View>
   );
 }
@@ -363,61 +336,5 @@ const styles = StyleSheet.create({
     fontWeight: '600',
     color: '#1A1A1A',
     marginBottom: 16,
-  },
-  historyCard: {
-    backgroundColor: 'white',
-    borderRadius: 12,
-    padding: 16,
-    marginBottom: 12,
-    elevation: 2,
-    borderWidth: 1,
-    borderColor: '#E0E0E0',
-  },
-  historyHeader: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    marginBottom: 12,
-  },
-  historyDate: {
-    flexDirection: 'row',
-    alignItems: 'center',
-  },
-  historyDateText: {
-    fontSize: 16,
-    fontWeight: '600',
-    color: '#1A1A1A',
-    marginLeft: 8,
-  },
-  statusBadge: {
-    paddingHorizontal: 12,
-    paddingVertical: 4,
-    borderRadius: 12,
-  },
-  statusBadgeText: {
-    fontSize: 12,
-    fontWeight: '500',
-    color: 'white',
-  },
-  historyDetails: {
-    borderTopWidth: 1,
-    borderTopColor: '#F0F0F0',
-    paddingTop: 12,
-  },
-  historyItem: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    marginBottom: 8,
-  },
-  historyLabel: {
-    fontSize: 14,
-    color: '#666',
-    marginLeft: 8,
-    flex: 1,
-  },
-  historyValue: {
-    fontSize: 14,
-    fontWeight: '500',
-    color: '#1A1A1A',
   },
 });
