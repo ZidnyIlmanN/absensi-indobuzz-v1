@@ -19,8 +19,6 @@ import { LoadingSpinner } from '@/components/LoadingSpinner';
 import { AttendanceDetailModal } from '@/components/AttendanceDetailModal';
 import { AttendanceHistoryCard } from '@/components/AttendanceHistoryCard';
 import { AttendanceRecord } from '@/types';
-import { AttendanceDetailModal } from '@/components/AttendanceDetailModal';
-import { AttendanceRecord } from '@/types';
 
 const { width } = Dimensions.get('window');
 
@@ -29,8 +27,6 @@ export default function AttendanceHistoryScreen() {
   const { currentAttendance, todayActivities, isWorking, workHours, attendanceHistory: contextAttendanceHistory, refreshData } = useAppContext();
   const [currentTime, setCurrentTime] = useState(new Date());
   const [refreshing, setRefreshing] = useState(false);
-  const [selectedAttendance, setSelectedAttendance] = useState<AttendanceRecord | null>(null);
-  const [showDetailModal, setShowDetailModal] = useState(false);
   const [selectedAttendance, setSelectedAttendance] = useState<AttendanceRecord | null>(null);
   const [showDetailModal, setShowDetailModal] = useState(false);
 
@@ -53,15 +49,6 @@ export default function AttendanceHistoryScreen() {
     setRefreshing(false);
   };
 
-  const handleAttendancePress = (attendance: AttendanceRecord, displayWorkHours: string) => {
-    setSelectedAttendance(attendance);
-    setShowDetailModal(true);
-  };
-
-  const closeDetailModal = () => {
-    setShowDetailModal(false);
-    setSelectedAttendance(null);
-  };
   const handleAttendancePress = (attendance: AttendanceRecord, displayWorkHours: string) => {
     setSelectedAttendance(attendance);
     setShowDetailModal(true);
