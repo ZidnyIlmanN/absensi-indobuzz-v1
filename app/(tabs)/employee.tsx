@@ -8,6 +8,8 @@ import {
   TextInput,
   Image,
   RefreshControl,
+  FlatList,
+  Alert,
 } from 'react-native';
 import { StatusBar } from 'expo-status-bar';
 import { LinearGradient } from 'expo-linear-gradient';
@@ -21,6 +23,13 @@ import {
   Phone,
   Mail,
   UserX,
+  SortAsc,
+  SortDesc,
+  X,
+  ChevronDown,
+  Building,
+  Badge,
+  Calendar,
 } from 'lucide-react-native';
 import { EmptyState } from '@/components/EmptyState';
 import { LoadingSpinner } from '@/components/LoadingSpinner';
@@ -29,9 +38,27 @@ import { Employee as EmployeeType } from '@/types';
 
 export default function EmployeeScreen() {
   const insets = useSafeAreaInsets();
-  const [searchQuery, setSearchQuery] = useState('');
-  const { employees, isLoading, error, searchEmployees, refreshEmployees } = useEmployees();
+  const { 
+    employees, 
+    filteredEmployees, 
+    totalCount, 
+    activeCount, 
+    searchQuery, 
+    sortBy, 
+    sortOrder, 
+    isLoading, 
+    error, 
+    searchEmployees, 
+    refreshEmployees,
+    setSortOptions,
+    filterEmployees,
+    clearSearch,
+  } = useEmployees();
   const [refreshing, setRefreshing] = useState(false);
+  const [showSortModal, setShowSortModal] = useState(false);
+  const [showFilterModal, setShowFilterModal] = useState(false);
+  const [selectedDepartment, setSelectedDepartment] = useState<string>('');
+  const [selectedStatus, setSelectedStatus] = useState<EmployeeType['status'] | ''>('');
 
   const onRefresh = useCallback(async () => {
     setRefreshing(true);
@@ -40,13 +67,36 @@ export default function EmployeeScreen() {
   }, [refreshEmployees]);
 
   const onSearch = useCallback(async (query: string) => {
-    setSearchQuery(query);
     if (query.trim()) {
       await searchEmployees(query);
     } else {
-      await refreshEmployees();
+      clearSearch();
     }
-  }, [searchEmployees, refreshEmployees]);
+  }, [searchEmployees, clearSearch]);
+
+  const handleSort = useCallback((field: typeof sortBy) => {
+    const newOrder = sortBy === field && sortOrder === 'asc' ? 'desc' : 'asc';
+    setSortOptions(field, newOrder);
+    setShowSortModal(false);
+  }, [sortBy, sortOrder, setSortOptions]);
+
+  const handleFilter = useCallback(() => {
+    filterEmployees({
+      department: selectedDepartment || undefined,
+      status: selectedStatus || undefined,
+    });
+    setShowFilterModal(false);
+  }, [selectedDepartment, selectedStatus, filterEmployees]);
+
+  const clearFilters = useCallback(() => {
+    setSelectedDepartment('');
+    setSelectedStatus('');
+    filterEmployees({});
+    setShowFilterModal(false);
+  }, [filterEmployees]);
+
+  // Get unique departments for filter
+  const departments = [...new Set(employees.map(emp => emp.department).filter(Boolean))];
 
   const getStatusColor = (status: string) => {
     switch (status) {
@@ -74,16 +124,87 @@ export default function EmployeeScreen() {
     }
   };
 
-  const filteredEmployees = employees.filter(employee =>
-    employee.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
-    (employee.position || '').toLowerCase().includes(searchQuery.toLowerCase()) ||
-    (employee.department || '').toLowerCase().includes(searchQuery.toLowerCase())
-  );
+  // Calculate stats from filtered data
+  const workingEmployees = filteredEmployees.filter(e => e.status === 'online').length;
+  const onBreakEmployees = filteredEmployees.filter(e => e.status === 'break').length;
+  const offlineEmployees = filteredEmployees.filter(e => e.status === 'offline').length;
 
-  // Calculate stats from real data
-  const totalEmployees = employees.length;
-  const workingEmployees = employees.filter(e => e.status === 'online').length;
-  const remoteEmployees = employees.filter(e => (e.location || '').toLowerCase().includes('remote')).length;
+  const renderEmployeeItem = ({ item: employee }: { item: EmployeeType }) => (
+    <TouchableOpacity
+      style={styles.employeeCard}
+      activeOpacity={0.7}
+      onPress={() => {
+        // Navigate to employee detail screen if needed
+        Alert.alert(
+          employee.name,
+          `Employee ID: ${employee.employeeId}\nDepartment: ${employee.department}\nPosition: ${employee.position}`,
+          [{ text: 'OK' }]
+        );
+      }}
+    >
+      <View style={styles.employeeHeader}>
+        <View style={styles.avatarContainer}>
+          <Image 
+            source={{ 
+              uri: employee.avatar || `https://ui-avatars.com/api/?name=${encodeURIComponent(employee.name)}&background=4A90E2&color=fff&size=50`
+            }} 
+            style={styles.avatar} 
+          />
+          <View
+            style={[
+              styles.statusIndicator,
+              { backgroundColor: getStatusColor(employee.status) }
+            ]}
+          />
+        </View>
+        
+        <View style={styles.employeeInfo}>
+          <Text style={styles.employeeName}>{employee.name}</Text>
+          <Text style={styles.employeeId}>ID: {employee.employeeId}</Text>
+          <Text style={styles.employeePosition}>{employee.position || 'No position'}</Text>
+          <Text style={styles.employeeDepartment}>{employee.department || 'No department'}</Text>
+        </View>
+        
+        <View style={styles.statusContainer}>
+          <Text style={[
+            styles.statusText,
+            { color: getStatusColor(employee.status) }
+          ]}>
+            {getStatusText(employee.status)}
+          </Text>
+          {employee.joinDate && (
+            <Text style={styles.joinDate}>
+              Joined: {new Date(employee.joinDate).toLocaleDateString()}
+            </Text>
+          )}
+        </View>
+      </View>
+      
+      <View style={styles.employeeDetails}>
+        <View style={styles.detailItem}>
+          <Clock size={14} color="#666" />
+          <Text style={styles.detailText}>{employee.workHours || '09:00-18:00'}</Text>
+        </View>
+        
+        <View style={styles.detailItem}>
+          <MapPin size={14} color="#666" />
+          <Text style={styles.detailText}>{employee.location || 'No location'}</Text>
+        </View>
+      </View>
+      
+      <View style={styles.contactInfo}>
+        <View style={styles.contactItem}>
+          <Phone size={14} color="#4A90E2" />
+          <Text style={styles.contactText}>{employee.phone || 'No phone'}</Text>
+        </View>
+        
+        <View style={styles.contactItem}>
+          <Mail size={14} color="#4A90E2" />
+          <Text style={styles.contactText}>{employee.email || 'No email'}</Text>
+        </View>
+      </View>
+    </TouchableOpacity>
+  );
 
   return (
     <View style={styles.container}>
@@ -96,17 +217,11 @@ export default function EmployeeScreen() {
       >
         <Text style={styles.headerTitle}>Employee Directory</Text>
         <Text style={styles.headerSubtitle}>
-          {totalEmployees} employees • {workingEmployees} online
+          {totalCount} total • {activeCount} active • {workingEmployees} working
         </Text>
       </LinearGradient>
 
-      <ScrollView 
-        style={styles.content} 
-        showsVerticalScrollIndicator={false}
-        refreshControl={
-          <RefreshControl refreshing={refreshing} onRefresh={onRefresh} />
-        }
-      >
+      <View style={styles.content}>
         {/* Search and Filter */}
         <View style={styles.searchContainer}>
           <View style={styles.searchInputContainer}>
@@ -118,8 +233,28 @@ export default function EmployeeScreen() {
               onChangeText={onSearch}
               placeholderTextColor="#999"
             />
+            {searchQuery.length > 0 && (
+              <TouchableOpacity onPress={() => onSearch('')}>
+                <X size={16} color="#999" />
+              </TouchableOpacity>
+            )}
           </View>
-          <TouchableOpacity style={styles.filterButton}>
+          
+          <TouchableOpacity 
+            style={styles.filterButton}
+            onPress={() => setShowSortModal(true)}
+          >
+            {sortOrder === 'asc' ? (
+              <SortAsc size={20} color="#4A90E2" />
+            ) : (
+              <SortDesc size={20} color="#4A90E2" />
+            )}
+          </TouchableOpacity>
+          
+          <TouchableOpacity 
+            style={styles.filterButton}
+            onPress={() => setShowFilterModal(true)}
+          >
             <Filter size={20} color="#4A90E2" />
           </TouchableOpacity>
         </View>
@@ -131,7 +266,7 @@ export default function EmployeeScreen() {
               <Users size={15} color="#4A90E2" />
             </View>
             <View style={styles.statInfo}>
-              <Text style={styles.statValue}>{totalEmployees}</Text>
+              <Text style={styles.statValue}>{totalCount}</Text>
               <Text style={styles.statLabel}>Total</Text>
             </View>
           </View>
@@ -148,100 +283,75 @@ export default function EmployeeScreen() {
           
           <View style={styles.statCard}>
             <View style={styles.statIcon}>
-              <MapPin size={15} color="#FF9800" />
+              <Users size={15} color="#FF9800" />
             </View>
             <View style={styles.statInfo}>
-              <Text style={styles.statValue}>{remoteEmployees}</Text>
-              <Text style={styles.statLabel}>Remote</Text>
+              <Text style={styles.statValue}>{onBreakEmployees}</Text>
+              <Text style={styles.statLabel}>On Break</Text>
+            </View>
+          </View>
+          
+          <View style={styles.statCard}>
+            <View style={styles.statIcon}>
+              <UserX size={15} color="#9E9E9E" />
+            </View>
+            <View style={styles.statInfo}>
+              <Text style={styles.statValue}>{offlineEmployees}</Text>
+              <Text style={styles.statLabel}>Offline</Text>
             </View>
           </View>
         </View>
 
         {/* Employee List */}
-        <View style={styles.section}>
-          <Text style={styles.sectionTitle}>All Employees</Text>
-          
-          {isLoading ? (
-            <LoadingSpinner text="Loading employees..." />
-          ) : error ? (
-            <EmptyState
-              icon={<UserX size={48} color="#E0E0E0" />}
-              title="Error loading employees"
-              message={error}
-            />
-          ) : filteredEmployees.length === 0 ? (
-            <EmptyState
-              icon={<UserX size={48} color="#E0E0E0" />}
-              title="No employees found"
-              message={searchQuery ? "Try adjusting your search terms" : "No employees available"}
-            />
-          ) : (
-            filteredEmployees.map((employee) => (
-            <TouchableOpacity
-              key={employee.id}
-              style={styles.employeeCard}
-              activeOpacity={0.7}
-            >
-              <View style={styles.employeeHeader}>
-                <View style={styles.avatarContainer}>
-                  <Image 
-                    source={{ 
-                      uri: employee.avatar || `https://ui-avatars.com/api/?name=${encodeURIComponent(employee.name)}&background=4A90E2&color=fff&size=50`
-                    }} 
-                    style={styles.avatar} 
-                  />
-                  <View
-                    style={[
-                      styles.statusIndicator,
-                      { backgroundColor: getStatusColor(employee.status) }
-                    ]}
-                  />
-                </View>
-                
-                <View style={styles.employeeInfo}>
-                  <Text style={styles.employeeName}>{employee.name}</Text>
-                  <Text style={styles.employeePosition}>{employee.position || 'No position'}</Text>
-                  <Text style={styles.employeeDepartment}>{employee.department || 'No department'}</Text>
-                </View>
-                
-                <View style={styles.statusContainer}>
-                  <Text style={[
-                    styles.statusText,
-                    { color: getStatusColor(employee.status) }
-                  ]}>
-                    {getStatusText(employee.status)}
-                  </Text>
-                </View>
-              </View>
-              
-              <View style={styles.employeeDetails}>
-                <View style={styles.detailItem}>
-                  <Clock size={14} color="#666" />
-                  <Text style={styles.detailText}>{employee.workHours || '09:00-18:00'}</Text>
-                </View>
-                
-                <View style={styles.detailItem}>
-                  <MapPin size={14} color="#666" />
-                  <Text style={styles.detailText}>{employee.location || 'No location'}</Text>
-                </View>
-              </View>
-              
-              <View style={styles.contactInfo}>
-                <View style={styles.contactItem}>
-                  <Phone size={14} color="#4A90E2" />
-                  <Text style={styles.contactText}>{employee.phone || 'No phone'}</Text>
-                </View>
-                
-                <View style={styles.contactItem}>
-                  <Mail size={14} color="#4A90E2" />
-                  <Text style={styles.contactText}>{employee.email || 'No email'}</Text>
-                </View>
-              </View>
-            </TouchableOpacity>
-            ))
-          )}
+        <View style={styles.listHeader}>
+          <Text style={styles.sectionTitle}>
+            All Employees ({filteredEmployees.length})
+          </Text>
+          <Text style={styles.sortInfo}>
+            Sorted by {sortBy} ({sortOrder})
+          </Text>
         </View>
-      </ScrollView>
+          
+        {isLoading ? (
+          <LoadingSpinner text="Loading all employees..." />
+        ) : error ? (
+          <EmptyState
+            icon={<UserX size={48} color="#E0E0E0" />}
+            title="Error loading employees"
+            message={error}
+            actionText="Retry"
+            onAction={refreshEmployees}
+          />
+        ) : filteredEmployees.length === 0 ? (
+          <EmptyState
+            icon={<UserX size={48} color="#E0E0E0" />}
+            title="No employees found"
+            message={searchQuery ? "Try adjusting your search terms" : "No employees available"}
+            actionText={searchQuery ? "Clear Search" : "Refresh"}
+            onAction={searchQuery ? () => onSearch('') : refreshEmployees}
+          />
+        ) : (
+          <FlatList
+            data={filteredEmployees}
+            renderItem={renderEmployeeItem}
+            keyExtractor={(item) => item.id}
+            showsVerticalScrollIndicator={false}
+            refreshControl={
+              <RefreshControl refreshing={refreshing} onRefresh={onRefresh} />
+            }
+            contentContainerStyle={styles.listContainer}
+            initialNumToRender={20}
+            maxToRenderPerBatch={10}
+            windowSize={10}
+            removeClippedSubviews={true}
+            getItemLayout={(data, index) => ({
+              length: 140, // Approximate height of employee card
+              offset: 140 * index,
+              index,
+            })}
+          />
+        )}
+      </View>
     </View>
   );
 }
@@ -283,7 +393,7 @@ const styles = StyleSheet.create({
     borderRadius: 12,
     paddingHorizontal: 16,
     paddingVertical: 12,
-    marginRight: 12,
+    marginRight: 8,
     elevation: 2,
     borderWidth: 1,
     borderColor: '#E0E0E0',
@@ -297,7 +407,8 @@ const styles = StyleSheet.create({
   filterButton: {
     backgroundColor: 'white',
     borderRadius: 12,
-    padding: 12,
+    padding: 10,
+    marginLeft: 4,
     elevation: 2,
     borderWidth: 1,
     borderColor: '#E0E0E0',
@@ -312,7 +423,7 @@ const styles = StyleSheet.create({
     backgroundColor: 'white',
     borderRadius: 12,
     padding: 16,
-    marginHorizontal: 4,
+    marginHorizontal: 2,
     flexDirection: 'row',
     alignItems: 'center',
     elevation: 2,
@@ -326,29 +437,39 @@ const styles = StyleSheet.create({
     backgroundColor: '#F8F9FA',
     justifyContent: 'center',
     alignItems: 'center',
-    marginRight: 12,
+    marginRight: 8,
   },
   statInfo: {
     flex: 1,
   },
   statValue: {
-    fontSize: 18,
+    fontSize: 16,
     fontWeight: 'bold',
     color: '#1A1A1A',
     marginBottom: 2,
   },
   statLabel: {
-    fontSize: 12,
+    fontSize: 10,
     color: '#666',
   },
-  section: {
+  listHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
     marginBottom: 24,
   },
   sectionTitle: {
     fontSize: 18,
     fontWeight: '600',
     color: '#1A1A1A',
-    marginBottom: 16,
+  },
+  sortInfo: {
+    fontSize: 12,
+    color: '#666',
+    fontStyle: 'italic',
+  },
+  listContainer: {
+    paddingBottom: 20,
   },
   employeeCard: {
     backgroundColor: 'white',
@@ -392,6 +513,12 @@ const styles = StyleSheet.create({
     color: '#1A1A1A',
     marginBottom: 2,
   },
+  employeeId: {
+    fontSize: 12,
+    color: '#4A90E2',
+    fontWeight: '500',
+    marginBottom: 2,
+  },
   employeePosition: {
     fontSize: 14,
     color: '#666',
@@ -407,6 +534,11 @@ const styles = StyleSheet.create({
   statusText: {
     fontSize: 12,
     fontWeight: '500',
+    marginBottom: 2,
+  },
+  joinDate: {
+    fontSize: 10,
+    color: '#999',
   },
   employeeDetails: {
     flexDirection: 'row',

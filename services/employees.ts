@@ -3,21 +3,38 @@ import { Employee } from '@/types';
 
 export const employeesService = {
   // Get all employees
-  async getAllEmployees(): Promise<{ employees: Employee[]; error: string | null }> {
+  async getAllEmployees(options?: {
+    includeInactive?: boolean;
+    sortBy?: 'name' | 'department' | 'position' | 'employee_id';
+    sortOrder?: 'asc' | 'desc';
+  }): Promise<{ employees: Employee[]; error: string | null }> {
     try {
-      // Get all profiles first
+      const { 
+        includeInactive = true, 
+        sortBy = 'name', 
+        sortOrder = 'asc' 
+      } = options || {};
+      
+      // Get ALL profiles without any limits
       const today = new Date().toISOString().split('T')[0];
+      
+      let query = supabase
+        .from('profiles')
+        .select('*');
+      
+      // Apply sorting
+      query = query.order(sortBy, { ascending: sortOrder === 'asc' });
       
       const { data: profiles, error: profilesError } = await supabase
         .from('profiles')
         .select('*')
-        .order('name');
+        .order(sortBy, { ascending: sortOrder === 'asc' });
 
       if (profilesError) {
         return { employees: [], error: handleSupabaseError(profilesError) };
       }
 
-      // Get today's attendance records for all users
+      // Get today's attendance records for ALL users (no limits)
       const { data: attendanceRecords, error: attendanceError } = await supabase
         .from('attendance_records')
         .select('*')
@@ -27,7 +44,7 @@ export const employeesService = {
         console.warn('Failed to fetch attendance records:', attendanceError);
       }
 
-      // Map profiles to employees with their attendance data
+      // Map ALL profiles to employees with their attendance data
       const employees = profiles.map((profile: any) => {
         // Find today's attendance record for this user
         const todayAttendance = attendanceRecords?.find((record: any) => 
@@ -37,8 +54,10 @@ export const employeesService = {
         return this.mapEmployeeRecord(profile, todayAttendance);
       });
       
+      console.log(`Loaded ${employees.length} employees from database`);
       return { employees, error: null };
     } catch (error) {
+      console.error('Error loading all employees:', error);
       return { employees: [], error: handleSupabaseError(error) };
     }
   },
@@ -66,6 +85,7 @@ export const employeesService = {
     return {
       id: profile.id,
       name: profile.name,
+      employeeId: profile.employee_id,
       position: profile.position || '',
       department: profile.department || '',
       avatar: profile.avatar_url || '',
@@ -74,6 +94,8 @@ export const employeesService = {
       location: profile.location || '',
       phone: profile.phone || '',
       email: profile.email,
+      joinDate: profile.join_date,
+      isActive: true, // Assume all profiles in database are active
       currentAttendance: todayAttendance ? {
         id: todayAttendance.id,
         userId: profile.id,
@@ -131,28 +153,53 @@ export const employeesService = {
   },
 
   // Search employees
-  async searchEmployees(query: string): Promise<{ employees: Employee[]; error: string | null }> {
+  async searchEmployees(
+    query: string,
+    options?: {
+      searchFields?: ('name' | 'position' | 'department' | 'employee_id' | 'email')[];
+      includeInactive?: boolean;
+    }
+  ): Promise<{ employees: Employee[]; error: string | null }> {
     try {
+      const { 
+        searchFields = ['name', 'position', 'department', 'employee_id', 'email'],
+        includeInactive = true 
+      } = options || {};
+      
+      // Build search conditions for multiple fields
+      const searchConditions = searchFields.map(field => `${field}.ilike.%${query}%`).join(',');
+      
+      const today = new Date().toISOString().split('T')[0];
+      
       const { data, error } = await supabase
         .from('profiles')
-        .select(`
-          *,
-          attendance_records (
-            status,
-            clock_in,
-            date
-          )
-        `)
-        .or(`name.ilike.%${query}%,position.ilike.%${query}%,department.ilike.%${query}%,employee_id.ilike.%${query}%`)
+        .select('*')
+        .or(searchConditions)
         .order('name');
 
       if (error) {
         return { employees: [], error: handleSupabaseError(error) };
       }
 
-      const employees = data.map((profile: any) => this.mapEmployeeRecord(profile));
+      // Get today's attendance for search results
+      const userIds = data.map(profile => profile.id);
+      const { data: attendanceRecords } = await supabase
+        .from('attendance_records')
+        .select('*')
+        .eq('date', today)
+        .in('user_id', userIds);
+
+      const employees = data.map((profile: any) => {
+        const todayAttendance = attendanceRecords?.find((record: any) => 
+          record.user_id === profile.id
+        );
+        return this.mapEmployeeRecord(profile, todayAttendance);
+      });
+      
+      console.log(`Search for "${query}" returned ${employees.length} employees`);
       return { employees, error: null };
     } catch (error) {
+      console.error('Error searching employees:', error);
       return { employees: [], error: handleSupabaseError(error) };
     }
   },

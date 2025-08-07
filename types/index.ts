@@ -81,6 +81,7 @@ export interface Notification {
 export interface Employee {
   id: string;
   name: string;
+  employeeId: string;
   position: string;
   department: string;
   avatar?: string;
@@ -89,6 +90,8 @@ export interface Employee {
   location: string;
   phone: string;
   email: string;
+  joinDate?: string;
+  isActive: boolean;
   currentAttendance?: AttendanceRecord;
 }
 
