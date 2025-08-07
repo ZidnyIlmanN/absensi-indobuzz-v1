@@ -138,7 +138,6 @@ export const attendanceService = {
         .update({
           clock_out: now.toISOString(),
           status: 'completed',
-          selfie_url: uploadedSelfieUrl,
           notes: data.notes,
           updated_at: now.toISOString(),
           work_hours: data.workHours,
@@ -375,32 +374,46 @@ export const attendanceService = {
   },
 
   // Helper function to map database record to AttendanceRecord
-mapAttendanceRecord(data: any): AttendanceRecord {
-  return {
-    id: data.id,
-    userId: data.user_id,
-    clockIn: new Date(data.clock_in),
-    clockOut: data.clock_out ? new Date(data.clock_out) : undefined,
-    date: data.date,
-    workHours: data.work_hours || 0,
-    breakTime: data.break_time || 0,
-    overtimeHours: data.overtime_hours || 0,
-    clientVisitTime: data.client_visit_time || 0,
-    status: data.status,
-    location: {
-      latitude: parseFloat(data.location_lat),
-      longitude: parseFloat(data.location_lng),
-      address: data.location_address,
-    },
-    selfieUrl: data.selfie_url,
-    notes: data.notes,
-    activities: data.activity_records ? data.activity_records.map((act: any) => this.mapActivityRecord(act)) : [],
-    breakStartTime: null, // Add this line
-  };
-},
+  mapAttendanceRecord(data: any): AttendanceRecord {
+    // Convert selfie_url to a public URL
+    let publicSelfieUrl = data.selfie_url;
+    if (data.selfie_url && !data.selfie_url.startsWith('http')) {
+      const { data: { publicUrl } } = supabase.storage.from('selfies').getPublicUrl(data.selfie_url);
+      publicSelfieUrl = publicUrl;
+    }
+
+    return {
+      id: data.id,
+      userId: data.user_id,
+      clockIn: new Date(data.clock_in),
+      clockOut: data.clock_out ? new Date(data.clock_out) : undefined,
+      date: data.date,
+      workHours: data.work_hours || 0,
+      breakTime: data.break_time || 0,
+      overtimeHours: data.overtime_hours || 0,
+      clientVisitTime: data.client_visit_time || 0,
+      status: data.status,
+      location: {
+        latitude: parseFloat(data.location_lat),
+        longitude: parseFloat(data.location_lng),
+        address: data.location_address,
+      },
+      selfieUrl: publicSelfieUrl,
+      notes: data.notes,
+      activities: data.activity_records ? data.activity_records.map((act: any) => this.mapActivityRecord(act)) : [],
+      breakStartTime: null,
+    };
+  },
 
   // Helper function to map database record to ActivityRecord
   mapActivityRecord(data: any): ActivityRecord {
+    // Convert selfie_url to a public URL
+    let publicSelfieUrl = data.selfie_url;
+    if (data.selfie_url && !data.selfie_url.startsWith('http')) {
+      const { data: { publicUrl } } = supabase.storage.from('selfies').getPublicUrl(data.selfie_url);
+      publicSelfieUrl = publicUrl;
+    }
+
     return {
       id: data.id,
       type: data.type,
@@ -411,8 +424,7 @@ mapAttendanceRecord(data: any): AttendanceRecord {
         address: data.location_address,
       } : undefined,
       notes: data.notes,
-      selfieUrl: data.selfie_url,
-      selfieUrl: data.selfie_url,
+      selfieUrl: publicSelfieUrl,
     };
   },
 };
