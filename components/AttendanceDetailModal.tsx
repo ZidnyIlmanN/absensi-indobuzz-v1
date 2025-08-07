@@ -22,6 +22,8 @@ import {
   Camera,
   ChevronLeft,
   ChevronRight,
+  Download,
+  Share,
 } from 'lucide-react-native';
 import { AttendanceRecord, ActivityRecord } from '@/types';
 import { LoadingSpinner } from './LoadingSpinner';
@@ -99,7 +101,10 @@ export function AttendanceDetailModal({
             color = '#F44336';
             break;
           default:
-            return; // Skip unknown activity types
+            title = 'Activity';
+            icon = <Camera size={16} color="#666" />;
+            color = '#666';
+            break;
         }
 
         photos.push({
@@ -114,6 +119,21 @@ export function AttendanceDetailModal({
       }
     });
 
+    // Add clock out photo from attendance record if available
+    if (attendance.clockOut && attendance.activities.find(act => act.type === 'clock_out' && act.selfieUrl)) {
+      const clockOutActivity = attendance.activities.find(act => act.type === 'clock_out' && act.selfieUrl);
+      if (clockOutActivity && !photos.find(p => p.id === clockOutActivity.id)) {
+        photos.push({
+          id: clockOutActivity.id,
+          type: 'clock_out',
+          url: clockOutActivity.selfieUrl!,
+          timestamp: clockOutActivity.timestamp,
+          title: 'Clock Out',
+          icon: <LogOut size={16} color="#F44336" />,
+          color: '#F44336',
+        });
+      }
+    }
     return photos.sort((a, b) => a.timestamp.getTime() - b.timestamp.getTime());
   };
 
@@ -291,41 +311,57 @@ export function AttendanceDetailModal({
               {photoItems.length > 0 && (
                 <View style={styles.photosSection}>
                   <Text style={styles.sectionTitle}>Verification Photos</Text>
-                  <ScrollView 
-                    horizontal 
-                    showsHorizontalScrollIndicator={false}
-                    style={styles.photosScrollView}
-                  >
-                    <View style={styles.photosGrid}>
-                      {photoItems.map((photo) => (
-                        <TouchableOpacity
-                          key={photo.id}
-                          style={styles.photoItem}
-                          onPress={() => openFullscreen(photo)}
-                          activeOpacity={0.8}
-                        >
-                          <View style={styles.photoContainer}>
-                            {imageLoading[photo.id] && (
-                              <View style={styles.photoLoading}>
-                                <LoadingSpinner size="small" color="#4A90E2" />
-                              </View>
-                            )}
-                            
-                            {imageErrors[photo.id] ? (
-                              <View style={styles.photoError}>
-                                <Camera size={24} color="#E0E0E0" />
-                                <Text style={styles.photoErrorText}>Failed to load</Text>
-                              </View>
-                            ) : (
-                              <Image
-                                source={{ uri: photo.url }}
-                                style={styles.photoImage}
-                                onLoadStart={() => handleImageLoadStart(photo.id)}
-                                onLoad={() => handleImageLoad(photo.id)}
-                                onError={() => handleImageError(photo.id)}
-                              />
-                            )}
-                            
+                  
+                  {/* Photo Grid */}
+                  <View style={styles.photosGrid}>
+                    {photoItems.map((photo) => (
+                      <TouchableOpacity
+                        key={photo.id}
+                        style={styles.photoItem}
+                        onPress={() => openFullscreen(photo)}
+                        activeOpacity={0.8}
+                      >
+                        <View style={styles.photoContainer}>
+                          {/* Loading State */}
+                          {imageLoading[photo.id] && (
+                            <View style={styles.photoLoading}>
+                              <LoadingSpinner size="small" color="#4A90E2" />
+                              <Text style={styles.photoLoadingText}>Loading...</Text>
+                            </View>
+                          )}
+                          
+                          {/* Error State */}
+                          {imageErrors[photo.id] ? (
+                            <View style={styles.photoError}>
+                              <Camera size={20} color="#E0E0E0" />
+                              <Text style={styles.photoErrorText}>Image unavailable</Text>
+                              <TouchableOpacity
+                                style={styles.retryPhotoButton}
+                                onPress={() => {
+                                  setImageErrors(prev => ({ ...prev, [photo.id]: false }));
+                                  setImageLoading(prev => ({ ...prev, [photo.id]: true }));
+                                }}
+                              >
+                                <Text style={styles.retryPhotoText}>Retry</Text>
+                              </TouchableOpacity>
+                            </View>
+                          ) : (
+                            /* Image Display */
+                            <Image
+                              source={{ 
+                                uri: photo.url,
+                                cache: 'force-cache',
+                              }}
+                              style={styles.photoImage}
+                              onLoadStart={() => handleImageLoadStart(photo.id)}
+                              onLoad={() => handleImageLoad(photo.id)}
+                              onError={() => handleImageError(photo.id)}
+                              resizeMode="cover"
+                            />
+                          )}
+                          
+                          {/* Photo Overlay */}
+                          {!imageLoading[photo.id] && !imageErrors[photo.id] && (
                             <View style={styles.photoOverlay}>
                               <View style={[styles.photoTypeBadge, { backgroundColor: photo.color }]}>
                                 {photo.icon}
@@ -335,11 +371,29 @@ export function AttendanceDetailModal({
                                 {formatTime(photo.timestamp)}
                               </Text>
                             </View>
-                          </View>
-                        </TouchableOpacity>
-                      ))}
+                          )}
+                          
+                          {/* Tap to view indicator */}
+                          {!imageLoading[photo.id] && !imageErrors[photo.id] && (
+                            <View style={styles.tapToViewIndicator}>
+                              <Text style={styles.tapToViewText}>Tap to view</Text>
+                            </View>
+                          )}
+                        </View>
+                      </TouchableOpacity>
+                    ))}
+                  </View>
+                  
+                  {/* No Photos Message */}
+                  {photoItems.length === 0 && (
+                    <View style={styles.noPhotosContainer}>
+                      <Camera size={32} color="#E0E0E0" />
+                      <Text style={styles.noPhotosText}>No verification photos available</Text>
+                      <Text style={styles.noPhotosSubtext}>
+                        Photos are taken during clock in/out and break activities
+                      </Text>
                     </View>
-                  </ScrollView>
+                  )}
                 </View>
               )}
 
@@ -377,15 +431,36 @@ export function AttendanceDetailModal({
         transparent={true}
         visible={!!fullscreenPhoto}
         onRequestClose={() => setFullscreenPhoto(null)}
+        statusBarTranslucent={true}
       >
         <View style={styles.fullscreenOverlay}>
           {fullscreenPhoto && (
             <>
-              {/* Header */}
+              {/* Fullscreen Header */}
               <View style={styles.fullscreenHeader}>
                 <View style={styles.fullscreenHeaderLeft}>
                   <View style={[styles.fullscreenTypeBadge, { backgroundColor: fullscreenPhoto.color }]}>
                     {fullscreenPhoto.icon}
+                    <Text style={styles.fullscreenTypeText}>{fullscreenPhoto.title}</Text>
+                  </View>
+                  <Text style={styles.fullscreenTime}>
+                    {formatTime(fullscreenPhoto.timestamp)}
+                  </Text>
+                </View>
+                
+                <View style={styles.fullscreenHeaderRight}>
+                  <TouchableOpacity style={styles.fullscreenActionButton}>
+                    <Download size={20} color="white" />
+                  </TouchableOpacity>
+                  <TouchableOpacity style={styles.fullscreenActionButton}>
+                    <Share size={20} color="white" />
+                  </TouchableOpacity>
+                </View>
+                
+                <TouchableOpacity 
+                  onPress={() => setFullscreenPhoto(null)}
+                  style={styles.fullscreenCloseButton}
+                >
                     <Text style={styles.fullscreenTypeText}>{fullscreenPhoto.title}</Text>
                   </View>
                   <Text style={styles.fullscreenTime}>
@@ -400,11 +475,17 @@ export function AttendanceDetailModal({
                 </TouchableOpacity>
               </View>
 
-              {/* Photo */}
+              {/* Fullscreen Image Container */}
               <View style={styles.fullscreenImageContainer}>
                 <Image
-                  source={{ uri: fullscreenPhoto.url }}
+                  source={{ 
+                    uri: fullscreenPhoto.url,
+                    cache: 'force-cache',
+                  }}
                   style={styles.fullscreenImage}
+                  resizeMode="contain"
+                />
+              </View>
                   resizeMode="contain"
                 />
               </View>
@@ -426,19 +507,34 @@ export function AttendanceDetailModal({
                   </View>
 
                   <TouchableOpacity
+              {/* Navigation Controls */}
+              {photoItems.length > 1 && (
+                <View style={styles.fullscreenNavigation}>
+                  <TouchableOpacity
+                    style={styles.navButton}
+                    onPress={() => navigatePhoto('prev')}
+                  >
+                    <ChevronLeft size={28} color="white" />
+                  </TouchableOpacity>
+
+                  <View style={styles.photoCounter}>
+                    <Text style={styles.photoCounterText}>
+                      {currentPhotoIndex + 1} of {photoItems.length}
+                    </Text>
+                  </View>
+                    <ChevronRight size={24} color="white" />
+                  <TouchableOpacity
                     style={styles.navButton}
                     onPress={() => navigatePhoto('next')}
                   >
-                    <ChevronRight size={24} color="white" />
+                    <ChevronRight size={28} color="white" />
                   </TouchableOpacity>
                 </View>
               )}
-
+                  </TouchableOpacity>
               {/* Photo Info */}
               <View style={styles.fullscreenInfo}>
                 <Text style={styles.fullscreenInfoText}>
-                  {formatDate(fullscreenPhoto.timestamp)} • {formatTime(fullscreenPhoto.timestamp)}
-                </Text>
               </View>
             </>
           )}
@@ -461,15 +557,107 @@ const styles = StyleSheet.create({
     maxHeight: '90%',
     minHeight: '60%',
   },
-  modalHeader: {
+  fullscreenHeader: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    padding: 20,
-    borderBottomWidth: 1,
+    paddingHorizontal: 20,
+    paddingTop: 60,
+    paddingBottom: 20,
+    backgroundColor: 'rgba(0, 0, 0, 0.7)',
     borderBottomColor: '#F0F0F0',
+  fullscreenHeaderLeft: {
+    flex: 1,
   },
-  headerInfo: {
+  fullscreenTypeBadge: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    alignSelf: 'flex-start',
+    paddingHorizontal: 12,
+    paddingVertical: 6,
+    borderRadius: 16,
+    marginBottom: 8,
+  },
+  fullscreenTypeText: {
+    fontSize: 12,
+    fontWeight: '600',
+    color: 'white',
+    marginLeft: 6,
+  },
+  fullscreenTime: {
+    fontSize: 14,
+    color: 'rgba(255, 255, 255, 0.8)',
+  },
+  fullscreenHeaderRight: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginRight: 12,
+  },
+  fullscreenActionButton: {
+    width: 40,
+    height: 40,
+    borderRadius: 20,
+    backgroundColor: 'rgba(255, 255, 255, 0.2)',
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginRight: 8,
+  },
+  fullscreenCloseButton: {
+    width: 40,
+    height: 40,
+    borderRadius: 20,
+    backgroundColor: 'rgba(255, 255, 255, 0.2)',
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  fullscreenImageContainer: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+    paddingHorizontal: 20,
+  },
+  fullscreenImage: {
+    width: width - 40,
+    height: height * 0.6,
+    borderRadius: 12,
+  },
+  fullscreenNavigation: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    paddingHorizontal: 20,
+    paddingVertical: 20,
+  },
+  navButton: {
+    width: 50,
+    height: 50,
+    borderRadius: 25,
+    backgroundColor: 'rgba(255, 255, 255, 0.2)',
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  photoCounter: {
+    backgroundColor: 'rgba(255, 255, 255, 0.2)',
+    paddingHorizontal: 16,
+    paddingVertical: 8,
+    borderRadius: 16,
+  },
+  photoCounterText: {
+    fontSize: 14,
+    color: 'white',
+    fontWeight: '500',
+  },
+  fullscreenInfo: {
+    alignItems: 'center',
+    paddingHorizontal: 20,
+    paddingBottom: 40,
+    backgroundColor: 'rgba(0, 0, 0, 0.7)',
+  },
+  fullscreenInfoText: {
+    fontSize: 14,
+    color: 'rgba(255, 255, 255, 0.8)',
+    textAlign: 'center',
+  },
     flex: 1,
   },
   modalTitle: {
@@ -575,17 +763,16 @@ const styles = StyleSheet.create({
   photosSection: {
     marginBottom: 24,
   },
-  photosScrollView: {
-    marginHorizontal: -20,
-  },
   photosGrid: {
     flexDirection: 'row',
-    paddingHorizontal: 20,
+    flexWrap: 'wrap',
+    justifyContent: 'space-between',
     gap: 12,
   },
   photoItem: {
-    width: 120,
-    height: 120,
+    width: '48%',
+    aspectRatio: 1,
+    marginBottom: 12,
   },
   photoContainer: {
     width: '100%',
@@ -598,6 +785,7 @@ const styles = StyleSheet.create({
     shadowOpacity: 0.1,
     shadowRadius: 3,
     position: 'relative',
+    backgroundColor: '#F8F9FA',
   },
   photoImage: {
     width: '100%',
@@ -609,29 +797,48 @@ const styles = StyleSheet.create({
     left: 0,
     right: 0,
     bottom: 0,
-    backgroundColor: '#F8F9FA',
+    backgroundColor: 'rgba(248, 249, 250, 0.9)',
     justifyContent: 'center',
     alignItems: 'center',
+  },
+  photoLoadingText: {
+    fontSize: 12,
+    color: '#666',
+    marginTop: 8,
   },
   photoError: {
     width: '100%',
     height: '100%',
-    backgroundColor: '#F8F9FA',
+    backgroundColor: 'rgba(248, 249, 250, 0.95)',
     justifyContent: 'center',
     alignItems: 'center',
+    padding: 12,
   },
   photoErrorText: {
-    fontSize: 10,
+    fontSize: 11,
     color: '#999',
-    marginTop: 4,
+    marginTop: 6,
     textAlign: 'center',
+    lineHeight: 14,
+  },
+  retryPhotoButton: {
+    backgroundColor: '#4A90E2',
+    paddingHorizontal: 8,
+    paddingVertical: 4,
+    borderRadius: 4,
+    marginTop: 6,
+  },
+  retryPhotoText: {
+    fontSize: 10,
+    color: 'white',
+    fontWeight: '500',
   },
   photoOverlay: {
     position: 'absolute',
     bottom: 0,
     left: 0,
     right: 0,
-    backgroundColor: 'rgba(0, 0, 0, 0.7)',
+    backgroundColor: 'rgba(0, 0, 0, 0.75)',
     padding: 8,
   },
   photoTypeBadge: {
@@ -644,14 +851,51 @@ const styles = StyleSheet.create({
     marginBottom: 4,
   },
   photoTypeText: {
-    fontSize: 8,
+    fontSize: 9,
     fontWeight: '600',
     color: 'white',
     marginLeft: 4,
   },
   photoTime: {
-    fontSize: 10,
+    fontSize: 9,
     color: 'white',
+    fontWeight: '500',
+  },
+  tapToViewIndicator: {
+    position: 'absolute',
+    top: 8,
+    right: 8,
+    backgroundColor: 'rgba(0, 0, 0, 0.6)',
+    paddingHorizontal: 6,
+    paddingVertical: 2,
+    borderRadius: 8,
+  },
+  tapToViewText: {
+    fontSize: 8,
+    color: 'white',
+    fontWeight: '500',
+  },
+  noPhotosContainer: {
+    alignItems: 'center',
+    paddingVertical: 32,
+    backgroundColor: '#F8F9FA',
+    borderRadius: 12,
+    borderWidth: 1,
+    borderColor: '#E0E0E0',
+    borderStyle: 'dashed',
+  },
+  noPhotosText: {
+    fontSize: 16,
+    fontWeight: '500',
+    color: '#666',
+    marginTop: 12,
+    marginBottom: 4,
+  },
+  noPhotosSubtext: {
+    fontSize: 12,
+    color: '#999',
+    textAlign: 'center',
+    lineHeight: 16,
   },
   locationSection: {
     marginBottom: 24,

@@ -377,9 +377,11 @@ export const attendanceService = {
   mapAttendanceRecord(data: any): AttendanceRecord {
     // Convert selfie_url to a public URL
     let publicSelfieUrl = data.selfie_url;
-    if (data.selfie_url && !data.selfie_url.startsWith('http')) {
+    if (data.selfie_url && !data.selfie_url.startsWith('http') && data.selfie_url.trim() !== '') {
       const { data: { publicUrl } } = supabase.storage.from('selfies').getPublicUrl(data.selfie_url);
       publicSelfieUrl = publicUrl;
+    } else if (!data.selfie_url || data.selfie_url.trim() === '') {
+      publicSelfieUrl = undefined;
     }
 
     return {
@@ -409,9 +411,11 @@ export const attendanceService = {
   mapActivityRecord(data: any): ActivityRecord {
     // Convert selfie_url to a public URL
     let publicSelfieUrl = data.selfie_url;
-    if (data.selfie_url && !data.selfie_url.startsWith('http')) {
+    if (data.selfie_url && !data.selfie_url.startsWith('http') && data.selfie_url.trim() !== '') {
       const { data: { publicUrl } } = supabase.storage.from('selfies').getPublicUrl(data.selfie_url);
       publicSelfieUrl = publicUrl;
+    } else if (!data.selfie_url || data.selfie_url.trim() === '') {
+      publicSelfieUrl = undefined;
     }
 
     return {
