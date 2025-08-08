@@ -1,11 +1,9 @@
 import React from 'react';
 import { Tabs } from 'expo-router';
-import { View } from 'react-native';
 import { Home as Home, Users, FileText, MessageCircle, User } from 'lucide-react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useTranslation } from 'react-i18next';
 import { AuthGuard } from '@/components/AuthGuard';
-import { LanguageSelector } from '@/components/LanguageSelector';
 
 function TabLayout() {
   const insets = useSafeAreaInsets();
@@ -26,11 +24,6 @@ function TabLayout() {
           fontWeight: 'bold',
           fontSize: 18,
         },
-        headerRight: () => (
-          <View style={{ marginRight: 16 }}>
-            <LanguageSelector compact={true} />
-          </View>
-        ),
         tabBarActiveTintColor: '#4A90E2',
         tabBarInactiveTintColor: '#8E8E93',
         tabBarStyle: {
@@ -50,6 +43,7 @@ function TabLayout() {
         name="index"
         options={{
           title: t('navigation.home'),
+          headerShown: false, // Hide header for index tab since it has custom header
           tabBarIcon: ({ size, color }) => (
             <Home size={size} color={color} />
           ),

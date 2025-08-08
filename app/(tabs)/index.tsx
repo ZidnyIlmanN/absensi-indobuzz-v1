@@ -25,6 +25,7 @@ import { WeatherDisplay } from '@/components/WeatherDisplay';
 import { LoadingSpinner } from '@/components/LoadingSpinner';
 import { ErrorBoundary } from '@/components/ErrorBoundary';
 import { useAppContext } from '@/context/AppContext';
+import { LanguageSelector } from '@/components/LanguageSelector';
 
 const { width } = Dimensions.get('window');
 
@@ -244,6 +245,11 @@ export default function HomeScreen() {
               />
             </View>
           </LinearGradientWrapper>
+
+          {/* Language Selection positioned to the right of LinearGradientWrapper */}
+          <View style={styles.languageSelectorContainer}>
+            <LanguageSelector compact={true} />
+          </View>
 
           <View style={styles.content}>
           {/* Attendance Card */}
@@ -553,6 +559,13 @@ const styles = StyleSheet.create({
   },
   weatherContainer: {
     maxWidth: 200,
+  },
+  languageSelectorContainer: {
+    position: 'absolute',
+    top: insets.top + 30,
+    right: 20,
+    zIndex: 10,
+    elevation: 10,
   },
   content: {
     paddingHorizontal: 20,
