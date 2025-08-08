@@ -25,7 +25,12 @@
     "apply": "Apply",
     "upload": "Upload",
     "download": "Download",
-    "share": "Share"
+    "share": "Share",
+    "requesting_permission": "Requesting camera permission...",
+    "unable_detect_location": "Unable to detect location • Please enable GPS",
+    "use_current_location": "Use Current Location",
+    "automatically_detect": "Automatically detect your location",
+    "indonesian_cities": "Indonesian Cities"
   },
   "auth": {
     "welcome_back": "Welcome Back",
@@ -320,8 +325,7 @@
     "break_started_success": "Break started successfully.",
     "break_ended_success": "Break ended successfully. Welcome back!",
     "are_you_ready_return": "Are you ready to return to work?",
-    "are_you_sure_start": "Are you sure you want to start your break?",
-    "break_used": "Break Used"
+    "are_you_sure_start": "Are you sure you want to start your break?"
   },
   "settings": {
     "settings": "Settings",
