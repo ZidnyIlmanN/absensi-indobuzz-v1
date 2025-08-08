@@ -31,8 +31,8 @@
     "use_current_location": "Use Current Location",
     "automatically_detect": "Automatically detect your location",
     "indonesian_cities": "Indonesian Cities",
-    "working": "Working",
-    "completed": "Completed"
+    "name": "Name",
+    "na": "N/A"
   },
   "auth": {
     "welcome_back": "Welcome Back",

@@ -17,6 +17,7 @@ import {
   Camera,
 } from 'lucide-react-native';
 import { AttendanceRecord } from '@/types';
+import { useTranslation } from 'react-i18next';
 
 interface AttendanceHistoryCardProps {
   record: AttendanceRecord;
@@ -31,6 +32,7 @@ export function AttendanceHistoryCard({
   onPress,
   index,
 }: AttendanceHistoryCardProps) {
+  const { t } = useTranslation();
   const scaleValue = new Animated.Value(1);
 
   const handlePressIn = () => {
@@ -113,7 +115,7 @@ export function AttendanceHistoryCard({
               { backgroundColor: getStatusColor(record.status) }
             ]}>
               <Text style={styles.statusText}>
-                {record.status === 'working' ? 'Working' : 'Completed'}
+                {record.status === 'working' ? t('attendance.working') : t('attendance.completed')}
               </Text>
             </View>
             
@@ -125,7 +127,7 @@ export function AttendanceHistoryCard({
         <View style={styles.detailsGrid}>
           <View style={styles.detailItem}>
             <LogIn size={14} color="#4CAF50" />
-            <Text style={styles.detailLabel}>In</Text>
+            <Text style={styles.detailLabel}>{t('attendance.in')}</Text>
             <Text style={styles.detailValue}>
               {record.clockIn.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
             </Text>
@@ -133,23 +135,23 @@ export function AttendanceHistoryCard({
 
           <View style={styles.detailItem}>
             <Coffee size={14} color="#FF9800" />
-            <Text style={styles.detailLabel}>Break</Text>
+            <Text style={styles.detailLabel}>{t('attendance.break')}</Text>
             <Text style={styles.detailValue}>{breakStarted}</Text>
           </View>
 
           <View style={styles.detailItem}>
             <Play size={14} color="#E91E63" />
-            <Text style={styles.detailLabel}>Resume</Text>
+            <Text style={styles.detailLabel}>{t('attendance.resume')}</Text>
             <Text style={styles.detailValue}>{breakEnded}</Text>
           </View>
 
           <View style={styles.detailItem}>
             <LogOut size={14} color="#F44336" />
-            <Text style={styles.detailLabel}>Out</Text>
+            <Text style={styles.detailLabel}>{t('attendance.out')}</Text>
             <Text style={styles.detailValue}>
               {record.clockOut 
                 ? record.clockOut.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
-                : record.status === 'working' ? 'Working...' : 'N/A'
+                : record.status === 'working' ? t('attendance.working_ellipsis') : t('common.na')
               }
             </Text>
           </View>
@@ -159,14 +161,14 @@ export function AttendanceHistoryCard({
         <View style={styles.summary}>
           <View style={styles.summaryItem}>
             <Clock size={16} color="#4A90E2" />
-            <Text style={styles.summaryLabel}>Total Work Hours</Text>
+            <Text style={styles.summaryLabel}>{t('attendance.total_work_hours')}</Text>
             <Text style={styles.summaryValue}>{workHours}</Text>
           </View>
         </View>
 
         {/* Tap to view indicator */}
         <View style={styles.tapIndicator}>
-          <Text style={styles.tapIndicatorText}>Tap to view details</Text>
+          <Text style={styles.tapIndicatorText}>{t('attendance.tap_to_view_details')}</Text>
         </View>
       </TouchableOpacity>
     </Animated.View>

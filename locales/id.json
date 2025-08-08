@@ -30,7 +30,9 @@
     "unable_detect_location": "Tidak dapat mendeteksi lokasi • Silakan aktifkan GPS",
     "use_current_location": "Gunakan Lokasi Saat Ini",
     "automatically_detect": "Deteksi lokasi Anda secara otomatis",
-    "indonesian_cities": "Kota-kota Indonesia"
+    "indonesian_cities": "Kota-kota Indonesia",
+    "name": "Nama",
+    "na": "T/A"
   },
   "auth": {
     "welcome_back": "Selamat Datang Kembali",

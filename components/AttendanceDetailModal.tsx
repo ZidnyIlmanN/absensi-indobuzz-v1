@@ -24,6 +24,7 @@ import {
 } from 'lucide-react-native';
 import { AttendanceRecord } from '@/types';
 import { LoadingSpinner } from './LoadingSpinner';
+import { useTranslation } from 'react-i18next';
 
 const { width, height } = Dimensions.get('window');
 
@@ -50,6 +51,7 @@ export function AttendanceDetailModal({
   attendance,
   workHours,
 }: AttendanceDetailModalProps) {
+  const { t } = useTranslation();
   const [selectedPhoto, setSelectedPhoto] = useState<PhotoItem | null>(null);
   const [imageLoading, setImageLoading] = useState<{ [key: string]: boolean }>({});
   const [imageErrors, setImageErrors] = useState<{ [key: string]: boolean }>({});
@@ -84,37 +86,37 @@ export function AttendanceDetailModal({
 
         switch (activity.type) {
           case 'break_start':
-            title = 'Break Started';
+            title = t('attendance.break_started');
             icon = <Coffee size={12} color="white" />;
             color = '#FF9800';
             break;
           case 'break_end':
-            title = 'Break Ended';
+            title = t('attendance.break_ended');
             icon = <Play size={12} color="white" />;
             color = '#E91E63';
             break;
           case 'clock_out':
-            title = 'Clock Out';
+            title = t('attendance.clock_out');
             icon = <LogOut size={12} color="white" />;
             color = '#F44336';
             break;
           case 'overtime_start':
-            title = 'Overtime Started';
+            title = t('overtime.overtime_started');
             icon = <Clock size={12} color="white" />;
             color = '#9C27B0';
             break;
           case 'overtime_end':
-            title = 'Overtime Ended';
+            title = t('overtime.overtime_ended');
             icon = <Pause size={12} color="white" />;
             color = '#673AB7';
             break;
           case 'client_visit_start':
-            title = 'Client Visit Started';
+            title = t('client_visit.visit_started');
             icon = <MapPin size={12} color="white" />;
             color = '#2196F3';
             break;
           case 'client_visit_end':
-            title = 'Client Visit Ended';
+            title = t('client_visit.visit_ended');
             icon = <MapPin size={12} color="white" />;
             color = '#1976D2';
             break;
@@ -253,7 +255,7 @@ export function AttendanceDetailModal({
           {/* Header */}
           <View style={styles.modalHeader}>
             <View style={styles.headerInfo}>
-              <Text style={styles.modalTitle}>Attendance Details</Text>
+              <Text style={styles.modalTitle}>{t('attendance.attendance_details')}</Text>
               <Text style={styles.modalDate}>{formatDate(attendance.clockIn)}</Text>
             </View>
             <TouchableOpacity onPress={onClose} style={styles.closeButton}>
@@ -269,23 +271,23 @@ export function AttendanceDetailModal({
                 { backgroundColor: attendance.status === 'completed' ? '#4CAF50' : '#4A90E2' }
               ]}>
                 <Text style={styles.statusBadgeText}>
-                  {attendance.status === 'completed' ? 'Completed' : 'Working'}
+                  {attendance.status === 'completed' ? t('attendance.completed') : t('attendance.working')}
                 </Text>
               </View>
             </View>
 
             {/* Time Summary */}
             <View style={styles.summarySection}>
-              <Text style={styles.sectionTitle}>Time Summary</Text>
+              <Text style={styles.sectionTitle}>{t('attendance.time_summary')}</Text>
               <View style={styles.summaryGrid}>
                 <View style={styles.summaryItem}>
                   <Clock size={20} color="#4A90E2" />
-                  <Text style={styles.summaryLabel}>Work Hours</Text>
+                  <Text style={styles.summaryLabel}>{t('attendance.work_hours')}</Text>
                   <Text style={styles.summaryValue}>{workHours}</Text>
                 </View>
                 <View style={styles.summaryItem}>
                   <Coffee size={20} color="#FF9800" />
-                  <Text style={styles.summaryLabel}>Break Time</Text>
+                  <Text style={styles.summaryLabel}>{t('attendance.break_time')}</Text>
                   <Text style={styles.summaryValue}>
                     {Math.floor(attendance.breakTime / 60)}h {attendance.breakTime % 60}m
                   </Text>
@@ -295,7 +297,7 @@ export function AttendanceDetailModal({
 
             {/* Timeline */}
             <View style={styles.timelineSection}>
-              <Text style={styles.sectionTitle}>Timeline</Text>
+              <Text style={styles.sectionTitle}>{t('attendance.timeline')}</Text>
               
               {/* Clock In */}
               <View style={styles.timelineItem}>
@@ -303,7 +305,7 @@ export function AttendanceDetailModal({
                   <LogIn size={20} color="#4CAF50" />
                 </View>
                 <View style={styles.timelineContent}>
-                  <Text style={styles.timelineTitle}>Clock In</Text>
+                  <Text style={styles.timelineTitle}>{t('attendance.clock_in')}</Text>
                   <Text style={styles.timelineTime}>{formatTime(attendance.clockIn)}</Text>
                   <Text style={styles.timelineLocation}>{attendance.location.address}</Text>
                 </View>
@@ -316,7 +318,7 @@ export function AttendanceDetailModal({
                     <Coffee size={20} color="#FF9800" />
                   </View>
                   <View style={styles.timelineContent}>
-                    <Text style={styles.timelineTitle}>Break Started</Text>
+                    <Text style={styles.timelineTitle}>{t('attendance.break_started')}</Text>
                     <Text style={styles.timelineTime}>{breakStarted}</Text>
                   </View>
                 </View>
@@ -329,7 +331,7 @@ export function AttendanceDetailModal({
                     <Play size={20} color="#E91E63" />
                   </View>
                   <View style={styles.timelineContent}>
-                    <Text style={styles.timelineTitle}>Break Ended</Text>
+                    <Text style={styles.timelineTitle}>{t('attendance.break_ended')}</Text>
                     <Text style={styles.timelineTime}>{breakEnded}</Text>
                   </View>
                 </View>
@@ -342,7 +344,7 @@ export function AttendanceDetailModal({
                     <LogOut size={20} color="#F44336" />
                   </View>
                   <View style={styles.timelineContent}>
-                    <Text style={styles.timelineTitle}>Clock Out</Text>
+                    <Text style={styles.timelineTitle}>{t('attendance.clock_out')}</Text>
                     <Text style={styles.timelineTime}>{formatTime(attendance.clockOut)}</Text>
                   </View>
                 </View>
@@ -353,10 +355,10 @@ export function AttendanceDetailModal({
             {photoItems.length > 0 && (
               <View style={styles.photosSection}>
                 <View style={styles.photosSectionHeader}>
-                  <Text style={styles.sectionTitle}>Verification Photos</Text>
+                  <Text style={styles.sectionTitle}>{t('attendance.verification_photos')}</Text>
                   <View style={styles.photosCount}>
                     <Camera size={16} color="#4A90E2" />
-                    <Text style={styles.photosCountText}>{photoItems.length} photos</Text>
+                    <Text style={styles.photosCountText}>{photoItems.length} {t('attendance.photos')}</Text>
                   </View>
                 </View>
                 
@@ -383,7 +385,7 @@ export function AttendanceDetailModal({
                         {imageErrors[photo.id] ? (
                           <View style={styles.photoError}>
                             <Camera size={24} color="#E0E0E0" />
-                            <Text style={styles.photoErrorText}>Failed to load</Text>
+                            <Text style={styles.photoErrorText}>{t('attendance.failed_to_load')}</Text>
                             <TouchableOpacity
                               style={styles.retryButton}
                               onPress={() => {
@@ -391,7 +393,7 @@ export function AttendanceDetailModal({
                                 setImageLoading(prev => ({ ...prev, [photo.id]: true }));
                               }}
                             >
-                              <Text style={styles.retryButtonText}>Retry</Text>
+                              <Text style={styles.retryButtonText}>{t('common.retry')}</Text>
                             </TouchableOpacity>
                           </View>
                         ) : (
@@ -417,7 +419,7 @@ export function AttendanceDetailModal({
                           
                           <View style={styles.tapToViewIndicator}>
                             <ZoomIn size={12} color="rgba(255, 255, 255, 0.8)" />
-                            <Text style={styles.tapToViewText}>Tap to view</Text>
+                            <Text style={styles.tapToViewText}>{t('attendance.tap_to_view')}</Text>
                           </View>
                         </View>
                       </View>
@@ -429,7 +431,7 @@ export function AttendanceDetailModal({
 
             {/* Location Information */}
             <View style={styles.locationSection}>
-              <Text style={styles.sectionTitle}>Location Information</Text>
+              <Text style={styles.sectionTitle}>{t('attendance.location_information')}</Text>
               <View style={styles.locationCard}>
                 <MapPin size={20} color="#4A90E2" />
                 <View style={styles.locationInfo}>
@@ -444,7 +446,7 @@ export function AttendanceDetailModal({
             {/* Notes Section */}
             {attendance.notes && (
               <View style={styles.notesSection}>
-                <Text style={styles.sectionTitle}>Notes</Text>
+                <Text style={styles.sectionTitle}>{t('attendance.notes')}</Text>
                 <View style={styles.notesCard}>
                   <Text style={styles.notesText}>{attendance.notes}</Text>
                 </View>
