@@ -130,19 +130,21 @@ export function useLocalizedDate() {
   ) => {
     const locale = currentLanguage === 'id' ? 'id-ID' : 'en-US';
     
-    const options: Intl.DateTimeFormatOptions = {
-      short: { month: 'short', day: 'numeric' },
-      medium: { month: 'short', day: 'numeric', year: 'numeric' },
-      long: { weekday: 'long', month: 'long', day: 'numeric', year: 'numeric' },
-      full: { 
-        weekday: 'long', 
-        month: 'long', 
-        day: 'numeric', 
-        year: 'numeric',
-        hour: '2-digit',
-        minute: '2-digit'
-      },
-    }[style];
+    const options: Intl.DateTimeFormatOptions = (() => {
+      switch (style) {
+        case 'short': return { month: 'short', day: 'numeric' };
+        case 'medium': return { month: 'short', day: 'numeric', year: 'numeric' };
+        case 'long': return { weekday: 'long', month: 'long', day: 'numeric', year: 'numeric' };
+        case 'full': return {
+          weekday: 'long',
+          month: 'long',
+          day: 'numeric',
+          year: 'numeric',
+          hour: '2-digit',
+          minute: '2-digit'
+        };
+      }
+    })();
 
     return new Intl.DateTimeFormat(locale, options).format(date);
   }, [currentLanguage]);

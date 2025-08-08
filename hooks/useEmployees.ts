@@ -1,5 +1,4 @@
 import { useState, useEffect, useCallback } from 'react';
-import { useState, useEffect, useCallback } from 'react';
 import { employeesService } from '@/services/employees';
 import { Employee } from '@/types';
 
