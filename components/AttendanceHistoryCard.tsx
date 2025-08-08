@@ -71,8 +71,9 @@ export function AttendanceHistoryCard({
 
   // Count available photos
   const photoCount = [
-    record.selfieUrl,
-    ...record.activities.map(act => act.selfieUrl).filter(Boolean)
+    record.selfieUrl, // Clock-in photo
+    ...record.activities.map(act => act.selfieUrl).filter(Boolean), // Photos from activities (breaks, etc.)
+    (record.activities.find(act => act.type === 'clock_out') || {}).selfieUrl, // Clock-out photo from activities
   ].filter(Boolean).length;
 
   const formatDate = (date: Date) => {
