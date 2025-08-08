@@ -7,44 +7,42 @@ export const employeesService = {
     includeInactive?: boolean;
     sortBy?: 'name' | 'department' | 'position' | 'employee_id';
     sortOrder?: 'asc' | 'desc';
+    limit?: number;
   }): Promise<{ employees: Employee[]; error: string | null }> {
     try {
       const { 
         includeInactive = true, 
         sortBy = 'name', 
-        sortOrder = 'asc' 
+        sortOrder = 'asc',
+        limit = 1000 // Default high limit to get all employees
       } = options || {};
       
-      // Get ALL profiles without any limits
       const today = new Date().toISOString().split('T')[0];
       
-      let query = supabase
-        .from('profiles')
-        .select('*');
-      
-      // Apply sorting
-      query = query.order(sortBy, { ascending: sortOrder === 'asc' });
-      
+      // Get profiles with proper sorting and optional limit
       const { data: profiles, error: profilesError } = await supabase
         .from('profiles')
         .select('*')
-        .order(sortBy, { ascending: sortOrder === 'asc' });
+        .order(sortBy, { ascending: sortOrder === 'asc' })
+        .limit(limit);
 
       if (profilesError) {
         return { employees: [], error: handleSupabaseError(profilesError) };
       }
 
-      // Get today's attendance records for ALL users (no limits)
+      // Get today's attendance records for the fetched users
+      const userIds = profiles.map(profile => profile.id);
       const { data: attendanceRecords, error: attendanceError } = await supabase
         .from('attendance_records')
         .select('*')
-        .eq('date', today);
+        .eq('date', today)
+        .in('user_id', userIds);
 
       if (attendanceError) {
         console.warn('Failed to fetch attendance records:', attendanceError);
       }
 
-      // Map ALL profiles to employees with their attendance data
+      // Map profiles to employees with their attendance data
       const employees = profiles.map((profile: any) => {
         // Find today's attendance record for this user
         const todayAttendance = attendanceRecords?.find((record: any) => 
@@ -158,12 +156,14 @@ export const employeesService = {
     options?: {
       searchFields?: ('name' | 'position' | 'department' | 'employee_id' | 'email')[];
       includeInactive?: boolean;
+      limit?: number;
     }
   ): Promise<{ employees: Employee[]; error: string | null }> {
     try {
       const { 
         searchFields = ['name', 'position', 'department', 'employee_id', 'email'],
-        includeInactive = true 
+        includeInactive = true,
+        limit = 100 // Reasonable limit for search results
       } = options || {};
       
       // Build search conditions for multiple fields
@@ -175,7 +175,8 @@ export const employeesService = {
         .from('profiles')
         .select('*')
         .or(searchConditions)
-        .order('name');
+        .order('name')
+        .limit(limit);
 
       if (error) {
         return { employees: [], error: handleSupabaseError(error) };

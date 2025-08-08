@@ -1,4 +1,5 @@
 import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { employeesService } from '@/services/employees';
 import { Employee } from '@/types';
 
@@ -35,6 +36,7 @@ export function useEmployees() {
         includeInactive: true,
         sortBy: employeesState.sortBy,
         sortOrder: employeesState.sortOrder,
+        limit: 1000, // Get all employees
       });
       
       if (error) {
@@ -60,7 +62,7 @@ export function useEmployees() {
         isLoading: false,
       }));
     }
-  }, []);
+  }, [employeesState.sortBy, employeesState.sortOrder]);
 
   const searchEmployees = useCallback(async (query: string) => {
     setEmployeesState(prev => ({ ...prev, searchQuery: query, isLoading: true, error: null }));
@@ -79,6 +81,7 @@ export function useEmployees() {
       const { employees, error } = await employeesService.searchEmployees(query, {
         searchFields: ['name', 'position', 'department', 'employee_id', 'email'],
         includeInactive: true,
+        limit: 200, // Higher limit for search results
       });
       
       if (error) {
@@ -103,16 +106,22 @@ export function useEmployees() {
 
   const setSortOptions = useCallback((sortBy: typeof employeesState.sortBy, sortOrder: typeof employeesState.sortOrder) => {
     setEmployeesState(prev => ({ ...prev, sortBy, sortOrder }));
-    // Reload employees with new sort options
-    loadEmployees();
-  }, [loadEmployees]);
+  }, []);
+
+  // Separate effect to reload when sort options change
+  useEffect(() => {
+    if (employeesState.sortBy && employeesState.sortOrder) {
+      loadEmployees();
+    }
+  }, [employeesState.sortBy, employeesState.sortOrder, loadEmployees]);
 
   const filterEmployees = useCallback((filterOptions: {
     department?: string;
     status?: Employee['status'];
     isActive?: boolean;
+    position?: string;
   }) => {
-    const { department, status, isActive } = filterOptions;
+    const { department, status, isActive, position } = filterOptions;
     
     let filtered = [...employeesState.employees];
     
@@ -124,6 +133,12 @@ export function useEmployees() {
     
     if (status) {
       filtered = filtered.filter(emp => emp.status === status);
+    }
+    
+    if (position) {
+      filtered = filtered.filter(emp => 
+        emp.position.toLowerCase().includes(position.toLowerCase())
+      );
     }
     
     if (isActive !== undefined) {
