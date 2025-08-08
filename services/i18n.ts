@@ -13,7 +13,10 @@ const LANGUAGE_STORAGE_KEY = 'user_language_preference';
 // Language detection
 const getDeviceLanguage = (): string => {
   try {
-    const deviceLocale = Localization.locale;
+    const deviceLocale = Localization.getLocales()[0]?.languageCode;
+    if (!deviceLocale) {
+      return 'en'; // Fallback if no locale is found
+    }
     const languageCode = deviceLocale.split('-')[0];
     
     // Check if device language is supported
@@ -81,7 +84,7 @@ i18n
     react: {
       useSuspense: false, // Disable suspense for React Native
     },
-    compatibilityJSON: 'v3', // Use v3 format for better compatibility
+    compatibilityJSON: 'v4', // Use v4 format for better compatibility
   });
 
 export default i18n;
