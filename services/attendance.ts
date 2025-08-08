@@ -376,12 +376,29 @@ export const attendanceService = {
   // Helper function to map database record to AttendanceRecord
   mapAttendanceRecord(data: any): AttendanceRecord {
     // Convert selfie_url to a public URL
-    let publicSelfieUrl = data.selfie_url;
-    if (data.selfie_url && !data.selfie_url.startsWith('http') && data.selfie_url.trim() !== '') {
-      const { data: { publicUrl } } = supabase.storage.from('selfies').getPublicUrl(data.selfie_url);
-      publicSelfieUrl = publicUrl;
-    } else if (!data.selfie_url || data.selfie_url.trim() === '') {
-      publicSelfieUrl = undefined;
+    let selfiePath = data.selfie_url;
+    let selfieUrl = undefined;
+
+    if (selfiePath && selfiePath.trim() !== '') {
+      // Handle both old and new URL formats
+      if (selfiePath.startsWith('http')) {
+        // Already a full URL
+        selfieUrl = selfiePath;
+      } else {
+        // Handle relative paths and storage paths
+        const cleanPath = selfiePath.replace(/^selfies\//, '').replace(/^activities\//, '');
+        
+        try {
+          // Try to get public URL from selfies bucket
+          const { data: { publicUrl } } = supabase.storage.from('selfies').getPublicUrl(cleanPath);
+          selfieUrl = publicUrl;
+        } catch (error) {
+          console.error('Error generating public URL for selfie:', error);
+          // Fallback to direct URL construction
+          const supabaseUrl = process.env.EXPO_PUBLIC_SUPABASE_URL || '';
+          selfieUrl = `${supabaseUrl}/storage/v1/object/public/selfies/${cleanPath}`;
+        }
+      }
     }
 
     return {
@@ -400,7 +417,7 @@ export const attendanceService = {
         longitude: parseFloat(data.location_lng),
         address: data.location_address,
       },
-      selfieUrl: publicSelfieUrl,
+      selfieUrl: selfieUrl,
       notes: data.notes,
       activities: data.activity_records ? data.activity_records.map((act: any) => this.mapActivityRecord(act)) : [],
       breakStartTime: null,
@@ -410,12 +427,29 @@ export const attendanceService = {
   // Helper function to map database record to ActivityRecord
   mapActivityRecord(data: any): ActivityRecord {
     // Convert selfie_url to a public URL
-    let publicSelfieUrl = data.selfie_url;
-    if (data.selfie_url && !data.selfie_url.startsWith('http') && data.selfie_url.trim() !== '') {
-      const { data: { publicUrl } } = supabase.storage.from('selfies').getPublicUrl(data.selfie_url);
-      publicSelfieUrl = publicUrl;
-    } else if (!data.selfie_url || data.selfie_url.trim() === '') {
-      publicSelfieUrl = undefined;
+    let selfiePath = data.selfie_url;
+    let selfieUrl = undefined;
+
+    if (selfiePath && selfiePath.trim() !== '') {
+      // Handle both old and new URL formats
+      if (selfiePath.startsWith('http')) {
+        // Already a full URL
+        selfieUrl = selfiePath;
+      } else {
+        // Handle relative paths and storage paths
+        const cleanPath = selfiePath.replace(/^selfies\//, '').replace(/^activities\//, '');
+        
+        try {
+          // Try to get public URL from selfies bucket
+          const { data: { publicUrl } } = supabase.storage.from('selfies').getPublicUrl(cleanPath);
+          selfieUrl = publicUrl;
+        } catch (error) {
+          console.error('Error generating public URL for activity selfie:', error);
+          // Fallback to direct URL construction
+          const supabaseUrl = process.env.EXPO_PUBLIC_SUPABASE_URL || '';
+          selfieUrl = `${supabaseUrl}/storage/v1/object/public/selfies/${cleanPath}`;
+        }
+      }
     }
 
     return {
@@ -428,7 +462,7 @@ export const attendanceService = {
         address: data.location_address,
       } : undefined,
       notes: data.notes,
-      selfieUrl: publicSelfieUrl,
+      selfieUrl: selfieUrl,
     };
   },
 };

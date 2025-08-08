@@ -1,4 +1,5 @@
 import axios from 'axios';
+import Constants from 'expo-constants';
 
 export interface WeatherData {
   temperature: number;
@@ -46,10 +47,25 @@ export const INDONESIAN_CITIES: LocationData[] = [
 
 export class WeatherService {
   private static instance: WeatherService;
-  private readonly API_KEY = '7c9c4b8a8c8e4f5a9b2d3e4f5a6b7c8d'; // Demo API key - replace with real one
-  private readonly BASE_URL = 'https://api.openweathermap.org/data/2.5';
+  private readonly API_KEY: string;
+  private readonly BASE_URL: string;
   private cache: Map<string, { data: WeatherData; timestamp: number }> = new Map();
   private readonly CACHE_DURATION = 10 * 60 * 1000; // 10 minutes
+
+  private constructor() {
+    // Read API key from environment variables
+    const apiKey = Constants.expoConfig?.extra?.OPENWEATHER_API_KEY || 
+                   Constants.manifest?.extra?.OPENWEATHER_API_KEY ||
+                   process.env.OPENWEATHER_API_KEY ||
+                   'd376a7eb89026d2ea26ac40b747bc877'; // Fallback to provided key
+    
+    const baseUrl = Constants.expoConfig?.extra?.WEATHER_API_BASE_URL || 
+                   Constants.manifest?.extra?.WEATHER_API_BASE_URL ||
+                   'https://api.openweathermap.org/data/2.5';
+    
+    this.API_KEY = apiKey;
+    this.BASE_URL = baseUrl;
+  }
 
   public static getInstance(): WeatherService {
     if (!WeatherService.instance) {
@@ -114,13 +130,14 @@ export class WeatherService {
       console.error('Weather API error:', error);
       
       if (axios.isAxiosError(error)) {
-        if (error.code === 'ECONNABORTED') {
+        const axiosError = error as import('axios').AxiosError;
+        if (axiosError.code === 'ECONNABORTED') {
           return { weather: null, error: 'Weather request timed out' };
         }
-        if (error.response?.status === 401) {
+        if (axiosError.response?.status === 401) {
           return { weather: null, error: 'Weather API key invalid' };
         }
-        if (error.response?.status === 429) {
+        if (axiosError.response?.status === 429) {
           return { weather: null, error: 'Weather API rate limit exceeded' };
         }
       }
