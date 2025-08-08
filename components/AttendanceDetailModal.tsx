@@ -1033,15 +1033,11 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     alignItems: 'center',
   },
-  zoomContainer: {
+  imageWrapper: {
     flex: 1,
     width: '100%',
-  },
-  zoomContent: {
-    flex: 1,
     justifyContent: 'center',
     alignItems: 'center',
-    paddingHorizontal: 20,
   },
   fullscreenImage: {
     width: width - 40,
@@ -1100,15 +1096,6 @@ const styles = StyleSheet.create({
     fontSize: 12,
     color: 'rgba(255, 255, 255, 0.6)',
     textAlign: 'center',
-  },
-  zoomIndicator: {
-    fontSize: 12,
-    color: 'rgba(255, 255, 255, 0.8)',
-    marginTop: 4,
-    backgroundColor: 'rgba(255, 255, 255, 0.2)',
-    paddingHorizontal: 8,
-    paddingVertical: 4,
-    borderRadius: 8,
   },
   thumbnailStrip: {
     backgroundColor: 'rgba(0, 0, 0, 0.3)',
