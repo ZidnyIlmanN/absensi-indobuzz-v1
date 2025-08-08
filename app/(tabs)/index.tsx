@@ -562,7 +562,7 @@ const styles = StyleSheet.create({
   },
   languageSelectorContainer: {
     position: 'absolute',
-    top: insets.top + 30,
+    top: 60,
     right: 20,
     zIndex: 10,
     elevation: 10,
