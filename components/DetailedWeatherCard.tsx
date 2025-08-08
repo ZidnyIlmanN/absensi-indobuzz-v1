@@ -124,7 +124,7 @@ export function DetailedWeatherCard({
 const styles = StyleSheet.create({
   container: {
     backgroundColor: 'white',
-    borderRadius: 16,
+    borderRadius: 12,
     padding: 20,
     elevation: 4,
     shadowColor: '#000',

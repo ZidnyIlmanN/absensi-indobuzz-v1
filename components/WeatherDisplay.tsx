@@ -302,25 +302,6 @@ export function WeatherDisplay({
           </Text>
         </View>
 
-        {showDetailedInfo && weatherData && (
-          <View style={styles.detailedInfo}>
-            <View style={styles.weatherDetail}>
-              <Droplets size={14} color="#4A90E2" />
-              <Text style={styles.detailText}>{weatherData.humidity}%</Text>
-            </View>
-            
-            <View style={styles.weatherDetail}>
-              <Wind size={14} color="#4A90E2" />
-              <Text style={styles.detailText}>{weatherData.windSpeed} m/s</Text>
-            </View>
-            
-            <View style={styles.weatherDetail}>
-              <Thermometer size={14} color="#4A90E2" />
-              <Text style={styles.detailText}>Feels {weatherData.feelsLike}°C</Text>
-            </View>
-          </View>
-        )}
-
         {lastUpdated && (
           <Text style={styles.lastUpdated}>
             Updated {formatLastUpdated()}
@@ -426,14 +407,10 @@ const styles = StyleSheet.create({
   },
   weatherCard: {
     flex: 1,
-    backgroundColor: 'rgba(255, 255, 255, 0.95)',
+    backgroundColor: 'rgba(255, 255, 255, 0.75)',
     borderRadius: 12,
-    padding: 16,
+    padding: 10,
     elevation: 2,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 1 },
-    shadowOpacity: 0.1,
-    shadowRadius: 3,
     borderWidth: 1,
     borderColor: 'rgba(255, 255, 255, 0.3)',
   },
@@ -497,9 +474,9 @@ const styles = StyleSheet.create({
   },
   refreshButton: {
     marginLeft: 8,
-    padding: 8,
+    padding: 2,
     borderRadius: 8,
-    backgroundColor: 'rgba(255, 255, 255, 0.9)',
+    backgroundColor: 'transparent',
     elevation: 2,
     shadowColor: '#000',
     shadowOffset: { width: 0, height: 1 },
@@ -507,6 +484,7 @@ const styles = StyleSheet.create({
     shadowRadius: 2,
   },
   spinning: {
+    transform: [{ rotate: '360deg' }],
     // Add rotation animation if needed
   },
   errorContainer: {
