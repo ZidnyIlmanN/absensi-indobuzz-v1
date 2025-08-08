@@ -123,7 +123,9 @@ export function AttendanceDetailModal({
             color = '#1976D2';
             break;
           default:
-            return; // Skip unknown activity types
+            // Skip unknown activity types but continue processing other activities
+            console.warn(`Unknown activity type: ${activity.type}`);
+            return;
         }
 
         photos.push({
@@ -144,8 +146,14 @@ export function AttendanceDetailModal({
 
   const photoItems = buildPhotoItems();
 
+  const handleImageLoadStart = (photoId: string) => {
+    setImageLoading(prev => ({ ...prev, [photoId]: true }));
+    setImageErrors(prev => ({ ...prev, [photoId]: false }));
+  };
+
   const handleImageLoad = (photoId: string) => {
     setImageLoading(prev => ({ ...prev, [photoId]: false }));
+    setImageErrors(prev => ({ ...prev, [photoId]: false }));
   };
 
   const handleImageError = (photoId: string) => {
@@ -158,10 +166,6 @@ export function AttendanceDetailModal({
     }
   };
 
-  const handleImageLoadStart = (photoId: string) => {
-    setImageLoading(prev => ({ ...prev, [photoId]: true }));
-    setImageErrors(prev => ({ ...prev, [photoId]: false }));
-  };
 
   const openFullscreen = (photo: PhotoItem) => {
     const index = photoItems.findIndex(p => p.id === photo.id);
@@ -387,6 +391,12 @@ export function AttendanceDetailModal({
                               onLoadStart={() => handleImageLoadStart(photo.id)}
                               onLoad={() => handleImageLoad(photo.id)}
                               onError={() => handleImageError(photo.id)}
+                              onLoadEnd={() => {
+                                // Ensure loading state is cleared even if onLoad doesn't fire
+                                setTimeout(() => {
+                                  setImageLoading(prev => ({ ...prev, [photo.id]: false }));
+                                }, 100);
+                              }}
                             />
                           )}
                           

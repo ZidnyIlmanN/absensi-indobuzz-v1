@@ -195,7 +195,7 @@ export const attendanceService = {
         uploadedSelfieUrl = uploadResult.url || undefined;
       }
 
-      const { error } = await supabase
+      const { data: insertedActivity, error } = await supabase
         .from('activity_records')
         .insert({
           attendance_id: data.attendanceId,
@@ -276,7 +276,7 @@ export const attendanceService = {
         `)
         .eq('user_id', userId)
         .eq('date', today)
-        
+        .order('timestamp', { ascending: true, referencedTable: 'activity_records' })
         .single();
 
       if (error && error.code !== 'PGRST116') {
@@ -287,6 +287,13 @@ export const attendanceService = {
         return { attendance: null, error: null };
       }
 
+      // Debug logging for activity records
+      console.log(`Current attendance activities:`, {
+        attendanceId: data.id,
+        activitiesCount: data.activity_records?.length || 0,
+        activitiesWithPhotos: data.activity_records?.filter((act: any) => act.selfie_url).length || 0,
+        activityTypes: data.activity_records?.map((act: any) => act.type) || []
+      });
       return {
         attendance: this.mapAttendanceRecord(data),
         error: null,
@@ -316,6 +323,7 @@ export const attendanceService = {
         `)
         .eq('user_id', userId)
         .order('date', { ascending: false })
+        .order('timestamp', { ascending: true, referencedTable: 'activity_records' })
         .limit(limit);
 
       if (error) {
@@ -323,6 +331,15 @@ export const attendanceService = {
       }
 
       const records = data.map((record: any) => this.mapAttendanceRecord(record));
+      
+      // Debug logging for attendance history
+      console.log(`Attendance history loaded:`, {
+        recordsCount: records.length,
+        recordsWithPhotos: records.filter(r => r.selfieUrl || r.activities.some(a => a.selfieUrl)).length,
+        totalActivities: records.reduce((sum, r) => sum + r.activities.length, 0),
+        activitiesWithPhotos: records.reduce((sum, r) => sum + r.activities.filter(a => a.selfieUrl).length, 0)
+      });
+      
       return { records, error: null };
     } catch (error) {
       return { records: [], error: handleSupabaseError(error) };
@@ -365,6 +382,16 @@ export const attendanceService = {
           status,
           updated_at: new Date().toISOString(),
         })
+        .select()
+      
+      // Log successful activity creation with selfie URL for debugging
+      console.log(`Activity created successfully:`, {
+        id: insertedActivity?.id,
+        type: data.type,
+        selfieUrl: uploadedSelfieUrl,
+        hasPhoto: !!uploadedSelfieUrl
+      });
+        .single();
         .eq('id', attendanceId);
 
       return { error: error ? handleSupabaseError(error) : null };
@@ -426,8 +453,13 @@ export const attendanceService = {
 
   // Helper function to map database record to ActivityRecord
   mapActivityRecord(data: any): ActivityRecord {
-    // Enhanced selfie URL processing for all activity types
+    // Process selfie URL for activity records
     let selfieUrl = this.processActivitySelfieUrl(data.selfie_url);
+    
+    // Debug logging for activity selfie URLs
+    if (data.selfie_url && !selfieUrl) {
+      console.warn(`Failed to process selfie URL for activity ${data.id}: ${data.selfie_url}`);
+    }
 
     return {
       id: data.id,
@@ -455,18 +487,43 @@ export const attendanceService = {
       return selfiePath;
     }
 
-    // Handle relative paths and storage paths
-    const cleanPath = selfiePath.replace(/^selfies\//, '').replace(/^activities\//, '');
+    // Handle relative paths and storage paths - ensure proper path cleaning
+    let cleanPath = selfiePath;
+    
+    // Remove common prefixes
+    cleanPath = cleanPath.replace(/^selfies\//, '');
+    cleanPath = cleanPath.replace(/^activities\//, '');
+    
+    // Handle user-specific paths
+    if (!cleanPath.includes('/')) {
+      // If no path separator, this might be just a filename
+      console.warn(`Activity selfie path missing user folder: ${selfiePath}`);
+    }
     
     try {
       // Try to get public URL from selfies bucket (all activity selfies are stored in selfies bucket)
       const { data: { publicUrl } } = supabase.storage.from('selfies').getPublicUrl(cleanPath);
+      
+      // Validate the generated URL
+      if (!publicUrl || publicUrl.includes('undefined')) {
+        console.error(`Invalid public URL generated for path: ${cleanPath}`);
+        return undefined;
+      }
+      
       return publicUrl;
     } catch (error) {
       console.error('Error generating public URL for activity selfie:', error);
       // Fallback to direct URL construction
       const supabaseUrl = process.env.EXPO_PUBLIC_SUPABASE_URL || '';
-      return `${supabaseUrl}/storage/v1/object/public/selfies/${cleanPath}`;
+      const fallbackUrl = `${supabaseUrl}/storage/v1/object/public/selfies/${cleanPath}`;
+      
+      // Validate fallback URL
+      if (fallbackUrl.includes('undefined') || !supabaseUrl) {
+        console.error(`Invalid fallback URL: ${fallbackUrl}`);
+        return undefined;
+      }
+      
+      return fallbackUrl;
     }
   },
 };
