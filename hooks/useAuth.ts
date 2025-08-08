@@ -168,12 +168,14 @@ export function useAuth() {
     
     const { user, error } = await authService.signUp({ email, password, name });
     
-    setAuthState({
-      user,
+    // Do not set isAuthenticated to true after sign up
+    setAuthState(prev => ({
+      ...prev,
+      user: null, // Clear any potential user object
       isLoading: false,
-      isAuthenticated: !!user,
+      isAuthenticated: false,
       error,
-    });
+    }));
 
     return { user, error };
   };
