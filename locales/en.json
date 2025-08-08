@@ -30,7 +30,9 @@
     "unable_detect_location": "Unable to detect location • Please enable GPS",
     "use_current_location": "Use Current Location",
     "automatically_detect": "Automatically detect your location",
-    "indonesian_cities": "Indonesian Cities"
+    "indonesian_cities": "Indonesian Cities",
+    "working": "Working",
+    "completed": "Completed"
   },
   "auth": {
     "welcome_back": "Welcome Back",
