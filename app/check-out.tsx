@@ -12,9 +12,11 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { router } from 'expo-router';
 import { ArrowLeft, LogOut, Camera, Clock, MapPin } from 'lucide-react-native';
 import { useAppContext } from '@/context/AppContext';
+import { useTranslation } from 'react-i18next';
 
 export default function CheckOutScreen() {
   const insets = useSafeAreaInsets();
+  const { t } = useTranslation();
   const { currentAttendance, workHours, clockOut } = useAppContext();
   const [isProcessing, setIsProcessing] = useState(false);
 
@@ -63,7 +65,7 @@ export default function CheckOutScreen() {
           >
             <ArrowLeft size={24} color="white" />
           </TouchableOpacity>
-          <Text style={styles.headerTitle}>Presensi Keluar</Text>
+          <Text style={styles.headerTitle}>{t('check_out.check_out')}</Text>
           <View style={styles.placeholder} />
         </View>
       </LinearGradient>
@@ -77,11 +79,11 @@ export default function CheckOutScreen() {
           >
             <View style={styles.statusHeader}>
               <LogOut size={32} color="white" />
-              <Text style={styles.statusTitle}>Ready to Clock Out?</Text>
+              <Text style={styles.statusTitle}>{t('check_out.ready_to_clock_out')}</Text>
             </View>
             
             <Text style={styles.statusSubtitle}>
-              You've been working for {workHours} today. Time to wrap up!
+              {t('check_out.working_for', { hours: workHours })}
             </Text>
 
 
@@ -94,17 +96,17 @@ export default function CheckOutScreen() {
 
         {/* Work Summary */}
         <View style={styles.summaryCard}>
-          <Text style={styles.summaryTitle}>Today's Summary</Text>
+          <Text style={styles.summaryTitle}>{t('check_out.todays_summary')}</Text>
           
           <View style={styles.summaryItem}>
             <Clock size={20} color="#4A90E2" />
-            <Text style={styles.summaryLabel}>Work Hours</Text>
+            <Text style={styles.summaryLabel}>{t('check_out.work_hours')}</Text>
             <Text style={styles.summaryValue}>{workHours}</Text>
           </View>
           
           <View style={styles.summaryItem}>
             <LogOut size={20} color="#F44336" />
-            <Text style={styles.summaryLabel}>Clock In Time</Text>
+            <Text style={styles.summaryLabel}>{t('check_out.clock_in_time')}</Text>
             <Text style={styles.summaryValue}> 
               {currentAttendance?.clockIn?.toLocaleTimeString([], { 
                 hour: '2-digit', 
@@ -116,12 +118,12 @@ export default function CheckOutScreen() {
 
         {/* Instructions */}
         <View style={styles.instructionsCard}>
-          <Text style={styles.instructionsTitle}>Clock Out Instructions</Text>
+          <Text style={styles.instructionsTitle}>{t('check_out.clock_out_instructions')}</Text>
           <Text style={styles.instructionsText}>
-            • Make sure you've completed all your tasks{'\n'}
-            • Take a clear selfie for verification{'\n'}
-            • Confirm your location is correct{'\n'}
-            • Review your work hours before submitting
+            {t('check_out.complete_tasks')}{'\n'}
+            {t('check_out.take_clear_selfie')}{'\n'}
+            {t('check_out.confirm_location')}{'\n'}
+            {t('check_out.review_hours')}
           </Text>
         </View>
 
@@ -142,7 +144,7 @@ export default function CheckOutScreen() {
               <Camera size={24} color="white" />
             )}
             <Text style={styles.clockOutButtonText}>
-              {isProcessing ? 'Processing...' : 'Take Selfie & Clock Out'}
+              {isProcessing ? t('check_out.processing') : t('check_out.take_selfie_clock_out')}
             </Text>
           </LinearGradient>
         </TouchableOpacity>

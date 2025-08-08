@@ -16,9 +16,11 @@ import { ArrowLeft, Clock, MapPin, Calendar, LogIn, LogOut, Camera, TrendingUp, 
 import { useAppContext } from '@/context/AppContext';
 import { LoadingSpinner } from '@/components/LoadingSpinner';
 import { attendanceService } from '@/services/attendance';
+import { useTranslation } from 'react-i18next';
 
 export default function AttendanceScreen() {
   const insets = useSafeAreaInsets();
+  const { t } = useTranslation();
   const { user, currentAttendance, isWorking, workHours, clockIn, clockOut } = useAppContext();
   const [refreshing, setRefreshing] = useState(false);
   const [currentTime, setCurrentTime] = useState(new Date());
@@ -180,7 +182,7 @@ export default function AttendanceScreen() {
           >
             <ArrowLeft size={24} color="white" />
           </TouchableOpacity>
-          <Text style={styles.headerTitle}>Live Attendance</Text>
+          <Text style={styles.headerTitle}>{t('attendance.live_attendance')}</Text>
           <View style={styles.timeContainer}>
             <Text style={styles.currentTime}>
               {currentTime.toLocaleTimeString([], { 
@@ -208,12 +210,12 @@ export default function AttendanceScreen() {
             <View style={styles.statusHeader}>
               <View style={styles.statusInfo}>
                 <Text style={styles.statusTitle}>
-                  {isWorking ? 'Currently Working' : 'Ready to Start'}
+                  {isWorking ? t('attendance.currently_working') : t('attendance.ready_to_start')}
                 </Text>
                 <Text style={styles.statusSubtitle}>
                   {isWorking
-                    ? `Started at ${currentAttendance?.clockIn?.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}`
-                    : 'Tap to clock in and start your workday'
+                    ? `${t('attendance.started_at')} ${currentAttendance?.clockIn?.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}`
+                    : t('attendance.tap_to_begin')
                   }
                 </Text>
               </View>
@@ -243,8 +245,8 @@ export default function AttendanceScreen() {
                 )}
                 <Text style={styles.clockButtonText}>
                   {isLoading 
-                    ? (isWorking ? 'Clocking Out...' : 'Clocking In...')
-                    : (isWorking ? 'Clock Out' : 'Clock In')
+                    ? (isWorking ? t('attendance.clocking_out') : t('attendance.clocking_in'))
+                    : (isWorking ? t('attendance.clock_out') : t('attendance.clock_in'))
                   }
                 </Text>
               </View>
@@ -275,7 +277,7 @@ export default function AttendanceScreen() {
 
         {/* Attendance History */}
         <View style={styles.section}>
-          <Text style={styles.sectionTitle}>Attendance History</Text>
+          <Text style={styles.sectionTitle}>{t('attendance.attendance_history')}</Text>
           
           {attendanceHistory.map((record) => (
             <View key={record.id} style={styles.historyCard}>
@@ -289,7 +291,7 @@ export default function AttendanceScreen() {
                   { backgroundColor: getStatusColor(record.status) }
                 ]}>
                   <Text style={styles.statusBadgeText}>
-                    {record.status === 'working' ? 'Working' : 'Completed'}
+                    {record.status === 'working' ? t('attendance.working') : t('attendance.completed')}
                   </Text>
                 </View>
               </View>
@@ -297,19 +299,19 @@ export default function AttendanceScreen() {
               <View style={styles.historyDetails}>
                 <View style={styles.historyItem}>
                   <LogIn size={16} color="#4CAF50" />
-                  <Text style={styles.historyLabel}>Clock In</Text>
+                  <Text style={styles.historyLabel}>{t('attendance.clock_in')}</Text>
                   <Text style={styles.historyValue}>{record.clockIn}</Text>
                 </View>
                 
                 <View style={styles.historyItem}>
                   <LogOut size={16} color="#F44336" />
-                  <Text style={styles.historyLabel}>Clock Out</Text>
+                  <Text style={styles.historyLabel}>{t('attendance.clock_out')}</Text>
                   <Text style={styles.historyValue}>{record.clockOut}</Text>
                 </View>
                 
                 <View style={styles.historyItem}>
                   <Clock size={16} color="#4A90E2" />
-                  <Text style={styles.historyLabel}>Work Hours</Text>
+                  <Text style={styles.historyLabel}>{t('attendance.work_hours')}</Text>
                   <Text style={styles.historyValue}>{record.workHours}</Text>
                 </View>
               </View>

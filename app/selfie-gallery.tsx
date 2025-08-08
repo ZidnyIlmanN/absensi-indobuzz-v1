@@ -19,6 +19,7 @@ import { useAppContext } from '@/context/AppContext';
 import { imageService } from '@/services/imageService';
 import { LoadingSpinner } from '@/components/LoadingSpinner';
 import { EmptyState } from '@/components/EmptyState';
+import { useTranslation } from 'react-i18next';
 
 const { width } = Dimensions.get('window');
 const imageSize = (width - 60) / 3; // 3 images per row with padding
@@ -32,6 +33,7 @@ interface SelfieItem {
 
 export default function SelfieGalleryScreen() {
   const insets = useSafeAreaInsets();
+  const { t } = useTranslation();
   const { user } = useAppContext();
   const [selfies, setSelfies] = useState<SelfieItem[]>([]);
   const [isLoading, setIsLoading] = useState(true);
@@ -110,15 +112,15 @@ export default function SelfieGalleryScreen() {
   const getTypeLabel = (type: string) => {
     switch (type) {
       case 'clock_in':
-        return 'Clock In';
+        return t('selfie_gallery.clock_in');
       case 'clock_out':
-        return 'Clock Out';
+        return t('selfie_gallery.clock_out');
       case 'break_start':
-        return 'Break Start';
+        return t('selfie_gallery.break_start');
       case 'break_end':
-        return 'Break End';
+        return t('selfie_gallery.break_end');
       default:
-        return 'General';
+        return t('selfie_gallery.general');
     }
   };
 
@@ -147,7 +149,7 @@ export default function SelfieGalleryScreen() {
           >
             <ArrowLeft size={24} color="white" />
           </TouchableOpacity>
-          <Text style={styles.headerTitle}>Selfie Gallery</Text>
+          <Text style={styles.headerTitle}>{t('selfie_gallery.selfie_gallery')}</Text>
           <View style={styles.placeholder} />
         </View>
       </LinearGradient>
@@ -163,7 +165,7 @@ export default function SelfieGalleryScreen() {
           <View style={styles.statCard}>
             <Camera size={20} color="#4A90E2" />
             <Text style={styles.statValue}>{selfies.length}</Text>
-            <Text style={styles.statLabel}>Total Selfies</Text>
+            <Text style={styles.statLabel}>{t('selfie_gallery.total_selfies')}</Text>
           </View>
           
           <View style={styles.statCard}>
@@ -171,7 +173,7 @@ export default function SelfieGalleryScreen() {
             <Text style={styles.statValue}>
               {selfies.filter(s => s.type === 'clock_in').length}
             </Text>
-            <Text style={styles.statLabel}>Clock In</Text>
+            <Text style={styles.statLabel}>{t('selfie_gallery.clock_in')}</Text>
           </View>
           
           <View style={styles.statCard}>
@@ -179,21 +181,21 @@ export default function SelfieGalleryScreen() {
             <Text style={styles.statValue}>
               {selfies.filter(s => s.type === 'clock_out').length}
             </Text>
-            <Text style={styles.statLabel}>Clock Out</Text>
+            <Text style={styles.statLabel}>{t('selfie_gallery.clock_out')}</Text>
           </View>
         </View>
 
         {/* Selfies Grid */}
         <View style={styles.section}>
-          <Text style={styles.sectionTitle}>Your Selfies</Text>
+          <Text style={styles.sectionTitle}>{t('selfie_gallery.your_selfies')}</Text>
           
           {isLoading ? (
-            <LoadingSpinner text="Loading selfies..." />
+            <LoadingSpinner text={t('common.loading')} />
           ) : selfies.length === 0 ? (
             <EmptyState
               icon={<Camera size={48} color="#E0E0E0" />}
-              title="No selfies yet"
-              message="Your attendance selfies will appear here"
+              title={t('selfie_gallery.no_selfies_yet')}
+              message={t('selfie_gallery.attendance_selfies_appear')}
             />
           ) : (
             <View style={styles.selfiesGrid}>

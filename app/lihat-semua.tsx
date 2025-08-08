@@ -10,23 +10,25 @@ import { router } from 'expo-router';
 import { Grid2x2 as Grid, TrendingUp, Calendar, Clock, DollarSign, Users, FileText, Settings, CircleHelp as HelpCircle, Bell, ArrowLeft, Camera } from 'lucide-react-native';
 import { Cloud } from 'lucide-react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-
-const features = [
-  { title: 'Live Attendance', icon: <TrendingUp size={24} color="#4A90E2" />, route: '/live-attendance-protected' as any },
-  { title: 'Time Off', icon: <Calendar size={24} color="#FF6B6B" />, route: '/timeoff' as any },
-  { title: 'Reimburse', icon: <Clock size={24} color="#4CAF50" />, route: '/reimburse' as any },
-  { title: 'Attendance History', icon: <FileText size={24} color="#9C27B0" />, route: '/attendance-history' as any },
-  { title: 'Shift Schedule', icon: <Clock size={24} color="#FF9800" />, route: '/shift-schedule' as any },
-  { title: 'Employee', icon: <Users size={24} color="#2196F3" />, route: '/(tabs)/employee' as any },
-  { title: 'Settings', icon: <Settings size={24} color="#607D8B" />, route: '/settings' as any },
-  { title: 'Help', icon: <HelpCircle size={24} color="#795548" />, route: '/help' as any },
-  { title: 'Notifications', icon: <Bell size={24} color="#F44336" />, route: '/notifications' as any },
-  { title: 'Selfie Gallery', icon: <Camera size={24} color="#E91E63" />, route: '/selfie-gallery' as any },
-  { title: 'Weather Details', icon: <Cloud size={24} color="#87CEEB" />, route: '/weather-details' as any },
-];
+import { useTranslation } from 'react-i18next';
 
 export default function LihatSemuaScreen() {
   const insets = useSafeAreaInsets();
+  const { t } = useTranslation();
+
+  const features = [
+    { title: t('all_features.live_attendance'), icon: <TrendingUp size={24} color="#4A90E2" />, route: '/live-attendance-protected' as any },
+    { title: t('all_features.time_off'), icon: <Calendar size={24} color="#FF6B6B" />, route: '/timeoff' as any },
+    { title: t('all_features.reimburse'), icon: <Clock size={24} color="#4CAF50" />, route: '/reimburse' as any },
+    { title: t('all_features.attendance_history'), icon: <FileText size={24} color="#9C27B0" />, route: '/attendance-history' as any },
+    { title: t('all_features.shift_schedule'), icon: <Clock size={24} color="#FF9800" />, route: '/shift-schedule' as any },
+    { title: t('all_features.employee'), icon: <Users size={24} color="#2196F3" />, route: '/(tabs)/employee' as any },
+    { title: t('all_features.settings'), icon: <Settings size={24} color="#607D8B" />, route: '/settings' as any },
+    { title: t('all_features.help'), icon: <HelpCircle size={24} color="#795548" />, route: '/help' as any },
+    { title: t('all_features.notifications'), icon: <Bell size={24} color="#F44336" />, route: '/notifications' as any },
+    { title: t('all_features.selfie_gallery'), icon: <Camera size={24} color="#E91E63" />, route: '/selfie-gallery' as any },
+    { title: t('all_features.weather_details'), icon: <Cloud size={24} color="#87CEEB" />, route: '/weather-details' as any },
+  ];
 
   return (
     <View style={[styles.container, { paddingTop: insets.top + 20 }]}>
@@ -37,7 +39,7 @@ export default function LihatSemuaScreen() {
       >
         <ArrowLeft size={24} color="black" />
       </TouchableOpacity>
-      <Text style={styles.header}>Semua Fitur</Text>
+      <Text style={styles.header}>{t('all_features.all_features')}</Text>
 
       <ScrollView contentContainerStyle={styles.scrollContent}>
         {features.map((feature, index) => (

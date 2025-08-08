@@ -22,11 +22,13 @@ import {
   ChevronRight,
 } from 'lucide-react-native';
 import { useAppContext } from '@/context/AppContext';
+import { useTranslation } from 'react-i18next';
 
 const { width } = Dimensions.get('window');
 
 export default function CheckInScreen() {
   const insets = useSafeAreaInsets();
+  const { t } = useTranslation();
   const { user } = useAppContext();
   const [currentTime, setCurrentTime] = useState(new Date());
 
@@ -75,7 +77,7 @@ export default function CheckInScreen() {
           >
             <ArrowLeft size={24} color="white" />
           </TouchableOpacity>
-          <Text style={styles.headerTitle}>Presensi Masuk</Text>
+          <Text style={styles.headerTitle}>{t('check_in.check_in')}</Text>
           <View style={styles.placeholder} />
         </View>
       </LinearGradient>
@@ -99,15 +101,15 @@ export default function CheckInScreen() {
 
         {/* Welcome Message */}
         <View style={styles.welcomeSection}>
-          <Text style={styles.welcomeTitle}>Good Morning!</Text>
+          <Text style={styles.welcomeTitle}>{t('check_in.good_morning')}</Text>
           <Text style={styles.welcomeSubtitle}>
-            Ready to start your workday? Let's get you clocked in.
+            {t('check_in.ready_to_start')}
           </Text>
         </View>
 
         {/* Process Steps Preview */}
         <View style={styles.stepsSection}>
-          <Text style={styles.stepsTitle}>Clock-In Process</Text>
+          <Text style={styles.stepsTitle}>{t('check_in.clock_in_process')}</Text>
           
           <View style={styles.stepsList}>
             <View style={styles.stepItem}>
@@ -115,8 +117,8 @@ export default function CheckInScreen() {
                 <MapPin size={20} color="#4A90E2" />
               </View>
               <View style={styles.stepContent}>
-                <Text style={styles.stepTitle}>Select Location</Text>
-                <Text style={styles.stepDescription}>Choose your work location</Text>
+                <Text style={styles.stepTitle}>{t('check_in.select_location')}</Text>
+                <Text style={styles.stepDescription}>{t('check_in.choose_work_location')}</Text>
               </View>
               <View style={styles.stepNumber}>
                 <Text style={styles.stepNumberText}>1</Text>
@@ -130,8 +132,8 @@ export default function CheckInScreen() {
                 <Camera size={20} color="#4A90E2" />
               </View>
               <View style={styles.stepContent}>
-                <Text style={styles.stepTitle}>Take Selfie</Text>
-                <Text style={styles.stepDescription}>Verify your identity</Text>
+                <Text style={styles.stepTitle}>{t('check_in.take_selfie')}</Text>
+                <Text style={styles.stepDescription}>{t('check_in.verify_identity')}</Text>
               </View>
               <View style={styles.stepNumber}>
                 <Text style={styles.stepNumberText}>2</Text>
@@ -145,8 +147,8 @@ export default function CheckInScreen() {
                 <CheckCircle size={20} color="#4CAF50" />
               </View>
               <View style={styles.stepContent}>
-                <Text style={styles.stepTitle}>Complete</Text>
-                <Text style={styles.stepDescription}>You're all set!</Text>
+                <Text style={styles.stepTitle}>{t('check_in.complete')}</Text>
+                <Text style={styles.stepDescription}>{t('check_in.all_set')}</Text>
               </View>
               <View style={styles.stepNumber}>
                 <Text style={styles.stepNumberText}>3</Text>
@@ -180,7 +182,7 @@ export default function CheckInScreen() {
             style={styles.startButtonGradient}
           >
             <Clock size={24} color="white" />
-            <Text style={styles.startButtonText}>Start Clock In</Text>
+            <Text style={styles.startButtonText}>{t('check_in.start_clock_in')}</Text>
             <ChevronRight size={24} color="white" />
           </LinearGradient>
         </TouchableOpacity>
@@ -188,7 +190,7 @@ export default function CheckInScreen() {
         {/* Info Note */}
         <View style={styles.infoNote}>
           <Text style={styles.infoText}>
-            Make sure you're at your designated work location before starting the clock-in process.
+            {t('check_in.make_sure_location')}
           </Text>
         </View>
       </View>

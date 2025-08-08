@@ -19,6 +19,7 @@ import {
   Users,
   ChevronRight,
 } from 'lucide-react-native';
+import { useTranslation } from 'react-i18next';
 
 interface ShiftSchedule {
   id: string;
@@ -33,6 +34,7 @@ interface ShiftSchedule {
 
 export default function ShiftScheduleScreen() {
   const insets = useSafeAreaInsets();
+  const { t } = useTranslation();
   const [refreshing, setRefreshing] = useState(false);
 
   const onRefresh = async () => {
@@ -149,7 +151,7 @@ export default function ShiftScheduleScreen() {
           >
             <ArrowLeft size={24} color="white" />
           </TouchableOpacity>
-          <Text style={styles.headerTitle}>Jadwal Shift</Text>
+          <Text style={styles.headerTitle}>{t('shift_schedule.shift_schedule')}</Text>
           <View style={styles.placeholder} />
         </View>
       </LinearGradient>
@@ -163,7 +165,7 @@ export default function ShiftScheduleScreen() {
       >
         {/* Current Week */}
         <View style={styles.section}>
-          <Text style={styles.sectionTitle}>This Week</Text>
+          <Text style={styles.sectionTitle}>{t('shift_schedule.this_week')}</Text>
           
           {schedules.map((schedule) => (
             <TouchableOpacity
@@ -175,7 +177,7 @@ export default function ShiftScheduleScreen() {
                 <View style={styles.dateContainer}>
                   <Calendar size={16} color="#4A90E2" />
                   <View style={styles.dateInfo}>
-                    <Text style={styles.dayName}>{schedule.dayName}</Text>
+                    <Text style={styles.dayName}>{t(`shift_schedule.${schedule.dayName.toLowerCase()}`)}</Text>
                     <Text style={styles.dateText}>
                       {new Date(schedule.date).toLocaleDateString('en-US', {
                         day: 'numeric',
@@ -190,7 +192,7 @@ export default function ShiftScheduleScreen() {
                   { backgroundColor: getStatusColor(schedule.status) }
                 ]}>
                   <Text style={styles.statusText}>
-                    {schedule.status.charAt(0).toUpperCase() + schedule.status.slice(1)}
+                    {t(`shift_schedule.${schedule.status}`)}
                   </Text>
                 </View>
               </View>
@@ -217,7 +219,7 @@ export default function ShiftScheduleScreen() {
                       styles.typeText,
                       { color: getTypeColor(schedule.type) }
                     ]}>
-                      {schedule.type.charAt(0).toUpperCase() + schedule.type.slice(1)}
+                      {t(`shift_schedule.${schedule.type}`)}
                     </Text>
                   </View>
                 </View>
@@ -228,7 +230,7 @@ export default function ShiftScheduleScreen() {
 
         {/* Schedule Summary */}
         <View style={styles.section}>
-          <Text style={styles.sectionTitle}>Weekly Summary</Text>
+          <Text style={styles.sectionTitle}>{t('shift_schedule.weekly_summary')}</Text>
           
           <View style={styles.summaryContainer}>
             <View style={styles.summaryCard}>
@@ -236,7 +238,7 @@ export default function ShiftScheduleScreen() {
                 <Calendar size={20} color="#4A90E2" />
               </View>
               <Text style={styles.summaryValue}>5</Text>
-              <Text style={styles.summaryLabel}>Total Days</Text>
+              <Text style={styles.summaryLabel}>{t('shift_schedule.total_days')}</Text>
             </View>
             
             <View style={styles.summaryCard}>
@@ -244,7 +246,7 @@ export default function ShiftScheduleScreen() {
                 <Clock size={20} color="#4CAF50" />
               </View>
               <Text style={styles.summaryValue}>44h</Text>
-              <Text style={styles.summaryLabel}>Total Hours</Text>
+              <Text style={styles.summaryLabel}>{t('shift_schedule.total_hours')}</Text>
             </View>
             
             <View style={styles.summaryCard}>
@@ -252,7 +254,7 @@ export default function ShiftScheduleScreen() {
                 <Users size={20} color="#FF9800" />
               </View>
               <Text style={styles.summaryValue}>3</Text>
-              <Text style={styles.summaryLabel}>Office Days</Text>
+              <Text style={styles.summaryLabel}>{t('shift_schedule.office_days')}</Text>
             </View>
           </View>
         </View>

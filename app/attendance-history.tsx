@@ -19,11 +19,13 @@ import { LoadingSpinner } from '@/components/LoadingSpinner';
 import { AttendanceDetailModal } from '@/components/AttendanceDetailModal';
 import { AttendanceHistoryCard } from '@/components/AttendanceHistoryCard';
 import { AttendanceRecord } from '@/types';
+import { useTranslation } from 'react-i18next';
 
 const { width } = Dimensions.get('window');
 
 export default function AttendanceHistoryScreen() {
   const insets = useSafeAreaInsets();
+  const { t } = useTranslation();
   const { currentAttendance, todayActivities, isWorking, workHours, attendanceHistory: contextAttendanceHistory, refreshData } = useAppContext();
   const [currentTime, setCurrentTime] = useState(new Date());
   const [refreshing, setRefreshing] = useState(false);
@@ -157,7 +159,7 @@ export default function AttendanceHistoryScreen() {
           >
             <ArrowLeft size={24} color="white" />
           </TouchableOpacity>
-          <Text style={styles.headerTitle}>Histori Absensi</Text>
+          <Text style={styles.headerTitle}>{t('attendance.attendance_history')}</Text>
           <View style={styles.timeContainer}>
             <Text style={styles.currentTime}>
               {currentTime.toLocaleTimeString([], { 
@@ -183,25 +185,25 @@ export default function AttendanceHistoryScreen() {
           <View style={styles.statCard}>
             <TrendingUp size={24} color="#4A90E2" />
             <Text style={styles.statValue}>{avgDailyHours.toFixed(1)}h</Text>
-            <Text style={styles.statLabel}>Avg Daily</Text>
+            <Text style={styles.statLabel}>{t('attendance.avg_daily')}</Text>
           </View>
           
           <View style={styles.statCard}>
             <Calendar size={24} color="#4CAF50" />
             <Text style={styles.statValue}>{daysThisMonth}</Text>
-            <Text style={styles.statLabel}>This Month</Text>
+            <Text style={styles.statLabel}>{t('attendance.this_month')}</Text>
           </View>
           
           <View style={styles.statCard}>
             <Users size={24} color="#FF9800" />
             <Text style={styles.statValue}>{attendanceRate}%</Text>
-            <Text style={styles.statLabel}>Attendance</Text>
+            <Text style={styles.statLabel}>{t('attendance.attendance_rate')}</Text>
           </View>
         </View>
 
         {/* Attendance History */}
         <View style={styles.section}>
-          <Text style={styles.sectionTitle}>Attendance History</Text>
+          <Text style={styles.sectionTitle}>{t('attendance.attendance_history')}</Text>
 
           {allAttendanceRecords.map((record, index) => {
             const recordWorkHours = record.id === currentAttendance?.id 

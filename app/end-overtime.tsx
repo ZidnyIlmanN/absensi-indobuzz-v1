@@ -11,24 +11,26 @@ import { LinearGradient } from 'expo-linear-gradient';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { router } from 'expo-router';
 import { ArrowLeft, RotateCcw, Clock, MapPin } from 'lucide-react-native';
+import { useTranslation } from 'react-i18next';
 
 export default function EndOvertimeScreen() {
   const insets = useSafeAreaInsets();
+  const { t } = useTranslation();
   const [isLoading, setIsLoading] = useState(false);
 
   const handleEndOvertime = () => {
     Alert.alert(
-      'End Overtime',
-      'Are you ready to end your overtime work?',
+      t('overtime.end_overtime'),
+      t('overtime.are_you_ready_end'),
       [
-        { text: 'Cancel', style: 'cancel' },
+        { text: t('common.cancel'), style: 'cancel' },
         {
-          text: 'End Overtime',
+          text: t('overtime.end_overtime'),
           onPress: () => {
             setIsLoading(true);
             setTimeout(() => {
               setIsLoading(false);
-              Alert.alert('Success', 'Overtime ended successfully!');
+              Alert.alert(t('common.success'), t('overtime.overtime_ended_success'));
               router.back();
             }, 1000);
           },
@@ -53,7 +55,7 @@ export default function EndOvertimeScreen() {
           >
             <ArrowLeft size={24} color="white" />
           </TouchableOpacity>
-          <Text style={styles.headerTitle}>Selesai Lembur</Text>
+          <Text style={styles.headerTitle}>{t('overtime.end_overtime')}</Text>
           <View style={styles.placeholder} />
         </View>
       </LinearGradient>
@@ -67,11 +69,11 @@ export default function EndOvertimeScreen() {
           >
             <View style={styles.statusHeader}>
               <RotateCcw size={32} color="white" />
-              <Text style={styles.statusTitle}>End Overtime Work</Text>
+              <Text style={styles.statusTitle}>{t('overtime.end_overtime_work')}</Text>
             </View>
             
             <Text style={styles.statusSubtitle}>
-              Great job on the extra hours! Time to wrap up your overtime work.
+              {t('overtime.great_job_extra_hours')}
             </Text>
 
             <View style={styles.locationContainer}>
@@ -83,17 +85,17 @@ export default function EndOvertimeScreen() {
 
         {/* Overtime Summary */}
         <View style={styles.summaryCard}>
-          <Text style={styles.summaryTitle}>Overtime Summary</Text>
+          <Text style={styles.summaryTitle}>{t('overtime.overtime_summary')}</Text>
           
           <View style={styles.summaryItem}>
             <Clock size={20} color="#FF9800" />
-            <Text style={styles.summaryLabel}>Overtime Duration</Text>
+            <Text style={styles.summaryLabel}>{t('overtime.overtime_duration')}</Text>
             <Text style={styles.summaryValue}>3.5 hours</Text>
           </View>
           
           <View style={styles.summaryItem}>
             <RotateCcw size={20} color="#4A90E2" />
-            <Text style={styles.summaryLabel}>Overtime Started</Text>
+            <Text style={styles.summaryLabel}>{t('overtime.overtime_started')}</Text>
             <Text style={styles.summaryValue}>6:00 PM</Text>
           </View>
         </View>
@@ -111,7 +113,7 @@ export default function EndOvertimeScreen() {
           >
             <RotateCcw size={24} color="white" />
             <Text style={styles.endButtonText}>
-              {isLoading ? 'Processing...' : 'End Overtime'}
+              {isLoading ? t('common.loading') : t('overtime.end_overtime')}
             </Text>
           </LinearGradient>
         </TouchableOpacity>

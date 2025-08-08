@@ -11,24 +11,26 @@ import { LinearGradient } from 'expo-linear-gradient';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { router } from 'expo-router';
 import { ArrowLeft, Users, Clock, MapPin } from 'lucide-react-native';
+import { useTranslation } from 'react-i18next';
 
 export default function EndClientVisitScreen() {
   const insets = useSafeAreaInsets();
+  const { t } = useTranslation();
   const [isLoading, setIsLoading] = useState(false);
 
   const handleEndVisit = () => {
     Alert.alert(
-      'End Client Visit',
-      'Are you ready to end your client visit?',
+      t('client_visit.end_client_visit'),
+      t('client_visit.are_you_ready_end'),
       [
-        { text: 'Cancel', style: 'cancel' },
+        { text: t('common.cancel'), style: 'cancel' },
         {
-          text: 'End Visit',
+          text: t('client_visit.end_client_visit'),
           onPress: () => {
             setIsLoading(true);
             setTimeout(() => {
               setIsLoading(false);
-              Alert.alert('Success', 'Client visit ended successfully!');
+              Alert.alert(t('common.success'), t('client_visit.visit_ended_success'));
               router.back();
             }, 1000);
           },
@@ -53,7 +55,7 @@ export default function EndClientVisitScreen() {
           >
             <ArrowLeft size={24} color="white" />
           </TouchableOpacity>
-          <Text style={styles.headerTitle}>Selesai Kunjungan Klien</Text>
+          <Text style={styles.headerTitle}>{t('client_visit.end_client_visit')}</Text>
           <View style={styles.placeholder} />
         </View>
       </LinearGradient>
@@ -67,11 +69,11 @@ export default function EndClientVisitScreen() {
           >
             <View style={styles.statusHeader}>
               <Users size={32} color="white" />
-              <Text style={styles.statusTitle}>End Client Visit</Text>
+              <Text style={styles.statusTitle}>{t('client_visit.end_client_visit_action')}</Text>
             </View>
             
             <Text style={styles.statusSubtitle}>
-              Hope your client meeting went well! Time to wrap up your visit.
+              {t('client_visit.hope_meeting_went_well')}
             </Text>
 
             <View style={styles.locationContainer}>
@@ -83,17 +85,17 @@ export default function EndClientVisitScreen() {
 
         {/* Visit Summary */}
         <View style={styles.summaryCard}>
-          <Text style={styles.summaryTitle}>Visit Summary</Text>
+          <Text style={styles.summaryTitle}>{t('client_visit.visit_summary')}</Text>
           
           <View style={styles.summaryItem}>
             <Clock size={20} color="#2196F3" />
-            <Text style={styles.summaryLabel}>Visit Duration</Text>
+            <Text style={styles.summaryLabel}>{t('client_visit.visit_duration')}</Text>
             <Text style={styles.summaryValue}>2.5 hours</Text>
           </View>
           
           <View style={styles.summaryItem}>
             <Users size={20} color="#4A90E2" />
-            <Text style={styles.summaryLabel}>Visit Started</Text>
+            <Text style={styles.summaryLabel}>{t('client_visit.visit_started')}</Text>
             <Text style={styles.summaryValue}>10:30 AM</Text>
           </View>
         </View>
@@ -111,7 +113,7 @@ export default function EndClientVisitScreen() {
           >
             <Users size={24} color="white" />
             <Text style={styles.endButtonText}>
-              {isLoading ? 'Processing...' : 'End Client Visit'}
+              {isLoading ? t('common.loading') : t('client_visit.end_client_visit')}
             </Text>
           </LinearGradient>
         </TouchableOpacity>

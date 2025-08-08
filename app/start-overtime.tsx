@@ -11,24 +11,26 @@ import { LinearGradient } from 'expo-linear-gradient';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { router } from 'expo-router';
 import { ArrowLeft, Clock, MapPin } from 'lucide-react-native';
+import { useTranslation } from 'react-i18next';
 
 export default function StartOvertimeScreen() {
   const insets = useSafeAreaInsets();
+  const { t } = useTranslation();
   const [isLoading, setIsLoading] = useState(false);
 
   const handleStartOvertime = () => {
     Alert.alert(
-      'Start Overtime',
-      'Are you sure you want to start overtime work?',
+      t('overtime.start_overtime'),
+      t('overtime.are_you_ready_start'),
       [
-        { text: 'Cancel', style: 'cancel' },
+        { text: t('common.cancel'), style: 'cancel' },
         {
-          text: 'Start Overtime',
+          text: t('overtime.start_overtime'),
           onPress: () => {
             setIsLoading(true);
             setTimeout(() => {
               setIsLoading(false);
-              Alert.alert('Success', 'Overtime started successfully!');
+              Alert.alert(t('common.success'), t('overtime.overtime_started_success'));
               router.back();
             }, 1000);
           },
@@ -53,7 +55,7 @@ export default function StartOvertimeScreen() {
           >
             <ArrowLeft size={24} color="white" />
           </TouchableOpacity>
-          <Text style={styles.headerTitle}>Mulai Lembur</Text>
+          <Text style={styles.headerTitle}>{t('overtime.start_overtime')}</Text>
           <View style={styles.placeholder} />
         </View>
       </LinearGradient>
@@ -67,11 +69,11 @@ export default function StartOvertimeScreen() {
           >
             <View style={styles.statusHeader}>
               <Clock size={32} color="white" />
-              <Text style={styles.statusTitle}>Starting Overtime</Text>
+              <Text style={styles.statusTitle}>{t('overtime.starting_overtime')}</Text>
             </View>
             
             <Text style={styles.statusSubtitle}>
-              You're about to start overtime work. Make sure you have approval for extended hours.
+              {t('overtime.ensure_supervisor_approval')}
             </Text>
 
             <View style={styles.locationContainer}>
@@ -83,12 +85,12 @@ export default function StartOvertimeScreen() {
 
         {/* Overtime Info */}
         <View style={styles.infoCard}>
-          <Text style={styles.infoTitle}>Overtime Guidelines</Text>
+          <Text style={styles.infoTitle}>{t('overtime.overtime_guidelines')}</Text>
           <Text style={styles.infoText}>
-            • Ensure you have supervisor approval{'\n'}
-            • Maximum 4 hours overtime per day{'\n'}
-            • Take regular breaks during overtime{'\n'}
-            • Overtime rates apply as per company policy
+            {t('overtime.ensure_supervisor_approval')}{'\n'}
+            {t('overtime.maximum_4_hours')}{'\n'}
+            {t('overtime.take_regular_breaks')}{'\n'}
+            {t('overtime.overtime_rates_apply')}
           </Text>
         </View>
 
@@ -105,7 +107,7 @@ export default function StartOvertimeScreen() {
           >
             <Clock size={24} color="white" />
             <Text style={styles.startButtonText}>
-              {isLoading ? 'Starting...' : 'Start Overtime'}
+              {isLoading ? t('common.loading') : t('overtime.start_overtime')}
             </Text>
           </LinearGradient>
         </TouchableOpacity>

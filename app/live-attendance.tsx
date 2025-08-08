@@ -28,9 +28,11 @@ import {
 } from 'lucide-react-native';
 import { useAppContext } from '@/context/AppContext';
 import { DynamicAttendanceCard } from '@/components/DynamicAttendanceCard';
+import { useTranslation } from 'react-i18next';
 
 export default function LiveAttendanceScreen() {
   const insets = useSafeAreaInsets();
+  const { t } = useTranslation();
   const { workHours, breakTime, overtimeHours, clientVisitTime, refreshData } = useAppContext();
   const [currentTime, setCurrentTime] = useState(new Date());
   const [refreshing, setRefreshing] = useState(false);
@@ -52,7 +54,7 @@ export default function LiveAttendanceScreen() {
   const quickActions = [
     {
       id: 'schedule',
-      title: 'Jadwal Shift',
+      title: t('live_attendance_screen.shift_schedule'),
       icon: <Calendar size={24} color="#4A90E2" />,
       iconColor: '#4A90E2',
       backgroundColor: '#E3F2FD',
@@ -60,7 +62,7 @@ export default function LiveAttendanceScreen() {
     },
     {
       id: 'history',
-      title: 'Histori Absensi',
+      title: t('live_attendance_screen.attendance_history'),
       icon: <List size={24} color="#666" />,
       iconColor: '#666',
       backgroundColor: '#F8F9FA',
@@ -89,7 +91,7 @@ export default function LiveAttendanceScreen() {
           </TouchableOpacity>
           
           <View style={styles.headerCenter}>
-            <Text style={styles.headerTitle}>Live Attendance</Text>
+            <Text style={styles.headerTitle}>{t('live_attendance_screen.live_attendance')}</Text>
             <Text style={styles.headerSubtitle}>
               {currentTime.toLocaleDateString('id-ID', {
                 weekday: 'long',
@@ -126,7 +128,7 @@ export default function LiveAttendanceScreen() {
         <DynamicAttendanceCard />
 
         <View style={styles.section}>
-          <Text style={styles.sectionTitle}>Others</Text>
+          <Text style={styles.sectionTitle}>{t('live_attendance_screen.others')}</Text>
           <View style={styles.quickActionsGrid}>
             {quickActions.map((action) => (
               <TouchableOpacity
@@ -150,7 +152,7 @@ export default function LiveAttendanceScreen() {
             <Activity size={16} color="#4CAF50" />
           </View>
           <Text style={styles.statusText}>
-            System Online • Last sync: {currentTime.toLocaleTimeString([], { 
+            {t('live_attendance_screen.system_online')} • {t('live_attendance_screen.last_sync')}: {currentTime.toLocaleTimeString([], { 
               hour: '2-digit', 
               minute: '2-digit' 
             })}

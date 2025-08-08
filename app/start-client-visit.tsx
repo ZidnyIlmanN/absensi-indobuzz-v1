@@ -11,24 +11,26 @@ import { LinearGradient } from 'expo-linear-gradient';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { router } from 'expo-router';
 import { ArrowLeft, User, MapPin } from 'lucide-react-native';
+import { useTranslation } from 'react-i18next';
 
 export default function StartClientVisitScreen() {
   const insets = useSafeAreaInsets();
+  const { t } = useTranslation();
   const [isLoading, setIsLoading] = useState(false);
 
   const handleStartVisit = () => {
     Alert.alert(
-      'Start Client Visit',
-      'Are you ready to start your client visit?',
+      t('client_visit.start_client_visit'),
+      t('client_visit.are_you_ready_start'),
       [
-        { text: 'Cancel', style: 'cancel' },
+        { text: t('common.cancel'), style: 'cancel' },
         {
-          text: 'Start Visit',
+          text: t('client_visit.start_client_visit'),
           onPress: () => {
             setIsLoading(true);
             setTimeout(() => {
               setIsLoading(false);
-              Alert.alert('Success', 'Client visit started successfully!');
+              Alert.alert(t('common.success'), t('client_visit.visit_started_success'));
               router.back();
             }, 1000);
           },
@@ -53,7 +55,7 @@ export default function StartClientVisitScreen() {
           >
             <ArrowLeft size={24} color="white" />
           </TouchableOpacity>
-          <Text style={styles.headerTitle}>Mulai Kunjungan Klien</Text>
+          <Text style={styles.headerTitle}>{t('client_visit.start_client_visit')}</Text>
           <View style={styles.placeholder} />
         </View>
       </LinearGradient>
@@ -67,11 +69,11 @@ export default function StartClientVisitScreen() {
           >
             <View style={styles.statusHeader}>
               <User size={32} color="white" />
-              <Text style={styles.statusTitle}>Client Visit</Text>
+              <Text style={styles.statusTitle}>{t('client_visit.client_visit')}</Text>
             </View>
             
             <Text style={styles.statusSubtitle}>
-              Starting your client visit. Make sure to track your location and activities.
+              {t('client_visit.starting_client_visit')}
             </Text>
 
             <View style={styles.locationContainer}>
@@ -83,12 +85,12 @@ export default function StartClientVisitScreen() {
 
         {/* Visit Info */}
         <View style={styles.infoCard}>
-          <Text style={styles.infoTitle}>Client Visit Guidelines</Text>
+          <Text style={styles.infoTitle}>{t('client_visit.client_visit_guidelines')}</Text>
           <Text style={styles.infoText}>
-            • Ensure you have client appointment confirmation{'\n'}
-            • Location tracking will be enabled{'\n'}
-            • Take notes of meeting outcomes{'\n'}
-            • Remember to end visit when completed
+            {t('client_visit.ensure_appointment_confirmation')}{'\n'}
+            {t('client_visit.location_tracking_enabled')}{'\n'}
+            {t('client_visit.take_notes_outcomes')}{'\n'}
+            {t('client_visit.remember_end_visit')}
           </Text>
         </View>
 
@@ -105,7 +107,7 @@ export default function StartClientVisitScreen() {
           >
             <User size={24} color="white" />
             <Text style={styles.startButtonText}>
-              {isLoading ? 'Starting...' : 'Start Client Visit'}
+              {isLoading ? t('common.loading') : t('client_visit.start_client_visit')}
             </Text>
           </LinearGradient>
         </TouchableOpacity>
