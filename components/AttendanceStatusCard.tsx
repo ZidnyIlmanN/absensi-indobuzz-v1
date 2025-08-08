@@ -1,6 +1,7 @@
 import React, { useEffect, useState } from 'react';
-import { View, Text, StyleSheet, TouchableOpacity } from 'react-native';
+import { View, Text, StyleSheet, TouchableOpacity, Alert } from 'react-native';
 import { ArrowLeft, Coffee, ChevronRight } from 'lucide-react-native';
+import { useRouter } from 'expo-router';
 
 interface AttendanceStatusCardProps {
   clockInTime: Date | null;
@@ -27,6 +28,7 @@ export const AttendanceStatusCard = ({
   onPressClockIn,
   onPressBreak,
 }: AttendanceStatusCardProps) => {
+  const router = useRouter();
   const [elapsedClockIn, setElapsedClockIn] = useState(formatElapsedTime(clockInTime));
   const [elapsedBreak, setElapsedBreak] = useState(formatElapsedTime(breakStartTime));
 
@@ -37,6 +39,20 @@ export const AttendanceStatusCard = ({
     }, 1000);
     return () => clearInterval(timer);
   }, [clockInTime, breakStartTime]);
+
+  const handleClockOut = () => {
+    Alert.alert(
+      "Konfirmasi",
+      "Apakah Anda yakin ingin melakukan clock out?",
+      [
+        {
+          text: "Batal",
+          style: "cancel"
+        },
+        { text: "OK", onPress: () => router.push('/clock-out/selfie') }
+      ]
+    );
+  };
 
   // If attendance status is 'completed' or no clock-in time, do not render the component
   if (attendanceStatus === 'completed' || !clockInTime) {
@@ -53,7 +69,7 @@ export const AttendanceStatusCard = ({
     <View style={styles.container}>
       {/* Show Presensi Masuk */}
       {showClockIn && (
-        <TouchableOpacity style={styles.row} onPress={onPressClockIn} activeOpacity={0.7}>
+        <TouchableOpacity style={styles.row} onPress={handleClockOut} activeOpacity={0.7}>
           <View style={styles.iconContainer}>
             <ArrowLeft size={20} color="#4CAF50" />
           </View>
