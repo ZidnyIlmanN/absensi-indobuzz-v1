@@ -23,6 +23,7 @@ A comprehensive React Native mobile application built with Expo for employee att
 - **TypeScript Support**: Full type safety and better development experience
 - **Modular Architecture**: Well-organized component structure for scalability
 - **Expo Framework**: Cross-platform development with native capabilities
+- **Internationalization**: Complete i18n support for English and Indonesian languages
 - **State Management Ready**: Prepared for Redux Toolkit or Zustand integration
 - **Location Services**: GPS tracking and geofencing capabilities
 - **Camera Integration**: Selfie verification for attendance
@@ -41,6 +42,7 @@ The app includes the following main screens:
 - **Framework**: React Native with Expo
 - **Language**: TypeScript
 - **Navigation**: Expo Router with Tab Navigation
+- **Internationalization**: react-i18next with AsyncStorage persistence
 - **UI Components**: Custom components with Lucide React Native icons
 - **Styling**: StyleSheet with responsive design
 - **State Management**: Ready for Redux Toolkit or Zustand
@@ -93,6 +95,14 @@ components/
 constants/
 └── Colors.ts              # App color palette
 
+locales/
+├── en.json                # English translations
+└── id.json                # Indonesian translations
+
+services/
+├── i18n.ts                # Internationalization service
+└── ...                    # Other services
+
 types/
 └── index.ts               # TypeScript type definitions
 
@@ -102,6 +112,13 @@ utils/
 ```
 
 ## 🎨 Design System
+
+### Internationalization
+- **Languages**: English (EN) and Indonesian (ID)
+- **Language Switching**: Real-time language switching without app restart
+- **Locale Support**: Proper number, currency, and date formatting
+- **Persistence**: User language preference saved locally
+- **Fallback**: Automatic fallback to English for unsupported languages
 
 ### Color Palette
 - **Primary**: #4A90E2 (Light Blue)
@@ -119,6 +136,33 @@ utils/
 - **Color Hierarchy**: Primary (#1A1A1A), Secondary (#666), Tertiary (#999)
 
 ## 🔧 Configuration
+
+### Internationalization Setup
+1. Language files are located in `locales/` directory
+2. Add new translations to both `en.json` and `id.json`
+3. Use the `useTranslation()` hook in components
+4. Language preference is automatically saved and restored
+5. Supports real-time language switching
+
+#### Adding New Languages
+1. Create new translation file in `locales/` (e.g., `es.json`)
+2. Add language to `i18nService.getAvailableLanguages()`
+3. Add flag emoji and code to `LanguageSelector` component
+4. Update language detection logic in `services/i18n.ts`
+
+#### Translation Usage Examples
+```typescript
+// Basic translation
+const { t } = useTranslation();
+const title = t('home.welcome_message');
+
+// Translation with parameters
+const message = t('validation.password_min_length', { length: 6 });
+
+// Using namespace hook
+const { t } = useTranslationWithNamespace('auth');
+const loginText = t('sign_in'); // Translates 'auth.sign_in'
+```
 
 ### Environment Setup
 1. Create environment files for different stages
@@ -140,6 +184,10 @@ utils/
 - [ ] Configure Firestore database
 - [ ] Add Firebase Storage for images
 - [ ] Set up Firebase Cloud Messaging
+- [x] Complete internationalization (i18n) implementation
+- [x] English and Indonesian language support
+- [x] Real-time language switching
+- [x] Language preference persistence
 
 ### Phase 2 - Advanced Features
 - [ ] Real-time location tracking
@@ -162,6 +210,32 @@ utils/
 - [ ] Testing implementation
 - [ ] App store deployment
 - [ ] Documentation completion
+
+## 🌐 Internationalization
+
+The app supports multiple languages with complete i18n implementation:
+
+### Supported Languages
+- **English (EN)** - Default language
+- **Indonesian (ID)** - Bahasa Indonesia
+
+### Features
+- **Real-time Language Switching**: Change language instantly without app restart
+- **Persistent Preferences**: Language choice is saved and restored on app launch
+- **Device Language Detection**: Automatically detects and uses device language if supported
+- **Proper Locale Formatting**: Numbers, currencies, and dates formatted according to selected language
+- **Comprehensive Coverage**: All UI text, messages, and labels are translatable
+
+### Language Selection
+- **Header Selector**: Compact flag-based selector in main tabs header
+- **Settings Menu**: Full language selector in Profile > Settings
+- **Synchronized**: Both selectors stay in sync and update the entire app
+
+### Technical Implementation
+- **Framework**: react-i18next with AsyncStorage persistence
+- **Translation Files**: JSON-based translation files in `locales/` directory
+- **Hooks**: Custom hooks for translation, currency, and date formatting
+- **Fallback**: Automatic fallback to English for missing translations
 
 ## 🧪 Testing
 

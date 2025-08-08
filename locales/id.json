@@ -25,7 +25,12 @@
     "apply": "Terapkan",
     "upload": "Unggah",
     "download": "Unduh",
-    "share": "Bagikan"
+    "share": "Bagikan",
+    "requesting_permission": "Meminta izin kamera...",
+    "unable_detect_location": "Tidak dapat mendeteksi lokasi • Silakan aktifkan GPS",
+    "use_current_location": "Gunakan Lokasi Saat Ini",
+    "automatically_detect": "Deteksi lokasi Anda secara otomatis",
+    "indonesian_cities": "Kota-kota Indonesia"
   },
   "auth": {
     "welcome_back": "Selamat Datang Kembali",
@@ -320,8 +325,7 @@
     "break_started_success": "Istirahat berhasil dimulai.",
     "break_ended_success": "Istirahat berhasil diakhiri. Selamat datang kembali!",
     "are_you_ready_return": "Apakah Anda siap untuk kembali bekerja?",
-    "are_you_sure_start": "Apakah Anda yakin ingin memulai istirahat?",
-    "break_used": "Istirahat Digunakan"
+    "are_you_sure_start": "Apakah Anda yakin ingin memulai istirahat?"
   },
   "settings": {
     "settings": "Pengaturan",
