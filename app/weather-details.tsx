@@ -264,6 +264,10 @@ const styles = StyleSheet.create({
   weatherDisplayContainer: {
     marginTop: 20,
     marginBottom: 16,
+    backgroundColor: 'white',
+    borderRadius: 12,
+    borderWidth: 1,
+    borderColor: '#E0E0E0',
   },
   loadingContainer: {
     paddingVertical: 40,
@@ -295,6 +299,7 @@ const styles = StyleSheet.create({
   },
   section: {
     marginBottom: 24,
+    
   },
   sectionTitle: {
     fontSize: 18,
@@ -316,10 +321,6 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     borderColor: '#E0E0E0',
     elevation: 2,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 1 },
-    shadowOpacity: 0.1,
-    shadowRadius: 2,
   },
   selectedQuickLocation: {
     backgroundColor: '#E3F2FD',
@@ -340,10 +341,8 @@ const styles = StyleSheet.create({
     borderRadius: 12,
     padding: 16,
     elevation: 2,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 1 },
-    shadowOpacity: 0.1,
-    shadowRadius: 3,
+    borderWidth: 1,
+    borderColor: '#E0E0E0',
   },
   tipText: {
     fontSize: 14,
