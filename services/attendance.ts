@@ -426,8 +426,31 @@ export const attendanceService = {
 
   // Helper function to map database record to ActivityRecord
   mapActivityRecord(data: any): ActivityRecord {
-    // Enhanced selfie URL processing for all activity types
-    let selfieUrl = this.processActivitySelfieUrl(data.selfie_url);
+    // Convert selfie_url to a public URL
+    let selfiePath = data.selfie_url;
+    let selfieUrl = undefined;
+
+    if (selfiePath && selfiePath.trim() !== '') {
+      // Handle both old and new URL formats
+      if (selfiePath.startsWith('http')) {
+        // Already a full URL
+        selfieUrl = selfiePath;
+      } else {
+        // Handle relative paths and storage paths
+        const cleanPath = selfiePath.replace(/^selfies\//, '').replace(/^activities\//, '');
+        
+        try {
+          // Try to get public URL from selfies bucket
+          const { data: { publicUrl } } = supabase.storage.from('selfies').getPublicUrl(cleanPath);
+          selfieUrl = publicUrl;
+        } catch (error) {
+          console.error('Error generating public URL for activity selfie:', error);
+          // Fallback to direct URL construction
+          const supabaseUrl = process.env.EXPO_PUBLIC_SUPABASE_URL || '';
+          selfieUrl = `${supabaseUrl}/storage/v1/object/public/selfies/${cleanPath}`;
+        }
+      }
+    }
 
     return {
       id: data.id,
@@ -441,32 +464,5 @@ export const attendanceService = {
       notes: data.notes,
       selfieUrl: selfieUrl,
     };
-  },
-
-  // Enhanced helper function to process activity selfie URLs
-  processActivitySelfieUrl(selfiePath: string | null | undefined): string | undefined {
-    if (!selfiePath || selfiePath.trim() === '') {
-      return undefined;
-    }
-
-    // Handle both old and new URL formats
-    if (selfiePath.startsWith('http')) {
-      // Already a full URL
-      return selfiePath;
-    }
-
-    // Handle relative paths and storage paths
-    const cleanPath = selfiePath.replace(/^selfies\//, '').replace(/^activities\//, '');
-    
-    try {
-      // Try to get public URL from selfies bucket (all activity selfies are stored in selfies bucket)
-      const { data: { publicUrl } } = supabase.storage.from('selfies').getPublicUrl(cleanPath);
-      return publicUrl;
-    } catch (error) {
-      console.error('Error generating public URL for activity selfie:', error);
-      // Fallback to direct URL construction
-      const supabaseUrl = process.env.EXPO_PUBLIC_SUPABASE_URL || '';
-      return `${supabaseUrl}/storage/v1/object/public/selfies/${cleanPath}`;
-    }
   },
 };

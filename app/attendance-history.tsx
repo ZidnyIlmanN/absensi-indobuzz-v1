@@ -230,6 +230,14 @@ export default function AttendanceHistoryScreen() {
           selectedAttendance ? formatHoursToHHMM(calculateWorkHours(selectedAttendance.clockIn, selectedAttendance.clockOut)) : '00:00'}
       />
 
+      {/* Attendance Detail Modal */}
+      <AttendanceDetailModal
+        visible={showDetailModal}
+        onClose={closeDetailModal}
+        attendance={selectedAttendance}
+        workHours={selectedAttendance?.id === currentAttendance?.id ? workHours : 
+          selectedAttendance ? formatHoursToHHMM(calculateWorkHours(selectedAttendance.clockIn, selectedAttendance.clockOut)) : '00:00'}
+      />
     </View>
   );
 }

@@ -411,7 +411,7 @@ export class ImageService {
       
       // Step 4: Generate filename dengan timestamp
       const timestamp = new Date().toISOString().replace(/[:.]/g, '-');
-      const fileName = `${userId}/${type}_${timestamp}.jpg`;
+      const fileName = `${userId}/selfies/${type}_${timestamp}.jpg`;
       
       console.log('📤 Uploading selfie with ArrayBuffer:', {
         fileName,
