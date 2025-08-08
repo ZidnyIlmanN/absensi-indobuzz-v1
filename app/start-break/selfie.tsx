@@ -92,8 +92,8 @@ export default function StartBreakSelfieScreen() {
       const { error } = await addActivity('break_start', {
         latitude: currentAttendance.location.latitude,
         longitude: currentAttendance.location.longitude,
-        address: currentAttendance.location.address, // Pass address as part of location object
-      }, uploadResult.url || undefined); // Removed 'Start Break Selfie' as it's not a valid argument
+        address: currentAttendance.location.address,
+      }, uploadResult.url || undefined);
 
       if (error) {
         Alert.alert('Start Break Failed', error);
