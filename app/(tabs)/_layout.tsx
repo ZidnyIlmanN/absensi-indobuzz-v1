@@ -1,7 +1,7 @@
 import React from 'react';
 import { Tabs } from 'expo-router';
 import { View } from 'react-native';
-import { Home, Users, FileText, MessageCircle, User } from 'lucide-react-native';
+import { Chrome as Home, Users, FileText, MessageCircle, User } from 'lucide-react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useTranslation } from 'react-i18next';
 import { AuthGuard } from '@/components/AuthGuard';
