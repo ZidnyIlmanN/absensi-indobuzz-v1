@@ -19,6 +19,8 @@ import { EmptyState } from '@/components/EmptyState';
 import { LoadingSpinner } from '@/components/LoadingSpinner';
 import { useEmployees } from '@/hooks/useEmployees';
 import { Employee as EmployeeType } from '@/types';
+import { router } from 'expo-router';
+import { EmployeeCard } from '@/components/EmployeeCard';
 
 export default function EmployeeScreen() {
   const insets = useSafeAreaInsets();
@@ -117,82 +119,6 @@ export default function EmployeeScreen() {
   const onBreakEmployees = filteredEmployees.filter(e => e.status === 'break').length;
   const offlineEmployees = filteredEmployees.filter(e => e.status === 'offline').length;
 
-  const renderEmployeeItem = (employee: EmployeeType) => (
-    <TouchableOpacity
-      key={employee.id}
-      style={styles.employeeCard}
-      activeOpacity={0.7}
-      onPress={() => {
-        Alert.alert(
-          employee.name,
-          `Employee ID: ${employee.employeeId}\nDepartment: ${employee.department}\nPosition: ${employee.position}`,
-          [{ text: 'OK' }]
-        );
-      }}
-    >
-      <View style={styles.employeeHeader}>
-        <View style={styles.avatarContainer}>
-          <Image 
-            source={{ 
-              uri: employee.avatar || `https://ui-avatars.com/api/?name=${encodeURIComponent(employee.name)}&background=4A90E2&color=fff&size=50`
-            }} 
-            style={styles.avatar} 
-          />
-          <View
-            style={[
-              styles.statusIndicator,
-              { backgroundColor: getStatusColor(employee.status) }
-            ]}
-          />
-        </View>
-        
-        <View style={styles.employeeInfo}>
-          <Text style={styles.employeeName}>{employee.name}</Text>
-          <Text style={styles.employeeId}>ID: {employee.employeeId}</Text>
-          <Text style={styles.employeePosition}>{employee.position || 'No position'}</Text>
-          <Text style={styles.employeeDepartment}>{employee.department || 'No department'}</Text>
-        </View>
-        
-        <View style={styles.statusContainer}>
-          <Text style={[
-            styles.statusText,
-            { color: getStatusColor(employee.status) }
-          ]}>
-            {getStatusText(employee.status)}
-          </Text>
-          {employee.joinDate && (
-            <Text style={styles.joinDate}>
-              Joined: {new Date(employee.joinDate).toLocaleDateString()}
-            </Text>
-          )}
-        </View>
-      </View>
-      
-      <View style={styles.employeeDetails}>
-        <View style={styles.detailItem}>
-          <Clock size={14} color="#666" />
-          <Text style={styles.detailText}>{employee.workHours || '09:00-18:00'}</Text>
-        </View>
-        
-        <View style={styles.detailItem}>
-          <MapPin size={14} color="#666" />
-          <Text style={styles.detailText}>{employee.location || 'No location'}</Text>
-        </View>
-      </View>
-      
-      <View style={styles.contactInfo}>
-        <View style={styles.contactItem}>
-          <Phone size={14} color="#4A90E2" />
-          <Text style={styles.contactText}>{employee.phone || 'No phone'}</Text>
-        </View>
-        
-        <View style={styles.contactItem}>
-          <Mail size={14} color="#4A90E2" />
-          <Text style={styles.contactText}>{employee.email || 'No email'}</Text>
-        </View>
-      </View>
-    </TouchableOpacity>
-  );
 
   const SortModal = () => (
     <Modal
@@ -561,7 +487,14 @@ export default function EmployeeScreen() {
               onAction={searchQuery || selectedDepartment || selectedStatus || selectedPosition ? clearFilters : undefined}
             />
           ) : (
-            filteredEmployees.map(renderEmployeeItem)
+            filteredEmployees.map((employee) => (
+              <EmployeeCard
+                key={employee.id}
+                employee={employee}
+                showContactInfo={true}
+                showNavigationArrow={true}
+              />
+            ))
           )}
         </View>
       </ScrollView>
@@ -739,106 +672,6 @@ const styles = StyleSheet.create({
   resultCount: {
     fontSize: 12,
     color: '#666',
-  },
-  employeeCard: {
-    backgroundColor: 'white',
-    borderRadius: 12,
-    padding: 16,
-    marginBottom: 12,
-    elevation: 2,
-    borderWidth: 1,
-    borderColor: '#E0E0E0',
-  },
-  employeeHeader: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    marginBottom: 12,
-  },
-  avatarContainer: {
-    position: 'relative',
-    marginRight: 12,
-  },
-  avatar: {
-    width: 50,
-    height: 50,
-    borderRadius: 25,
-  },
-  statusIndicator: {
-    position: 'absolute',
-    bottom: 2,
-    right: 2,
-    width: 12,
-    height: 12,
-    borderRadius: 6,
-    borderWidth: 2,
-    borderColor: 'white',
-  },
-  employeeInfo: {
-    flex: 1,
-  },
-  employeeName: {
-    fontSize: 16,
-    fontWeight: '600',
-    color: '#1A1A1A',
-    marginBottom: 2,
-  },
-  employeeId: {
-    fontSize: 12,
-    color: '#999',
-    marginBottom: 2,
-  },
-  employeePosition: {
-    fontSize: 14,
-    color: '#4A90E2',
-    marginBottom: 2,
-  },
-  employeeDepartment: {
-    fontSize: 12,
-    color: '#666',
-  },
-  statusContainer: {
-    alignItems: 'flex-end',
-  },
-  statusText: {
-    fontSize: 12,
-    fontWeight: '500',
-    marginBottom: 4,
-  },
-  joinDate: {
-    fontSize: 10,
-    color: '#999',
-  },
-  employeeDetails: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    marginBottom: 12,
-    paddingTop: 12,
-    borderTopWidth: 1,
-    borderTopColor: '#F0F0F0',
-  },
-  detailItem: {
-    flexDirection: 'row',
-    alignItems: 'center',
-  },
-  detailText: {
-    fontSize: 12,
-    color: '#666',
-    marginLeft: 4,
-  },
-  contactInfo: {
-    paddingTop: 12,
-    borderTopWidth: 1,
-    borderTopColor: '#F0F0F0',
-    gap: 6,
-  },
-  contactItem: {
-    flexDirection: 'row',
-    alignItems: 'center',
-  },
-  contactText: {
-    fontSize: 12,
-    color: '#4A90E2',
-    marginLeft: 4,
   },
   modalOverlay: {
     flex: 1,

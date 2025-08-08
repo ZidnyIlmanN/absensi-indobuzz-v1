@@ -232,7 +232,7 @@ export default function ProfileScreen() {
               <View style={styles.infoContent}>
                 <Text style={styles.infoLabel}>{t('profile.join_date')}</Text>
                 <Text style={styles.infoValue}>
-                  {user.joinDate ? formatDate(new Date(user.joinDate), 'long') : t('profile.na')}
+                  {user.joinDate ? formatDate(new Date(user.joinDate), { dateStyle: 'long' }) : t('profile.na')}
                 </Text>
               </View>
             </View>
