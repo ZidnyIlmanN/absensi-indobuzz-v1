@@ -26,6 +26,8 @@ import {
   X,
   Navigation,
 } from 'lucide-react-native';
+import { useTranslation } from 'react-i18next';
+import { useLocalizedDate } from '@/hooks/useI18n';
 import { weatherService, WeatherData, LocationData, INDONESIAN_CITIES } from '@/services/weatherService';
 import { getCurrentLocation } from '@/utils/location';
 import { LoadingSpinner } from './LoadingSpinner';
@@ -41,6 +43,8 @@ export function WeatherDisplay({
   showDetailedInfo = true,
   autoRefreshInterval = 10 
 }: WeatherDisplayProps) {
+  const { t } = useTranslation();
+  const { formatRelativeTime } = useLocalizedDate();
   const [weatherData, setWeatherData] = useState<WeatherData | null>(null);
   const [selectedLocation, setSelectedLocation] = useState<LocationData | null>(null);
   const [isLoading, setIsLoading] = useState(true);
@@ -230,24 +234,14 @@ export function WeatherDisplay({
   const formatLastUpdated = () => {
     if (!lastUpdated) return '';
     
-    const now = new Date();
-    const diff = now.getTime() - lastUpdated.getTime();
-    const minutes = Math.floor(diff / (1000 * 60));
-    
-    if (minutes < 1) return 'Just updated';
-    if (minutes < 60) return `${minutes}m ago`;
-    
-    const hours = Math.floor(minutes / 60);
-    if (hours < 24) return `${hours}h ago`;
-    
-    return lastUpdated.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+    return formatRelativeTime(lastUpdated);
   };
 
   if (isLoading && !weatherData) {
     return (
       <View style={[styles.container, style]}>
         <LoadingSpinner size="small" color="#4A90E2" />
-        <Text style={styles.loadingText}>Loading weather...</Text>
+        <Text style={styles.loadingText}>{t('weather.loading_weather')}</Text>
       </View>
     );
   }
@@ -256,7 +250,7 @@ export function WeatherDisplay({
     return (
       <View style={[styles.container, styles.errorContainer, style]}>
         <Cloud size={32} color="#E0E0E0" />
-        <Text style={styles.errorText}>Weather unavailable</Text>
+        <Text style={styles.errorText}>{t('weather.weather_unavailable')}</Text>
         <TouchableOpacity onPress={() => refreshWeather()} style={styles.retryButton}>
           <RefreshCw size={16} color="#4A90E2" />
           <Text style={styles.retryText}>Retry</Text>
@@ -304,7 +298,7 @@ export function WeatherDisplay({
 
         {lastUpdated && (
           <Text style={styles.lastUpdated}>
-            Updated {formatLastUpdated()}
+            {t('weather.updated', { time: formatLastUpdated() })}
           </Text>
         )}
       </TouchableOpacity>
@@ -332,7 +326,7 @@ export function WeatherDisplay({
         <View style={styles.modalOverlay}>
           <View style={styles.modalContent}>
             <View style={styles.modalHeader}>
-              <Text style={styles.modalTitle}>Select Location</Text>
+              <Text style={styles.modalTitle}>{t('weather.select_location')}</Text>
               <TouchableOpacity onPress={() => setShowLocationModal(false)}>
                 <X size={24} color="#666" />
               </TouchableOpacity>
@@ -359,9 +353,9 @@ export function WeatherDisplay({
                   <Navigation size={20} color="#4A90E2" />
                 </View>
                 <View style={styles.locationOptionContent}>
-                  <Text style={styles.locationOptionTitle}>Use Current Location</Text>
+                  <Text style={styles.locationOptionTitle}>{t('weather.use_current_location')}</Text>
                   <Text style={styles.locationOptionSubtitle}>
-                    Automatically detect your location
+                    {t('weather.automatically_detect')}
                   </Text>
                 </View>
                 {useCurrentLocation && (
@@ -370,7 +364,7 @@ export function WeatherDisplay({
               </TouchableOpacity>
 
               {/* City Options */}
-              <Text style={styles.sectionTitle}>Indonesian Cities</Text>
+              <Text style={styles.sectionTitle}>{t('weather.indonesian_cities')}</Text>
               {INDONESIAN_CITIES.map((city) => (
                 <TouchableOpacity
                   key={city.name}

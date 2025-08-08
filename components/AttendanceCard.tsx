@@ -10,6 +10,8 @@ import {
 import { LinearGradientWrapper } from '@/components/LinearGradientWrapper';
 import { LogIn, LogOut, MapPin, Clock, Coffee, Play, Pause } from 'lucide-react-native';
 import { router } from 'expo-router';
+import { useTranslation } from 'react-i18next';
+import { useLocalizedDate } from '@/hooks/useI18n';
 import { useAppContext } from '@/context/AppContext';
 
 const { width } = Dimensions.get('window');
@@ -34,6 +36,8 @@ export function AttendanceCard({
   currentStatus,
 }: AttendanceCardProps) {
   const { todayActivities } = useAppContext();
+  const { t } = useTranslation();
+  const { formatTime } = useLocalizedDate();
   const hasTakenBreak = todayActivities.some(
     (act) => act.type === 'break_start' || act.type === 'break_end'
   );
@@ -53,7 +57,7 @@ export function AttendanceCard({
               <LogIn size={20} color="#4A90E2" />
             )}
             <Text style={styles.buttonText}>
-              {isLoading ? 'Clocking In...' : 'Clock In'}
+              {isLoading ? t('clock_in.processing') : t('attendance.clock_in')}
             </Text>
           </View>
         </TouchableOpacity>
@@ -70,7 +74,7 @@ export function AttendanceCard({
         >
           <View style={styles.buttonContent}>
             <Play size={20} color="white" />
-            <Text style={[styles.buttonText, { color: 'white' }]}>End Break</Text>
+            <Text style={[styles.buttonText, { color: 'white' }]}>{t('attendance.end_break')}</Text>
           </View>
         </TouchableOpacity>
       );
@@ -87,7 +91,7 @@ export function AttendanceCard({
             <View style={styles.buttonContent}>
               <Coffee size={20} color="white" />
               <Text style={[styles.buttonText, { color: 'white' }]}>
-                {hasTakenBreak ? 'Break Used' : 'Start Break'}
+                {hasTakenBreak ? t('break.break_used') : t('attendance.start_break')}
               </Text>
             </View>
           </TouchableOpacity>
@@ -99,7 +103,7 @@ export function AttendanceCard({
         >
           <View style={styles.buttonContent}>
             <LogOut size={20} color="white" />
-            <Text style={[styles.buttonText, { color: 'white' }]}>Clock Out</Text>
+            <Text style={[styles.buttonText, { color: 'white' }]}>{t('attendance.clock_out')}</Text>
           </View>
         </TouchableOpacity>
       </View>
@@ -116,7 +120,7 @@ export function AttendanceCard({
           <View style={styles.statusContainer}>
             <View style={[styles.statusDot, { backgroundColor: isWorking ? (currentStatus === 'break' ? '#FFC107' : '#81C784') : '#90CAF9' }]} />
             <Text style={styles.statusText}>
-              {isWorking ? (currentStatus === 'break' ? 'On Break' : 'Currently Working') : 'Ready to Start'}
+              {isWorking ? (currentStatus === 'break' ? t('attendance.on_break') : t('attendance.currently_working')) : t('attendance.ready_to_start')}
             </Text>
           </View>
           <View style={styles.timeContainer}>
@@ -127,18 +131,18 @@ export function AttendanceCard({
 
         <View style={styles.content}>
           <Text style={styles.mainText}>
-            {isWorking ? (currentStatus === 'break' ? "Enjoy your break!" : "You're clocked in!") : "Ready to clock in?"}
+            {isWorking ? (currentStatus === 'break' ? t('attendance.enjoy_break') : t('attendance.currently_working')) : t('attendance.ready_to_start')}
           </Text>
           <Text style={styles.subText}>
             {isWorking 
-              ? `Started at ${clockInTime?.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}`
-              : "Tap the button below to start your workday"
+              ? `${t('attendance.started_at')} ${clockInTime ? formatTime(clockInTime) : ''}`
+              : t('attendance.tap_to_begin')
             }
           </Text>
 
           <View style={styles.locationContainer}>
             <MapPin size={14} color="rgba(255, 255, 255, 0.8)" />
-            <Text style={styles.locationText}>Office Location • PT. INDOBUZZ REPUBLIK DIGITAL</Text>
+            <Text style={styles.locationText}>{t('clock_in.office')} • PT. INDOBUZZ REPUBLIK DIGITAL</Text>
           </View>
         </View>
 
@@ -256,4 +260,3 @@ const styles = StyleSheet.create({
     shadowRadius: 4,
   },
 });
-

@@ -14,6 +14,7 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { router, useLocalSearchParams } from 'expo-router';
 import { CameraView, CameraType, useCameraPermissions } from 'expo-camera';
 import { ArrowLeft, Camera, RotateCcw, CircleCheck as CheckCircle, RefreshCw, User, ChevronRight } from 'lucide-react-native';
+import { useTranslation } from 'react-i18next';
 import { useAppContext } from '@/context/AppContext';
 import { imageService } from '@/services/imageService';
 
@@ -21,6 +22,7 @@ const { width, height } = Dimensions.get('window');
 
 export default function SelfieScreen() {
   const insets = useSafeAreaInsets();
+  const { t } = useTranslation();
   const { user, clockIn } = useAppContext();
   const { latitude, longitude, address } = useLocalSearchParams();
   const [facing, setFacing] = useState<CameraType>('front');
@@ -66,19 +68,19 @@ export default function SelfieScreen() {
 
   const handleSubmit = async () => {
     if (!capturedImage) {
-      Alert.alert('Photo Required', 'Please take a selfie to continue.');
+      Alert.alert(t('clock_in.photo_required'), t('clock_in.take_selfie_continue'));
       return;
 
     }
 
     if (!user) {
-      Alert.alert('Error', 'User not authenticated. Please log in again.');
+      Alert.alert(t('common.error'), t('clock_in.user_not_authenticated'));
       router.replace('/(auth)/login');
       return;
     }
 
     if (!latitude || !longitude || !address) {
-      Alert.alert('Error', 'Location data missing. Please go back and select location again.');
+      Alert.alert(t('common.error'), t('clock_in.location_data_missing'));
       router.back();
       return;
     }
@@ -96,27 +98,27 @@ export default function SelfieScreen() {
       const uploadResult = await imageService.uploadSelfie(user.id, capturedImage, 'clock_in');
       
       if (uploadResult.error) {
-        Alert.alert('Upload Failed', uploadResult.error);
+        Alert.alert(t('clock_in.upload_failed'), uploadResult.error);
         return;
       }
 
       const { error } = await clockIn(locationData, uploadResult.url || undefined);
 
       if (error) {
-        Alert.alert('Clock In Failed', error);
+        Alert.alert(t('clock_in.clock_in_failed'), error);
       } else {
         Alert.alert(
-          'Success!',
-          'You have successfully clocked in. Have a great workday!',
-          [{ text: 'OK', onPress: () => router.replace('/(tabs)') }]
+          t('common.success'),
+          t('clock_in.success_clock_in'),
+          [{ text: t('common.ok'), onPress: () => router.replace('/(tabs)') }]
         );
       }
     } catch (error) {
       console.error('Error submitting attendance:', error);
       Alert.alert(
-        'Upload Failed',
-        'Failed to upload selfie. Please try again with better lighting.',
-        [{ text: 'OK' }]
+        t('clock_in.upload_failed'),
+        t('clock_in.failed_upload_selfie'),
+        [{ text: t('common.ok') }]
       );
     } finally {
       setIsProcessing(false);
@@ -126,7 +128,7 @@ export default function SelfieScreen() {
   if (!permission) {
     return (
       <View style={styles.container}>
-        <Text>Requesting camera permission...</Text>
+        <Text>{t('clock_in.requesting_permission')}</Text>
       </View>
     );
   }
@@ -145,19 +147,19 @@ export default function SelfieScreen() {
             >
               <ArrowLeft size={24} color="white" />
             </TouchableOpacity>
-            <Text style={styles.headerTitle}>Take Selfie</Text>
+            <Text style={styles.headerTitle}>{t('clock_in.take_selfie')}</Text>
             <View style={styles.placeholder} />
           </View>
         </LinearGradient>
 
         <View style={styles.permissionContainer}>
           <Camera size={64} color="#E0E0E0" />
-          <Text style={styles.permissionTitle}>Camera Permission Required</Text>
+          <Text style={styles.permissionTitle}>{t('clock_in.camera_permission_required')}</Text>
           <Text style={styles.permissionText}>
-            We need access to your camera to take a selfie for attendance verification.
+            {t('clock_in.need_camera_access')}
           </Text>
           <TouchableOpacity style={styles.permissionButton} onPress={requestPermission}>
-            <Text style={styles.permissionButtonText}>Grant Permission</Text>
+            <Text style={styles.permissionButtonText}>{t('clock_in.grant_permission')}</Text>
           </TouchableOpacity>
         </View>
       </View>
@@ -179,7 +181,7 @@ export default function SelfieScreen() {
           >
             <ArrowLeft size={24} color="white" />
           </TouchableOpacity>
-          <Text style={styles.headerTitle}>Take Selfie</Text>
+          <Text style={styles.headerTitle}>{t('clock_in.take_selfie')}</Text>
           <TouchableOpacity
             style={styles.flipButton}
             onPress={toggleCameraFacing}
@@ -193,7 +195,7 @@ export default function SelfieScreen() {
           <View style={styles.progressBar}>
             <View style={[styles.progressFill, { width: '100%' }]} />
           </View>
-          <Text style={styles.progressText}>Step 2 of 2</Text>
+          <Text style={styles.progressText}>{t('clock_in.step_2_of_2')}</Text>
         </View>
       </LinearGradient>
 
@@ -204,9 +206,9 @@ export default function SelfieScreen() {
           
           <View style={styles.previewOverlay}>
             <View style={styles.previewHeader}>
-              <Text style={styles.previewTitle}>Photo Preview</Text>
+              <Text style={styles.previewTitle}>{t('clock_in.photo_preview')}</Text>
               <Text style={styles.previewSubtitle}>
-                Make sure your face is clearly visible
+                {t('clock_in.make_sure_face_visible')}
               </Text>
             </View>
 
@@ -216,7 +218,7 @@ export default function SelfieScreen() {
                 onPress={retakePicture}
               >
                 <RefreshCw size={20} color="#4A90E2" />
-                <Text style={styles.retakeButtonText}>Retake</Text>
+                <Text style={styles.retakeButtonText}>{t('clock_in.retake')}</Text>
               </TouchableOpacity>
 
               <TouchableOpacity
@@ -229,11 +231,11 @@ export default function SelfieScreen() {
                   style={styles.submitButtonGradient}
                 >
                   {isProcessing ? (
-                    <Text style={styles.submitButtonText}>Processing...</Text>
+                    <Text style={styles.submitButtonText}>{t('clock_in.processing')}</Text>
                   ) : (
                     <>
                       <CheckCircle size={20} color="white" />
-                      <Text style={styles.submitButtonText}>Complete Clock In</Text>
+                      <Text style={styles.submitButtonText}>{t('clock_in.complete_clock_in')}</Text>
                     </>
                   )}
                 </LinearGradient>
@@ -249,7 +251,7 @@ export default function SelfieScreen() {
             <View style={styles.instructionsCard}>
               <User size={20} color="#4A90E2" />
               <Text style={styles.instructionsText}>
-                Position your face in the center and tap the capture button
+                {t('clock_in.position_face_center')}
               </Text>
             </View>
           </View>
@@ -296,7 +298,7 @@ export default function SelfieScreen() {
             </View>
 
             <Text style={styles.captureHint}>
-              Tap to capture your selfie
+              {t('clock_in.tap_to_capture')}
             </Text>
           </View>
         </View>

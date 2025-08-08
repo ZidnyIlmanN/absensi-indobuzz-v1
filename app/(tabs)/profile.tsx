@@ -14,13 +14,18 @@ import { LinearGradient } from 'expo-linear-gradient';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useRouter } from 'expo-router';
 import { Settings, Bell, Shield, CircleHelp as HelpCircle, LogOut, CreditCard as Edit, Camera, MapPin, Phone, Mail, Calendar, Clock, ChevronRight } from 'lucide-react-native';
+import { useTranslation } from 'react-i18next';
+import { useI18n } from '@/hooks/useI18n';
 import { useAppContext } from '@/context/AppContext';
 import { LoadingSpinner } from '@/components/LoadingSpinner';
 import { ProfilePhotoManager } from '@/components/ProfilePhotoManager';
+import { LanguageSelector } from '@/components/LanguageSelector';
 
 export default function ProfileScreen() {
   const insets = useSafeAreaInsets();
   const router = useRouter();
+  const { t } = useTranslation();
+  const { formatDate } = useI18n();
   const { user, signOut, refreshData, isLoading, attendanceHistory, currentAttendance } = useAppContext();
   const [refreshing, setRefreshing] = useState(false);
 
@@ -81,17 +86,17 @@ export default function ProfileScreen() {
 
   const handleLogout = async () => {
     Alert.alert(
-      'Logout',
-      'Are you sure you want to logout?',
+      t('profile.logout'),
+      t('profile.logout_confirmation'),
       [
-        { text: 'Cancel', style: 'cancel' },
+        { text: t('common.cancel'), style: 'cancel' },
         {
-          text: 'Logout',
+          text: t('profile.logout'),
           style: 'destructive',
           onPress: async () => {
             const { error } = await signOut();
             if (error) {
-              Alert.alert('Logout Error', error);
+              Alert.alert(t('profile.logout_error'), error);
             } else {
               router.replace('/(auth)/login');
             }
@@ -104,8 +109,8 @@ export default function ProfileScreen() {
   const menuItems = [
     {
       icon: <Settings size={20} color="#4A90E2" />,
-      title: 'Settings',
-      subtitle: 'App preferences and configurations',
+      title: t('profile.settings'),
+      subtitle: t('profile.app_preferences'),
       onPress: () => {
         console.log('Navigating to /settings');
         router.navigate('/settings');
@@ -113,8 +118,8 @@ export default function ProfileScreen() {
     },
     {
       icon: <Bell size={20} color="#FF9800" />,
-      title: 'Notifications',
-      subtitle: 'Manage notification preferences',
+      title: t('profile.notifications'),
+      subtitle: t('profile.manage_notifications'),
       onPress: () => {
         console.log('Navigating to /notifications');
         router.navigate('/notifications');
@@ -122,8 +127,8 @@ export default function ProfileScreen() {
     },
     {
       icon: <Shield size={20} color="#4CAF50" />,
-      title: 'Privacy & Security',
-      subtitle: 'Control your privacy settings',
+      title: t('profile.privacy_security'),
+      subtitle: t('profile.control_privacy'),
       onPress: () => {
         console.log('Navigating to /privacy');
         router.navigate('/privacy');
@@ -131,8 +136,8 @@ export default function ProfileScreen() {
     },
     {
       icon: <HelpCircle size={20} color="#9C27B0" />,
-      title: 'Help & Support',
-      subtitle: 'Get help and contact support',
+      title: t('profile.help_support'),
+      subtitle: t('profile.get_help_contact'),
       onPress: () => {
         console.log('Navigating to /help');
         router.navigate('/help');
@@ -187,7 +192,7 @@ export default function ProfileScreen() {
 
         {/* Personal Information */}
         <View style={styles.section}>
-          <Text style={styles.sectionTitle}>Personal Information</Text>
+          <Text style={styles.sectionTitle}>{t('profile.personal_information')}</Text>
           
           <View style={styles.infoCard}>
             <View style={styles.infoItem}>
@@ -195,7 +200,7 @@ export default function ProfileScreen() {
                 <Mail size={18} color="#4A90E2" />
               </View>
               <View style={styles.infoContent}>
-                <Text style={styles.infoLabel}>Email</Text>
+                <Text style={styles.infoLabel}>{t('profile.email')}</Text>
                 <Text style={styles.infoValue}>{user.email}</Text>
               </View>
             </View>
@@ -205,8 +210,8 @@ export default function ProfileScreen() {
                 <Phone size={18} color="#4CAF50" />
               </View>
               <View style={styles.infoContent}>
-                <Text style={styles.infoLabel}>Phone</Text>
-                <Text style={styles.infoValue}>{user.phone || 'N/A'}</Text>
+                <Text style={styles.infoLabel}>{t('profile.phone')}</Text>
+                <Text style={styles.infoValue}>{user.phone || t('profile.na')}</Text>
               </View>
             </View>
             
@@ -215,8 +220,8 @@ export default function ProfileScreen() {
                 <MapPin size={18} color="#FF9800" />
               </View>
               <View style={styles.infoContent}>
-                <Text style={styles.infoLabel}>Location</Text>
-                <Text style={styles.infoValue}>{user.location || 'N/A'}</Text>
+                <Text style={styles.infoLabel}>{t('profile.location')}</Text>
+                <Text style={styles.infoValue}>{user.location || t('profile.na')}</Text>
               </View>
             </View>
             
@@ -225,13 +230,9 @@ export default function ProfileScreen() {
                 <Calendar size={18} color="#9C27B0" />
               </View>
               <View style={styles.infoContent}>
-                <Text style={styles.infoLabel}>Join Date</Text>
+                <Text style={styles.infoLabel}>{t('profile.join_date')}</Text>
                 <Text style={styles.infoValue}>
-                  {user.joinDate ? new Date(user.joinDate).toLocaleDateString('en-US', {
-                    year: 'numeric',
-                    month: 'long',
-                    day: 'numeric',
-                  }) : 'N/A'}
+                  {user.joinDate ? formatDate(new Date(user.joinDate), 'long') : t('profile.na')}
                 </Text>
               </View>
             </View>
@@ -240,7 +241,7 @@ export default function ProfileScreen() {
 
         {/* Work Information */}
         <View style={styles.section}>
-          <Text style={styles.sectionTitle}>Work Information</Text>
+          <Text style={styles.sectionTitle}>{t('profile.work_information')}</Text>
           
           <View style={styles.statsGrid}>
             <View style={styles.statCard}>
@@ -248,7 +249,7 @@ export default function ProfileScreen() {
                 <Clock size={20} color="#4A90E2" />
               </View>
               <Text style={styles.statValue}>{totalHours} hours</Text>
-              <Text style={styles.statLabel}>Total Hours</Text>
+              <Text style={styles.statLabel}>{t('attendance.total_hours')}</Text>
             </View>
             
             <View style={styles.statCard}>
@@ -256,7 +257,7 @@ export default function ProfileScreen() {
                 <Calendar size={20} color="#4CAF50" />
               </View>
               <Text style={styles.statValue}>{totalDays} days</Text>
-              <Text style={styles.statLabel}>Total Days</Text>
+              <Text style={styles.statLabel}>{t('attendance.total_days')}</Text>
             </View>
           </View>
           
@@ -266,8 +267,8 @@ export default function ProfileScreen() {
                 <Clock size={18} color="#4A90E2" />
               </View>
               <View style={styles.infoContent}>
-                <Text style={styles.infoLabel}>Work Schedule</Text>
-                <Text style={styles.infoValue}>{user.workSchedule || 'N/A'}</Text>
+                <Text style={styles.infoLabel}>{t('profile.work_schedule')}</Text>
+                <Text style={styles.infoValue}>{user.workSchedule || t('profile.na')}</Text>
               </View>
             </View>
           </View>
@@ -275,7 +276,13 @@ export default function ProfileScreen() {
 
         {/* Menu Items */}
         <View style={styles.section}>
-          <Text style={styles.sectionTitle}>Settings & Support</Text>
+          <Text style={styles.sectionTitle}>{t('profile.settings_support')}</Text>
+          
+          {/* Language Selector */}
+          <LanguageSelector 
+            showLabel={true}
+            style={styles.languageSelectorItem}
+          />
           
           {menuItems.map((item, index) => (
             <TouchableOpacity
@@ -304,7 +311,7 @@ export default function ProfileScreen() {
             activeOpacity={0.7}
           >
             <LogOut size={20} color="#F44336" />
-            <Text style={styles.logoutText}>Logout</Text>
+            <Text style={styles.logoutText}>{t('profile.logout')}</Text>
           </TouchableOpacity>
         </View>
       </ScrollView>
@@ -482,6 +489,9 @@ const styles = StyleSheet.create({
   menuItemSubtitle: {
     fontSize: 12,
     color: '#666',
+  },
+  languageSelectorItem: {
+    marginBottom: 8,
   },
   logoutButton: {
     flexDirection: 'row',

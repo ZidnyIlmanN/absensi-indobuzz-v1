@@ -14,11 +14,13 @@ import { LinearGradient } from 'expo-linear-gradient';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { router } from 'expo-router';
 import { Mail, Lock, Eye, EyeOff, LogIn, UserPlus } from 'lucide-react-native';
+import { useTranslation } from 'react-i18next';
 import { useAppContext } from '@/context/AppContext';
 import { LoadingSpinner } from '@/components/LoadingSpinner';
 
 export default function LoginScreen() {
   const insets = useSafeAreaInsets();
+  const { t } = useTranslation();
   const { signIn } = useAppContext();
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
@@ -27,7 +29,7 @@ export default function LoginScreen() {
 
   const handleLogin = async () => {
     if (!email.trim() || !password.trim()) {
-      Alert.alert('Error', 'Please fill in all fields');
+      Alert.alert(t('common.error'), t('auth.fill_all_fields'));
       return;
     }
 
@@ -36,7 +38,7 @@ export default function LoginScreen() {
     const { user, error } = await signIn(email.trim(), password);
     
     if (error) {
-      Alert.alert('Login Failed', error);
+      Alert.alert(t('auth.login_failed'), error);
     } else if (user) {
  router.replace('/(tabs)');
     }
@@ -62,8 +64,8 @@ export default function LoginScreen() {
         <View style={styles.content}>
           {/* Header */}
           <View style={styles.header}>
-            <Text style={styles.title}>Welcome Back</Text>
-            <Text style={styles.subtitle}>Sign in to your attendance account</Text>
+            <Text style={styles.title}>{t('auth.welcome_back')}</Text>
+            <Text style={styles.subtitle}>{t('auth.sign_in_subtitle')}</Text>
           </View>
 
           {/* Form */}
@@ -73,7 +75,7 @@ export default function LoginScreen() {
               <Mail size={20} color="#666" />
               <TextInput
                 style={styles.textInput}
-                placeholder="Email address"
+                placeholder={t('auth.email_address')}
                 value={email}
                 onChangeText={setEmail}
                 keyboardType="email-address"
@@ -88,7 +90,7 @@ export default function LoginScreen() {
               <Lock size={20} color="#666" />
               <TextInput
                 style={styles.textInput}
-                placeholder="Password"
+                placeholder={t('auth.password')}
                 value={password}
                 onChangeText={setPassword}
                 secureTextEntry={!showPassword}
@@ -117,7 +119,7 @@ export default function LoginScreen() {
                 ) : (
                   <>
                     <LogIn size={20} color="white" />
-                    <Text style={styles.loginButtonText}>Sign In</Text>
+                    <Text style={styles.loginButtonText}>{t('auth.sign_in')}</Text>
                   </>
                 )}
               </View>
@@ -126,9 +128,9 @@ export default function LoginScreen() {
 
             {/* Sign Up Link */}
             <View style={styles.signUpContainer}>
-              <Text style={styles.signUpText}>Don't have an account? </Text>
+              <Text style={styles.signUpText}>{t('auth.dont_have_account')}</Text>
               <TouchableOpacity onPress={handleSignUp}>
-                <Text style={styles.signUpLink}>Sign Up</Text>
+                <Text style={styles.signUpLink}>{t('auth.sign_up')}</Text>
               </TouchableOpacity>
             </View>
           </View>

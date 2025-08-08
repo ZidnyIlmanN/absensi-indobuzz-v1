@@ -15,11 +15,13 @@ import { LinearGradient } from 'expo-linear-gradient';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { router } from 'expo-router';
 import { User, Mail, Lock, Eye, EyeOff, UserPlus, ArrowLeft } from 'lucide-react-native';
+import { useTranslation } from 'react-i18next';
 import { useAppContext } from '@/context/AppContext';
 import { LoadingSpinner } from '@/components/LoadingSpinner';
 
 export default function RegisterScreen() {
   const insets = useSafeAreaInsets();
+  const { t } = useTranslation();
   const { signUp } = useAppContext();
   const [formData, setFormData] = useState({
     name: '',
@@ -33,27 +35,27 @@ export default function RegisterScreen() {
 
   const validateForm = () => {
     if (!formData.name.trim()) {
-      Alert.alert('Error', 'Please enter your full name');
+      Alert.alert(t('common.error'), t('validation.required'));
       return false;
     }
 
     if (!formData.email.trim()) {
-      Alert.alert('Error', 'Please enter your email address');
+      Alert.alert(t('common.error'), t('validation.required'));
       return false;
     }
 
     if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(formData.email)) {
-      Alert.alert('Error', 'Please enter a valid email address');
+      Alert.alert(t('common.error'), t('validation.email_invalid'));
       return false;
     }
 
     if (formData.password.length < 6) {
-      Alert.alert('Error', 'Password must be at least 6 characters long');
+      Alert.alert(t('common.error'), t('validation.password_min_length', { length: 6 }));
       return false;
     }
 
     if (formData.password !== formData.confirmPassword) {
-      Alert.alert('Error', 'Passwords do not match');
+      Alert.alert(t('common.error'), t('validation.passwords_not_match'));
       return false;
     }
 
@@ -72,12 +74,12 @@ export default function RegisterScreen() {
     );
     
     if (error) {
-      Alert.alert('Registration Failed', error);
+      Alert.alert(t('auth.registration_failed'), error);
     } else if (user) {
       Alert.alert(
-        'Success',
-        'Account created successfully! Please sign in with your new account.',
-        [{ text: 'OK', onPress: () => router.replace('/(auth)/login') }]
+        t('common.success'),
+        t('auth.account_created'),
+        [{ text: t('common.ok'), onPress: () => router.replace('/(auth)/login') }]
       );
     }
     
@@ -111,8 +113,8 @@ export default function RegisterScreen() {
               </TouchableOpacity>
               
               <View style={styles.headerText}>
-                <Text style={styles.title}>Create Account</Text>
-                <Text style={styles.subtitle}>Join our attendance system</Text>
+                <Text style={styles.title}>{t('auth.create_account')}</Text>
+                <Text style={styles.subtitle}>{t('auth.join_system')}</Text>
               </View>
             </View>
 
@@ -123,7 +125,7 @@ export default function RegisterScreen() {
                 <User size={20} color="#666" />
                 <TextInput
                   style={styles.textInput}
-                  placeholder="Full name"
+                  placeholder={t('auth.full_name')}
                   value={formData.name}
                   onChangeText={(value) => handleInputChange('name', value)}
                   autoCapitalize="words"
@@ -137,7 +139,7 @@ export default function RegisterScreen() {
                 <Mail size={20} color="#666" />
                 <TextInput
                   style={styles.textInput}
-                  placeholder="Email address"
+                  placeholder={t('auth.email_address')}
                   value={formData.email}
                   onChangeText={(value) => handleInputChange('email', value)}
                   keyboardType="email-address"
@@ -152,7 +154,7 @@ export default function RegisterScreen() {
                 <Lock size={20} color="#666" />
                 <TextInput
                   style={styles.textInput}
-                  placeholder="Password (min. 6 characters)"
+                  placeholder={t('auth.min_6_characters')}
                   value={formData.password}
                   onChangeText={(value) => handleInputChange('password', value)}
                   secureTextEntry={!showPassword}
@@ -174,7 +176,7 @@ export default function RegisterScreen() {
                 <Lock size={20} color="#666" />
                 <TextInput
                   style={styles.textInput}
-                  placeholder="Confirm password"
+                  placeholder={t('auth.confirm_password')}
                   value={formData.confirmPassword}
                   onChangeText={(value) => handleInputChange('confirmPassword', value)}
                   secureTextEntry={!showConfirmPassword}
@@ -203,7 +205,7 @@ export default function RegisterScreen() {
                   ) : (
                     <>
                       <UserPlus size={20} color="white" />
-                      <Text style={styles.registerButtonText}>Create Account</Text>
+                      <Text style={styles.registerButtonText}>{t('auth.create_account')}</Text>
                     </>
                   )}
                 </View>
@@ -211,9 +213,9 @@ export default function RegisterScreen() {
 
               {/* Login Link */}
               <View style={styles.loginContainer}>
-                <Text style={styles.loginText}>Already have an account? </Text>
+                <Text style={styles.loginText}>{t('auth.already_have_account')}</Text>
                 <TouchableOpacity onPress={() => router.back()}>
-                  <Text style={styles.loginLink}>Sign In</Text>
+                  <Text style={styles.loginLink}>{t('auth.sign_in')}</Text>
                 </TouchableOpacity>
               </View>
             </View>

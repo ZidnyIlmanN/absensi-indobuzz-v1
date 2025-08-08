@@ -1,16 +1,36 @@
 import React from 'react';
 import { Tabs } from 'expo-router';
+import { View } from 'react-native';
 import { Home, Users, FileText, MessageCircle, User } from 'lucide-react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import { useTranslation } from 'react-i18next';
 import { AuthGuard } from '@/components/AuthGuard';
+import { LanguageSelector } from '@/components/LanguageSelector';
 
 function TabLayout() {
   const insets = useSafeAreaInsets();
+  const { t } = useTranslation();
 
   return (
     <Tabs
       screenOptions={{
-        headerShown: false,
+        headerShown: true,
+        headerStyle: {
+          backgroundColor: '#4A90E2',
+          elevation: 0,
+          shadowOpacity: 0,
+          borderBottomWidth: 0,
+        },
+        headerTintColor: 'white',
+        headerTitleStyle: {
+          fontWeight: 'bold',
+          fontSize: 18,
+        },
+        headerRight: () => (
+          <View style={{ marginRight: 16 }}>
+            <LanguageSelector compact={true} />
+          </View>
+        ),
         tabBarActiveTintColor: '#4A90E2',
         tabBarInactiveTintColor: '#8E8E93',
         tabBarStyle: {
@@ -29,7 +49,7 @@ function TabLayout() {
       <Tabs.Screen
         name="index"
         options={{
-          title: 'Home',
+          title: t('navigation.home'),
           tabBarIcon: ({ size, color }) => (
             <Home size={size} color={color} />
           ),
@@ -38,7 +58,7 @@ function TabLayout() {
       <Tabs.Screen
         name="employee"
         options={{
-          title: 'Employee',
+          title: t('navigation.employee'),
           tabBarIcon: ({ size, color }) => (
             <Users size={size} color={color} />
           ),
@@ -47,7 +67,7 @@ function TabLayout() {
       <Tabs.Screen
         name="request"
         options={{
-          title: 'Request',
+          title: t('navigation.request'),
           tabBarIcon: ({ size, color }) => (
             <FileText size={size} color={color} />
           ),
@@ -56,7 +76,7 @@ function TabLayout() {
       <Tabs.Screen
         name="inbox"
         options={{
-          title: 'Inbox',
+          title: t('navigation.inbox'),
           tabBarIcon: ({ size, color }) => (
             <MessageCircle size={size} color={color} />
           ),
@@ -65,7 +85,7 @@ function TabLayout() {
       <Tabs.Screen
         name="profile"
         options={{
-          title: 'Profile',
+          title: t('navigation.profile'),
           tabBarIcon: ({ size, color }) => (
             <User size={size} color={color} />
           ),

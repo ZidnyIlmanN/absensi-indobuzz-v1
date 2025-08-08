@@ -14,6 +14,7 @@ import { LinearGradient } from 'expo-linear-gradient';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { router } from 'expo-router';
 import { ArrowLeft, MapPin, Navigation, CircleCheck as CheckCircle, Clock, Wifi, WifiOff, ChevronRight, TriangleAlert as AlertTriangle, RefreshCw, MapPinOff, Loader } from 'lucide-react-native';
+import { useTranslation } from 'react-i18next';
 import { 
   getCurrentLocation, 
   checkOfficeProximity, 
@@ -36,6 +37,7 @@ interface OfficeLocation {
 
 export default function LocationSelectionScreen() {
   const insets = useSafeAreaInsets();
+  const { t } = useTranslation();
   const [selectedLocation, setSelectedLocation] = useState<string | null>(null);
   const [isOnline, setIsOnline] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
@@ -126,25 +128,28 @@ export default function LocationSelectionScreen() {
   const handleContinue = () => {
     if (!selectedLocation) {
       Alert.alert(
-        'Location Required', 
-        'Please select your work location to continue.',
-        [{ text: 'OK' }]
+        t('clock_in.location_required'), 
+        t('clock_in.location_required_continue'),
+        [{ text: t('common.ok') }]
       );
       return;
     }
 
     if (!officeLocation?.isInRange) {
       Alert.alert(
-        'Location Access Denied',
-        `You must be within ${ACCEPTABLE_RADIUS}m of the office to clock in. Current distance: ${officeLocation?.distance}m. Please move closer to the office or check if your GPS is accurate.`,
-        [{ text: 'OK' }]
+        t('clock_in.location_access_denied'),
+        t('clock_in.move_closer', { 
+          radius: ACCEPTABLE_RADIUS, 
+          distance: officeLocation?.distance 
+        }),
+        [{ text: t('common.ok') }]
       );
       return;
     }
 
     // Ensure currentLocation is available before proceeding
     if (!currentLocation) {
-      Alert.alert('Error', 'Your current location could not be determined. Please try again.');
+      Alert.alert(t('common.error'), 'Your current location could not be determined. Please try again.');
       return;
     }
 
@@ -183,16 +188,16 @@ export default function LocationSelectionScreen() {
 
   const getLocationStatusText = () => {
     if (!officeLocation) return 'Checking...';
-    return officeLocation.isInRange ? 'Within Range' : 'Too Far';
+    return officeLocation.isInRange ? 'within_range' : 'too_far';
   };
 
   const getProximityMessage = () => {
-    if (!officeLocation) return 'Checking your location...';
+    if (!officeLocation) return t('clock_in.checking_location');
     
     if (officeLocation.isInRange) {
-      return `Great! You're ${officeLocation.distance}m from the office. You can proceed with clock in.`;
+      return t('clock_in.location_verified_msg');
     } else {
-      return `You're ${officeLocation.distance}m from the office. You need to be within ${ACCEPTABLE_RADIUS}m to clock in. Please ensure your GPS is enabled and accurate.`;
+      return t('clock_in.location_required_msg', { radius: ACCEPTABLE_RADIUS });
     }
   };
 
@@ -212,7 +217,7 @@ export default function LocationSelectionScreen() {
           >
             <ArrowLeft size={24} color="white" />
           </TouchableOpacity>
-          <Text style={styles.headerTitle}>Select Location</Text>
+          <Text style={styles.headerTitle}>{t('clock_in.select_location_title')}</Text>
           <View style={styles.connectionStatus}>
             {isOnline ? (
               <Wifi size={20} color="rgba(255, 255, 255, 0.8)" />
@@ -227,7 +232,7 @@ export default function LocationSelectionScreen() {
           <View style={styles.progressBar}>
             <View style={[styles.progressFill, { width: '50%' }]} />
           </View>
-          <Text style={styles.progressText}>Step 1 of 2</Text>
+          <Text style={styles.progressText}>{t('clock_in.step_1_of_2')}</Text>
         </View>
       </LinearGradient>
 
@@ -242,7 +247,7 @@ export default function LocationSelectionScreen() {
         <View style={styles.statusCard}>
           <View style={styles.statusHeader}>
             <Navigation size={20} color="#4A90E2" />
-            <Text style={styles.statusTitle}>Your Location Status</Text>
+            <Text style={styles.statusTitle}>{t('clock_in.your_location_status')}</Text>
             {!isLoadingLocation && (
               <TouchableOpacity onPress={handleRetryLocation} style={styles.refreshButton}>
                 <RefreshCw size={16} color="#4A90E2" />
@@ -253,14 +258,14 @@ export default function LocationSelectionScreen() {
           {isLoadingLocation ? (
             <View style={styles.loadingContainer}>
               <LoadingSpinner size="small" color="#4A90E2" />
-              <Text style={styles.loadingText}>Getting your location...</Text>
+              <Text style={styles.loadingText}>{t('clock_in.getting_location')}</Text>
             </View>
           ) : locationError ? (
             <View style={styles.errorContainer}>
               <AlertTriangle size={20} color="#F44336" />
               <Text style={styles.errorText}>{locationError}</Text>
               <TouchableOpacity style={styles.retryButton} onPress={handleRetryLocation}>
-                <Text style={styles.retryButtonText}>Retry</Text>
+                <Text style={styles.retryButtonText}>{t('common.retry')}</Text>
               </TouchableOpacity>
             </View>
           ) : currentLocation ? (
@@ -274,7 +279,7 @@ export default function LocationSelectionScreen() {
                   styles.proximityStatus,
                   { color: getLocationStatusColor() }
                 ]}>
-                  {getLocationStatusText()}
+                  {t(`clock_in.${getLocationStatusText().toLowerCase().replace(' ', '_')}`)}
                 </Text>
               </View>
               <Text style={styles.proximityMessage}>
@@ -293,7 +298,7 @@ export default function LocationSelectionScreen() {
             </View>
           ) : (
             <Text style={styles.statusError}>
-              Unable to detect location • Please enable GPS
+              {t('clock_in.unable_detect_location')}
             </Text>
           )}
         </View>
@@ -313,7 +318,7 @@ export default function LocationSelectionScreen() {
               styles.instructionsTitle,
               { color: officeLocation?.isInRange ? '#2E7D32' : '#D32F2F' }
             ]}>
-              {officeLocation?.isInRange ? 'Location Verified' : 'Location Required'}
+              {officeLocation?.isInRange ? t('clock_in.location_verified') : t('clock_in.location_required')}
             </Text>
           </View>
           <Text style={[
@@ -321,32 +326,32 @@ export default function LocationSelectionScreen() {
             { color: officeLocation?.isInRange ? '#2E7D32' : '#D32F2F' }
           ]}>
             {officeLocation?.isInRange 
-              ? 'You are within the acceptable range of the office. You can now select the office location and proceed with clock in.'
-              : `You must be within ${ACCEPTABLE_RADIUS} meters of PT. INDOBUZZ REPUBLIK DIGITAL office to clock in. Please move closer to the office location or ensure your GPS is working properly.`
+              ? t('clock_in.location_verified_msg')
+              : t('clock_in.location_required_msg', { radius: ACCEPTABLE_RADIUS })
             }
           </Text>
         </View>
 
         {/* Available Locations */}
         <View style={styles.locationsSection}>
-          <Text style={styles.sectionTitle}>Available Locations</Text>
+          <Text style={styles.sectionTitle}>{t('clock_in.available_locations')}</Text>
           
           {!currentLocation || isLoadingLocation ? (
             <View style={styles.noLocationsContainer}>
               <Loader size={32} color="#E0E0E0" />
-              <Text style={styles.noLocationsText}>Checking your location...</Text>
-              <Text style={styles.noLocationsSubtext}>Please wait while we verify your proximity to the office</Text>
+              <Text style={styles.noLocationsText}>{t('clock_in.checking_location')}</Text>
+              <Text style={styles.noLocationsSubtext}>{t('clock_in.please_wait_verify')}</Text>
             </View>
           ) : !officeLocation?.isInRange ? (
             <View style={styles.noLocationsContainer}>
               <MapPinOff size={32} color="#E0E0E0" />
-              <Text style={styles.noLocationsText}>No locations available</Text>
+              <Text style={styles.noLocationsText}>{t('clock_in.no_locations_available')}</Text>
               <Text style={styles.noLocationsSubtext}>
-                You must be within {ACCEPTABLE_RADIUS}m of the office to see available locations. Please check your GPS accuracy.
+                {t('clock_in.must_be_within', { radius: ACCEPTABLE_RADIUS })}
               </Text>
               {officeLocation && (
                 <Text style={styles.distanceInfo}>
-                  Current distance: {officeLocation.distance}m
+                  {t('clock_in.current_distance', { distance: officeLocation.distance })}
                 </Text>
               )}
             </View>
@@ -365,7 +370,7 @@ export default function LocationSelectionScreen() {
                 </View>
                 
                 <View style={styles.locationInfo}>
-                  <Text style={styles.locationName}>Kantor</Text>
+                  <Text style={styles.locationName}>{t('clock_in.office')}</Text>
                   <Text style={styles.locationAddress}>PT. INDOBUZZ REPUBLIK DIGITAL</Text>
                   
                   <View style={styles.distanceContainer}>
@@ -376,7 +381,7 @@ export default function LocationSelectionScreen() {
                       styles.statusBadge,
                       { backgroundColor: '#4CAF50' }
                     ]}>
-                      <Text style={styles.statusBadgeText}>In Range</Text>
+                      <Text style={styles.statusBadgeText}>{t('clock_in.in_range')}</Text>
                     </View>
                   </View>
                 </View>
@@ -392,7 +397,7 @@ export default function LocationSelectionScreen() {
 
               <View style={styles.inRangeIndicator}>
                 <CheckCircle size={16} color="#4CAF50" />
-                <Text style={styles.inRangeText}>You're within the office area</Text>
+                <Text style={styles.inRangeText}>{t('clock_in.within_office_area')}</Text>
               </View>
             </TouchableOpacity>
           )}
@@ -402,19 +407,22 @@ export default function LocationSelectionScreen() {
         <View style={styles.officeInfoCard}>
           <View style={styles.officeInfoHeader}>
             <MapPin size={20} color="#666" />
-            <Text style={styles.officeInfoTitle}>Office Information</Text>
+            <Text style={styles.officeInfoTitle}>{t('clock_in.office_information')}</Text>
           </View>
           <Text style={styles.officeInfoText}>
-            <Text style={styles.officeInfoLabel}>Name: </Text>
+            <Text style={styles.officeInfoLabel}>{t('common.name')}: </Text>
             PT. INDOBUZZ REPUBLIK DIGITAL
           </Text>
           <Text style={styles.officeInfoText}>
-            <Text style={styles.officeInfoLabel}>Required Range: </Text>
-            Within {ACCEPTABLE_RADIUS} meters
+            <Text style={styles.officeInfoLabel}>{t('clock_in.required_range')}: </Text>
+            {t('clock_in.within_meters', { radius: ACCEPTABLE_RADIUS })}
           </Text>
           <Text style={styles.officeInfoText}>
-            <Text style={styles.officeInfoLabel}>Location: </Text>
-            Office: {OFFICE_COORDINATES.latitude.toFixed(6)}, {OFFICE_COORDINATES.longitude.toFixed(6)}
+            <Text style={styles.officeInfoLabel}>{t('profile.location')}: </Text>
+            {t('clock_in.office_coords', { 
+              lat: OFFICE_COORDINATES.latitude.toFixed(6), 
+              lng: OFFICE_COORDINATES.longitude.toFixed(6) 
+            })}
           </Text>
         </View>
       </ScrollView>
@@ -443,8 +451,8 @@ export default function LocationSelectionScreen() {
               (!selectedLocation || !officeLocation?.isInRange) && styles.disabledButtonText
             ]}>
               {!officeLocation?.isInRange 
-                ? `Move ${officeLocation ? officeLocation.distance - ACCEPTABLE_RADIUS : '?'}m Closer`
-                : 'Continue to Selfie'
+                ? t('clock_in.move_closer_short', { distance: officeLocation ? officeLocation.distance - ACCEPTABLE_RADIUS : '?' })
+                : t('clock_in.continue_to_selfie')
               }
             </Text>
             {selectedLocation && officeLocation?.isInRange && (

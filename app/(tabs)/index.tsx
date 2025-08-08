@@ -15,6 +15,8 @@ import { StatusBar } from 'expo-status-bar';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { router } from 'expo-router';
 import { Clock, MapPin, Calendar, TrendingUp, LogIn, LogOut, Camera, Wifi, WifiOff, Grid2x2 as Grid, Sun, Sunset, Moon } from 'lucide-react-native';
+import { useTranslation } from 'react-i18next';
+import { useI18n, useLocalizedDate } from '@/hooks/useI18n';
 import { AttendanceCard } from '@/components/AttendanceCard';
 import { AttendanceStatusCard } from '@/components/AttendanceStatusCard';
 import { QuickActionCard } from '@/components/QuickActionCard';
@@ -28,6 +30,8 @@ const { width } = Dimensions.get('window');
 
 export default function HomeScreen() {
   const insets = useSafeAreaInsets();
+  const { t } = useTranslation();
+  const { formatDate, formatTime } = useLocalizedDate();
   const { user, currentAttendance, isWorking, workHours, clockIn, clockOut, currentStatus, attendanceHistory } = useAppContext();
   const [currentTime, setCurrentTime] = useState(new Date());
   const [isLoading, setIsLoading] = useState(false);
@@ -58,16 +62,16 @@ export default function HomeScreen() {
     let newIcon = null;
 
     if (hour >= 5 && hour < 12) {
-      newGreeting = 'Good Morning';
+      newGreeting = t('home.good_morning');
       newIcon = <Sun size={20} color="rgba(255, 255, 255, 0.9)" />;
     } else if (hour >= 12 && hour < 17) {
-      newGreeting = 'Good Afternoon';
+      newGreeting = t('home.good_afternoon');
       newIcon = <Sun size={20} color="rgba(255, 255, 255, 0.9)" />;
     } else if (hour >= 17 && hour < 21) {
-      newGreeting = 'Good Evening';
+      newGreeting = t('home.good_evening');
       newIcon = <Sunset size={20} color="rgba(255, 255, 255, 0.9)" />;
     } else {
-      newGreeting = 'Good Night';
+      newGreeting = t('home.good_night');
       newIcon = <Moon size={20} color="rgba(255, 255, 255, 0.9)" />;
     }
 
@@ -152,41 +156,25 @@ export default function HomeScreen() {
 
   const quickActions = [
     {
-      title: 'Lihat\nSemua',
+      title: t('home.view_all_features'),
       icon: <Grid size={24} color="#4A90E2" />,
     },
     {
-      title: 'Live\nAttendance',
+      title: t('home.live_attendance'),
       icon: <TrendingUp size={24} color="#4A90E2" />,
 
     },
     {
-      title: 'Time Off',
+      title: t('home.time_off'),
       icon: <Calendar size={24} color="#FF6B6B" />,
 
     },
     {
-      title: 'Reimburse',
+      title: t('home.reimburse'),
       icon: <Clock size={24} color="#4CAF50" />,
 
     },
   ];
-
-  const formatTime = (time: Date) => {
-    return time.toLocaleTimeString([], { 
-      hour: '2-digit', 
-      minute: '2-digit',
-      hour12: false 
-    });
-  };
-
-  const formatDate = (time: Date) => {
-    return time.toLocaleDateString('en-US', { 
-      weekday: 'long',
-      month: 'long', 
-      day: 'numeric' 
-    });
-  };
 
   return (
     <ErrorBoundary>
@@ -295,7 +283,7 @@ export default function HomeScreen() {
 
           {/* Quick Actions */}
           <View style={styles.section}>
-            <Text style={styles.sectionTitle}>Quick Actions</Text>
+            <Text style={styles.sectionTitle}>{t('home.quick_actions')}</Text>
             <View style={styles.quickActionsGrid}>
               {quickActions.map((action, index) => (
                 <TouchableOpacity
@@ -316,7 +304,7 @@ export default function HomeScreen() {
                         router.push('/reimburse');
                         break;
                       default:
-                        Alert.alert('Feature', `${action.title} feature coming soon!`);
+                        Alert.alert(t('common.error'), `${action.title} feature coming soon!`);
                     }
                   }}
                   activeOpacity={0.7}
@@ -332,16 +320,16 @@ export default function HomeScreen() {
 
           {/* Today's Stats */}
           <View style={styles.section}>
-            <Text style={styles.sectionTitle}>Today's Overview</Text>
+            <Text style={styles.sectionTitle}>{t('home.todays_overview')}</Text>
             <View style={styles.statsGrid}>
               <StatsCard
-                title="Work Hours"
+                title={t('home.work_hours')}
                 value={workHours}
                 icon={<Clock size={20} color="#4A90E2" />}
                 color="#E3F2FD" />
               <StatsCard
-                title="Status"
-                value={isWorking ? "Working" : "Off"}
+                title={t('home.status')}
+                value={isWorking ? t('home.working') : t('home.off')}
                 icon={<TrendingUp size={20} color="#4CAF50" />}
                 color="#E8F5E8" />
             </View>
@@ -350,9 +338,9 @@ export default function HomeScreen() {
           {/* Recent Attendance */}
           <View style={styles.section}>
             <View style={styles.sectionHeader}>
-              <Text style={styles.sectionTitle}>Recent Attendance</Text>
+              <Text style={styles.sectionTitle}>{t('home.recent_attendance')}</Text>
               <TouchableOpacity onPress={() => router.push('/attendance-history')}>
-                <Text style={styles.viewAllText}>View All</Text>
+                <Text style={styles.viewAllText}>{t('common.view_all')}</Text>
               </TouchableOpacity>
             </View>
 
@@ -373,7 +361,7 @@ export default function HomeScreen() {
                     </View>
                     <View style={styles.attendanceInfo}>
                       <Text style={styles.attendanceType}>
-                        {record.status === 'working' || record.clockIn ? 'Clock In' : 'Clock Out'}
+                        {record.status === 'working' || record.clockIn ? t('home.clock_in') : t('home.clock_out')}
                       </Text>
                       <Text style={styles.attendanceTime}>
                         {record.clockIn
@@ -395,7 +383,7 @@ export default function HomeScreen() {
                         styles.statusText,
                         { color: record.status === 'completed' ? '#4CAF50' : record.status === 'working' ? '#4A90E2' : '#FF9800' }
                       ]}>
-                        {record.status === 'completed' ? 'Completed' : record.status === 'working' ? 'Working' : 'Pending'}
+                        {record.status === 'completed' ? t('home.completed') : record.status === 'working' ? t('home.working') : t('home.pending')}
                       </Text>
                     </View>
                   </View>
@@ -403,8 +391,8 @@ export default function HomeScreen() {
               ) : (
                 <View key="no-records" style={styles.attendanceItem}>
                   <View style={styles.attendanceInfo}>
-                    <Text style={styles.attendanceType}>No attendance records</Text>
-                    <Text style={styles.attendanceTime}>Start clocking in to see your attendance history</Text>
+                    <Text style={styles.attendanceType}>{t('home.no_attendance_records')}</Text>
+                    <Text style={styles.attendanceTime}>{t('home.start_clocking')}</Text>
                   </View>
                 </View>
               )}

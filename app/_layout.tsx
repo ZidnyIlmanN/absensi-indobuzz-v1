@@ -1,5 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import { Stack, useRouter, useSegments } from 'expo-router';
+import { I18nextProvider } from 'react-i18next';
+import i18n from '@/services/i18n';
 import { AppProvider, useAppContext } from '../context/AppContext';
 import SplashScreen from './splash'; // Impor splash screen Anda
 import { customTransition } from '../constants/Transitions';
@@ -99,8 +101,10 @@ function RootLayoutNav() {
 
 export default function RootLayout() {
   return (
-    <AppProvider>
-      <RootLayoutNav />
-    </AppProvider>
+    <I18nextProvider i18n={i18n}>
+      <AppProvider>
+        <RootLayoutNav />
+      </AppProvider>
+    </I18nextProvider>
   );
 }

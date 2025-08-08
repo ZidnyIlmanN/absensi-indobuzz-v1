@@ -14,7 +14,10 @@ import { LinearGradient } from 'expo-linear-gradient';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { router } from 'expo-router';
 import { ArrowLeft, Globe, Clock, Palette, Type, Mail, Download, Upload, Trash2, ChevronRight, Moon, Sun, Languages, Bell, Database, TriangleAlert as AlertTriangle, Check, Fingerprint } from 'lucide-react-native';
+import { useTranslation } from 'react-i18next';
+import { useI18n } from '@/hooks/useI18n';
 import { biometricAuth } from '@/services/biometricAuth';
+import { LanguageSelector } from '@/components/LanguageSelector';
 
 interface AppSettings {
   language: string;
@@ -32,8 +35,10 @@ interface AppSettings {
 
 export default function SettingsScreen() {
   const insets = useSafeAreaInsets();
+  const { t } = useTranslation();
+  const { currentLanguage } = useI18n();
   const [settings, setSettings] = useState<AppSettings>({
-    language: 'English',
+    language: currentLanguage === 'id' ? 'Bahasa Indonesia' : 'English',
     timezone: 'Asia/Jakarta',
     theme: 'system',
     fontSize: 'medium',
@@ -111,37 +116,37 @@ export default function SettingsScreen() {
         const result = await biometricAuth.enableBiometricAuth();
         if (result.success) {
           handleSettingChange('biometricEnabled', true);
-          Alert.alert('Success', 'Biometric authentication enabled successfully');
+          Alert.alert(t('common.success'), t('settings.biometric_enabled'));
         } else {
-          Alert.alert('Error', result.error || 'Failed to enable biometric authentication');
+          Alert.alert(t('common.error'), result.error || t('settings.biometric_enable_failed'));
         }
       } else {
         const result = await biometricAuth.disableBiometricAuth();
         if (result.success) {
           handleSettingChange('biometricEnabled', false);
-          Alert.alert('Success', 'Biometric authentication disabled');
+          Alert.alert(t('common.success'), t('settings.biometric_disabled'));
         } else {
-          Alert.alert('Error', result.error || 'Failed to disable biometric authentication');
+          Alert.alert(t('common.error'), result.error || t('settings.biometric_disable_failed'));
         }
       }
     } catch (error) {
-      Alert.alert('Error', 'An error occurred while updating biometric settings');
+      Alert.alert(t('common.error'), t('settings.biometric_error'));
     }
   };
 
   const handleExportData = () => {
     Alert.alert(
-      'Export Data',
-      'Your data will be exported as a JSON file. This may take a few moments.',
+      t('settings.export_data'),
+      t('settings.export_data_confirm'),
       [
-        { text: 'Cancel', style: 'cancel' },
+        { text: t('common.cancel'), style: 'cancel' },
         {
-          text: 'Export',
+          text: t('settings.export'),
           onPress: () => {
             setIsLoading(true);
             setTimeout(() => {
               setIsLoading(false);
-              Alert.alert('Success', 'Data exported successfully!');
+              Alert.alert(t('common.success'), t('settings.data_exported'));
             }, 2000);
           },
         },
@@ -151,14 +156,14 @@ export default function SettingsScreen() {
 
   const handleImportData = () => {
     Alert.alert(
-      'Import Data',
-      'Select a JSON file to import your data. This will overwrite existing data.',
+      t('settings.import_data'),
+      t('settings.import_data_confirm'),
       [
-        { text: 'Cancel', style: 'cancel' },
+        { text: t('common.cancel'), style: 'cancel' },
         {
-          text: 'Import',
+          text: t('settings.import'),
           onPress: () => {
-            Alert.alert('Info', 'File picker functionality would be implemented here.');
+            Alert.alert('Info', t('settings.file_picker_info'));
           },
         },
       ]
@@ -172,9 +177,9 @@ export default function SettingsScreen() {
   const confirmDeleteAccount = () => {
     setShowDeleteModal(false);
     Alert.alert(
-      'Account Deleted',
-      'Your account has been scheduled for deletion. You have 30 days to recover it.',
-      [{ text: 'OK', onPress: () => router.replace('/(tabs)') }]
+      t('settings.account_deleted'),
+      t('settings.account_deletion_msg'),
+      [{ text: t('common.ok'), onPress: () => router.replace('/(tabs)') }]
     );
   };
 
@@ -288,14 +293,14 @@ export default function SettingsScreen() {
       <ScrollView style={styles.content} showsVerticalScrollIndicator={false}>
         {/* Account Preferences */}
         <View style={styles.section}>
-          <Text style={styles.sectionTitle}>Account Preferences</Text>
+          <Text style={styles.sectionTitle}>{t('settings.account_preferences')}</Text>
           
           {/* Biometric Authentication */}
           {biometricCapabilities?.isAvailable && (
             <SettingItem
               icon={<Fingerprint size={20} color="#4CAF50" />}
-              title="Biometric Authentication"
-              subtitle={`Use ${biometricCapabilities.supportedTypes[0] || 'biometric'} for quick login`}
+              title={t('settings.biometric_authentication')}
+              subtitle={t('settings.use_biometric_login', { type: biometricCapabilities.supportedTypes[0] || 'biometric' })}
               rightComponent={
                 <Switch
                   value={settings.biometricEnabled}
@@ -308,18 +313,22 @@ export default function SettingsScreen() {
             />
           )}
           
-          <SettingItem
-            icon={<Languages size={20} color="#4A90E2" />}
-            title="Language"
-            subtitle="Choose your preferred language"
-            value={settings.language}
-            onPress={() => setShowLanguageModal(true)}
-          />
+          {/* Language Selector */}
+          <View style={styles.languageSelectorContainer}>
+            <LanguageSelector 
+              showLabel={true}
+              style={styles.languageSelector}
+              onLanguageChange={(lang) => {
+                const displayName = lang === 'id' ? 'Bahasa Indonesia' : 'English';
+                setSettings(prev => ({ ...prev, language: displayName }));
+              }}
+            />
+          </View>
           
           <SettingItem
             icon={<Clock size={20} color="#4CAF50" />}
-            title="Timezone"
-            subtitle="Set your local timezone"
+            title={t('settings.timezone')}
+            subtitle={t('settings.set_local_timezone')}
             value={settings.timezone}
             onPress={() => setShowTimezoneModal(true)}
           />
@@ -327,33 +336,33 @@ export default function SettingsScreen() {
 
         {/* Display Settings */}
         <View style={styles.section}>
-          <Text style={styles.sectionTitle}>Display Settings</Text>
+          <Text style={styles.sectionTitle}>{t('settings.display_settings')}</Text>
           
           <SettingItem
             icon={<Palette size={20} color="#9C27B0" />}
-            title="Theme"
-            subtitle="Choose your preferred theme"
-            value={settings.theme.charAt(0).toUpperCase() + settings.theme.slice(1)}
+            title={t('settings.theme')}
+            subtitle={t('settings.choose_preferred_theme')}
+            value={t(`settings.${settings.theme}`)}
             onPress={() => setShowThemeModal(true)}
           />
           
           <SettingItem
             icon={<Type size={20} color="#FF9800" />}
-            title="Font Size"
-            subtitle="Adjust text size for better readability"
-            value={settings.fontSize.charAt(0).toUpperCase() + settings.fontSize.slice(1)}
+            title={t('settings.font_size')}
+            subtitle={t('settings.adjust_text_size')}
+            value={t(`settings.${settings.fontSize}`)}
             onPress={() => setShowFontModal(true)}
           />
         </View>
 
         {/* Email Preferences */}
         <View style={styles.section}>
-          <Text style={styles.sectionTitle}>Email Preferences</Text>
+          <Text style={styles.sectionTitle}>{t('settings.email_preferences')}</Text>
           
           <SettingItem
             icon={<Mail size={20} color="#2196F3" />}
-            title="Email Notifications"
-            subtitle="Receive important updates via email"
+            title={t('settings.email_notifications')}
+            subtitle={t('settings.receive_important_updates')}
             rightComponent={
               <Switch
                 value={settings.emailNotifications}
@@ -367,8 +376,8 @@ export default function SettingsScreen() {
           
           <SettingItem
             icon={<Bell size={20} color="#FF5722" />}
-            title="Push Notifications"
-            subtitle="Get notified about important events"
+            title={t('settings.push_notifications')}
+            subtitle={t('settings.get_notified_events')}
             rightComponent={
               <Switch
                 value={settings.pushNotifications}
@@ -382,8 +391,8 @@ export default function SettingsScreen() {
           
           <SettingItem
             icon={<Mail size={20} color="#607D8B" />}
-            title="Marketing Emails"
-            subtitle="Receive promotional content and offers"
+            title={t('settings.marketing_emails')}
+            subtitle={t('settings.receive_promotional')}
             rightComponent={
               <Switch
                 value={settings.marketingEmails}
@@ -397,8 +406,8 @@ export default function SettingsScreen() {
           
           <SettingItem
             icon={<Mail size={20} color="#795548" />}
-            title="Weekly Digest"
-            subtitle="Get a summary of your weekly activity"
+            title={t('settings.weekly_digest')}
+            subtitle={t('settings.weekly_activity_summary')}
             rightComponent={
               <Switch
                 value={settings.weeklyDigest}
@@ -413,12 +422,12 @@ export default function SettingsScreen() {
 
         {/* Data Management */}
         <View style={styles.section}>
-          <Text style={styles.sectionTitle}>Data Management</Text>
+          <Text style={styles.sectionTitle}>{t('settings.data_management')}</Text>
           
           <SettingItem
             icon={<Database size={20} color="#4CAF50" />}
-            title="Auto Backup"
-            subtitle="Automatically backup your data"
+            title={t('settings.auto_backup')}
+            subtitle={t('settings.automatically_backup')}
             rightComponent={
               <Switch
                 value={settings.autoBackup}
@@ -432,27 +441,27 @@ export default function SettingsScreen() {
           
           <SettingItem
             icon={<Download size={20} color="#2196F3" />}
-            title="Export Data"
-            subtitle="Download your data as JSON file"
+            title={t('settings.export_data')}
+            subtitle={t('settings.download_json')}
             onPress={handleExportData}
           />
           
           <SettingItem
             icon={<Upload size={20} color="#FF9800" />}
-            title="Import Data"
-            subtitle="Import data from backup file"
+            title={t('settings.import_data')}
+            subtitle={t('settings.import_backup')}
             onPress={handleImportData}
           />
         </View>
 
         {/* Privacy Settings */}
         <View style={styles.section}>
-          <Text style={styles.sectionTitle}>Privacy Settings</Text>
+          <Text style={styles.sectionTitle}>{t('settings.privacy_settings')}</Text>
           
           <SettingItem
             icon={<Database size={20} color="#9C27B0" />}
-            title="Data Sharing"
-            subtitle="Share anonymous usage data to improve the app"
+            title={t('settings.data_sharing')}
+            subtitle={t('settings.share_anonymous_usage')}
             rightComponent={
               <Switch
                 value={settings.dataSharing}
@@ -467,12 +476,12 @@ export default function SettingsScreen() {
 
         {/* Danger Zone */}
         <View style={styles.section}>
-          <Text style={styles.sectionTitle}>Danger Zone</Text>
+          <Text style={styles.sectionTitle}>{t('settings.danger_zone')}</Text>
           
           <SettingItem
             icon={<Trash2 size={20} color="#F44336" />}
-            title="Delete Account"
-            subtitle="Permanently delete your account and all data"
+            title={t('settings.delete_account')}
+            subtitle={t('settings.permanently_delete')}
             onPress={handleDeleteAccount}
           />
         </View>
@@ -482,7 +491,7 @@ export default function SettingsScreen() {
       <SelectionModal
         visible={showLanguageModal}
         onClose={() => setShowLanguageModal(false)}
-        title="Select Language"
+        title={t('settings.select_language')}
         options={languages.map(lang => ({ value: lang.name, label: lang.name }))}
         selectedValue={settings.language}
         onSelect={(value) => handleSettingChange('language', value)}
@@ -491,7 +500,7 @@ export default function SettingsScreen() {
       <SelectionModal
         visible={showTimezoneModal}
         onClose={() => setShowTimezoneModal(false)}
-        title="Select Timezone"
+        title={t('settings.select_timezone')}
         options={timezones.map(tz => ({ value: tz.value, label: tz.label }))}
         selectedValue={settings.timezone}
         onSelect={(value) => handleSettingChange('timezone', value)}
@@ -500,10 +509,10 @@ export default function SettingsScreen() {
       <SelectionModal
         visible={showThemeModal}
         onClose={() => setShowThemeModal(false)}
-        title="Select Theme"
+        title={t('settings.select_theme')}
         options={themes.map(theme => ({ 
           value: theme.value, 
-          label: theme.label, 
+          label: t(`settings.${theme.value}`), 
           icon: theme.icon 
         }))}
         selectedValue={settings.theme}
@@ -513,8 +522,8 @@ export default function SettingsScreen() {
       <SelectionModal
         visible={showFontModal}
         onClose={() => setShowFontModal(false)}
-        title="Select Font Size"
-        options={fontSizes.map(size => ({ value: size.value, label: size.label }))}
+        title={t('settings.select_font_size')}
+        options={fontSizes.map(size => ({ value: size.value, label: t(`settings.${size.value}`) }))}
         selectedValue={settings.fontSize}
         onSelect={(value) => handleSettingChange('fontSize', value as any)}
       />
@@ -530,15 +539,15 @@ export default function SettingsScreen() {
           <View style={styles.deleteModalContent}>
             <View style={styles.deleteModalHeader}>
               <AlertTriangle size={48} color="#F44336" />
-              <Text style={styles.deleteModalTitle}>Delete Account</Text>
+              <Text style={styles.deleteModalTitle}>{t('settings.delete_account')}</Text>
             </View>
             
             <Text style={styles.deleteModalText}>
-              Are you sure you want to delete your account? This action cannot be undone.
+              {t('settings.delete_account_confirm')}
             </Text>
             
             <Text style={styles.deleteModalWarning}>
-              All your data, including attendance records, requests, and personal information will be permanently deleted.
+              {t('settings.all_data_deleted')}
             </Text>
             
             <View style={styles.deleteModalActions}>
@@ -546,14 +555,14 @@ export default function SettingsScreen() {
                 style={styles.deleteModalCancel}
                 onPress={() => setShowDeleteModal(false)}
               >
-                <Text style={styles.deleteModalCancelText}>Cancel</Text>
+                <Text style={styles.deleteModalCancelText}>{t('common.cancel')}</Text>
               </TouchableOpacity>
               
               <TouchableOpacity
                 style={styles.deleteModalConfirm}
                 onPress={confirmDeleteAccount}
               >
-                <Text style={styles.deleteModalConfirmText}>Delete Account</Text>
+                <Text style={styles.deleteModalConfirmText}>{t('settings.delete_account')}</Text>
               </TouchableOpacity>
             </View>
           </View>
@@ -645,6 +654,12 @@ const styles = StyleSheet.create({
     fontSize: 14,
     color: '#4A90E2',
     fontWeight: '500',
+  },
+  languageSelectorContainer: {
+    marginBottom: 8,
+  },
+  languageSelector: {
+    marginBottom: 0,
   },
   modalOverlay: {
     flex: 1,

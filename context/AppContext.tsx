@@ -1,4 +1,5 @@
 import React, { createContext, useContext, ReactNode, useState, useEffect } from 'react';
+import { useTranslation } from 'react-i18next';
 import { User, AttendanceRecord, Request, Notification, Employee, ActivityRecord } from '@/types';
 import { useAuth } from '@/hooks/useAuth';
 import { useAttendance } from '@/hooks/userAttendance';
@@ -55,6 +56,7 @@ const AppContext = createContext<AppContextType | null>(null);
 export const AppProvider = ({ children }: { children: ReactNode }) => {
   // Auth hooks
   const auth = useAuth();
+  const { t } = useTranslation();
   
   // Data hooks
   const attendance = useAttendance(auth.user?.id || null);
