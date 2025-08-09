@@ -12,35 +12,35 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { router } from 'expo-router';
 import { ArrowLeft, LogOut, Camera, Clock, MapPin } from 'lucide-react-native';
 import { useAppContext } from '@/context/AppContext';
-import { useTranslation } from 'react-i18next';
+import { useI18n } from '@/hooks/useI18n';
 
 export default function CheckOutScreen() {
   const insets = useSafeAreaInsets();
-  const { t } = useTranslation();
+  const { t } = useI18n();
   const { currentAttendance, workHours, clockOut } = useAppContext();
   const [isProcessing, setIsProcessing] = useState(false);
 
   const handleClockOut = async () => {
     Alert.alert(
-      'Clock Out',
-      'Please take a selfie to confirm clock out',
+      t('check_out.check_out'),
+      t('check_out.take_selfie_clock_out'),
       [
-        { text: 'Cancel', style: 'cancel' },
+        { text: t('common.cancel'), style: 'cancel' },
         {
-          text: 'Take Selfie',
+          text: t('clock_in.take_selfie'),
           onPress: async () => {
             setIsProcessing(true);
             if (!currentAttendance) {
-              Alert.alert('Error', 'No active attendance found.');
+              Alert.alert(t('common.error'), t('attendance.no_active_attendance'));
               setIsProcessing(false);
               return;
             }
             // For demo, using fixed selfie URL and empty notes
             const { error } = await clockOut('https://images.pexels.com/photos/614810/pexels-photo-614810.jpeg', '');
             if (error) {
-              Alert.alert('Error', error);
+              Alert.alert(t('common.error'), error);
             } else {
-              Alert.alert('Success', 'You have successfully clocked out!');
+              Alert.alert(t('common.success'), t('clock_out.success_clock_out'));
             }
             setIsProcessing(false);
           },
@@ -108,9 +108,9 @@ export default function CheckOutScreen() {
             <LogOut size={20} color="#F44336" />
             <Text style={styles.summaryLabel}>{t('check_out.clock_in_time')}</Text>
             <Text style={styles.summaryValue}> 
-              {currentAttendance?.clockIn?.toLocaleTimeString([], { 
-                hour: '2-digit', 
-                minute: '2-digit' 
+              {currentAttendance?.clockIn?.toLocaleTimeString([], {
+                hour: '2-digit',
+                minute: '2-digit'
               }) || '--:--'}
             </Text>
           </View>
