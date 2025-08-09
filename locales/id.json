@@ -32,7 +32,13 @@
     "automatically_detect": "Deteksi lokasi Anda secara otomatis",
     "indonesian_cities": "Kota-kota Indonesia",
     "name": "Nama",
-    "na": "T/A"
+    "na": "T/A",
+    "message": "Pesan",
+    "coming_soon": "Segera hadir!",
+    "call": "Telepon",
+    "email": "Email",
+    "location": "Lokasi",
+    "phone": "Telepon"
   },
   "auth": {
     "welcome_back": "Selamat Datang Kembali",
@@ -111,13 +117,24 @@
     "attendance_details": "Detail Absensi",
     "time_summary": "Ringkasan Waktu",
     "break_time": "Waktu Istirahat",
-    "timeline": "Timeline",
+    "timeline": "Linimasa",
     "verification_photos": "Foto Verifikasi",
     "location_information": "Informasi Lokasi",
     "notes": "Catatan",
     "photos": "foto",
     "tap_to_view": "Ketuk untuk melihat",
-    "failed_to_load": "Gagal memuat"
+    "failed_to_load": "Gagal memuat",
+    "attendance_in": "Absensi Masuk",
+    "break_started": "Mulai Istirahat",
+    "break_ended": "Selesai Istirahat",
+    "work_hours": "Jam Kerja",
+    "resume": "Lanjutkan",
+    "out": "Keluar",
+    "break": "Istirahat",
+    "in": "Masuk",
+    "total_work_hours": "Total Jam Kerja",
+    "completed": "Selesai",
+    "tap_to_view_details": "Ketuk untuk melihat detail"
   },
   "employee": {
     "employee_directory": "Direktori Karyawan",
@@ -156,7 +173,12 @@
     "no_department": "Tidak ada departemen",
     "no_location": "Tidak ada lokasi",
     "no_phone": "Tidak ada telepon",
-    "no_email": "Tidak ada email"
+    "no_email": "Tidak ada email",
+    "no_employee_id": "ID karyawan tidak valid",
+    "failed_to_load": "Gagal memuat detail karyawan",
+    "no_employee_data": "Karyawan yang diminta tidak dapat ditemukan.",
+    "employee_details": "Detail Karyawan",
+    "tenure": "Masa Jabatan"
   },
   "requests": {
     "requests": "Permintaan",
@@ -675,9 +697,9 @@
     "quick_locations": "Lokasi Cepat",
     "current": "Saat Ini",
     "weather_tips": "Tips Cuaca",
-    "hot_today": "🌡️ Hari ini cukup panas. Tetap terhidrasi dan hindari paparan sinar matahari yang lama.",
+    "hot_today": "☤️ Hari ini cukup panas. Tetap terhidrasi dan hindari paparan sinar matahari yang lama.",
     "high_humidity": "💧 Kelembaban tinggi hari ini. Anda mungkin merasa lebih hangat dari suhu sebenarnya.",
-    "rain_expected": "☔ Hujan diperkirakan. Jangan lupa bawa payung!",
+    "rain_expected": "☂️ Hujan diperkirakan. Jangan lupa bawa payung!",
     "windy_conditions": "💨 Kondisi berangin. Amankan barang-barang yang longgar saat di luar.",
     "cooler_weather": "🧥 Cuaca lebih sejuk hari ini. Pertimbangkan memakai jaket ringan.",
     "weather_unavailable": "Cuaca tidak tersedia",

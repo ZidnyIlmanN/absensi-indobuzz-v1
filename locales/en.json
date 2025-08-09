@@ -32,7 +32,13 @@
     "automatically_detect": "Automatically detect your location",
     "indonesian_cities": "Indonesian Cities",
     "name": "Name",
-    "na": "N/A"
+    "na": "N/A",
+    "message": "Message",
+    "coming_soon": "Coming soon!",
+    "call": "Call",
+    "email": "Email",
+    "location": "Location",
+    "phone": "Phone"
   },
   "auth": {
     "welcome_back": "Welcome Back",
@@ -117,7 +123,19 @@
     "notes": "Notes",
     "photos": "photos",
     "tap_to_view": "Tap to view",
-    "failed_to_load": "Failed to load"
+    "failed_to_load": "Failed to load",
+    "attendance_in": "Attendance In",
+    "attendance_out": "Attendance Out",
+    "total_work_hours": "Total Work Hours",
+    "tap_to_view_details": "Tap to view details",
+    "completed": "Completed",
+    "in": "In",
+    "break": "Break",
+    "resume": "Resume",
+    "out": "Out",
+    "break_started": "Break Started",
+    "break_ended": "Break Ended",
+    "work_hours": "Work Hours"
   },
   "employee": {
     "employee_directory": "Employee Directory",
@@ -156,7 +174,12 @@
     "no_department": "No department",
     "no_location": "No location",
     "no_phone": "No phone",
-    "no_email": "No email"
+    "no_email": "No email",
+    "no_employee_id": "Invalid employee ID",
+    "failed_to_load": "Failed to load employee details",
+    "no_employee_data": "The requested employee could not be found.",
+    "employee_details": "Employee Details",
+    "tenure": "Tenure"
   },
   "requests": {
     "requests": "Requests",
@@ -684,7 +707,11 @@
     "loading_weather": "Loading weather...",
     "just_updated": "Just updated",
     "minutes_ago": "{{minutes}}m ago",
-    "hours_ago": "{{hours}}h ago"
+    "hours_ago": "{{hours}}h ago",
+    "select_location": "Select Location",
+    "use_current_location": "Use Current Location",
+    "automatically_detect": "Automatically detect",
+    "indonesian_cities": "Indonesian Cities"
   },
   "language": {
     "language": "Language",
@@ -804,7 +831,7 @@
     "maximum_4_hours": "• Maximum 4 hours overtime per day",
     "take_regular_breaks": "• Take regular breaks during overtime",
     "overtime_rates_apply": "• Overtime rates apply as per company policy",
-    "are_you_ready_start": "Are you sure you want to start overtime work?",
+    "are_you_ready_start": "Are you ready to start your overtime work?",
     "are_you_ready_end": "Are you ready to end your overtime work?",
     "overtime_started_success": "Overtime started successfully!",
     "overtime_ended_success": "Overtime ended successfully!"
