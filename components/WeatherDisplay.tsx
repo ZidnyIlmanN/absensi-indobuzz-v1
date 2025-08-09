@@ -398,15 +398,16 @@ const styles = StyleSheet.create({
   container: {
     flexDirection: 'row',
     alignItems: 'center',
+    justifyContent: 'space-between',
+    backgroundColor: 'rgba(255, 255, 255, 0.75)',
+    borderRadius: 12,
+    padding: 8,
+    borderColor: 'rgba(255, 255, 255, 0.3)',
   },
   weatherCard: {
     flex: 1,
-    backgroundColor: 'rgba(255, 255, 255, 0.75)',
     borderRadius: 12,
-    padding: 10,
     elevation: 2,
-    borderWidth: 1,
-    borderColor: 'rgba(255, 255, 255, 0.3)',
   },
   weatherHeader: {
     flexDirection: 'row',
@@ -433,6 +434,7 @@ const styles = StyleSheet.create({
   locationSelector: {
     flexDirection: 'row',
     alignItems: 'center',
+    gap: 4,
   },
   locationInfo: {
     marginBottom: 8,
@@ -467,15 +469,8 @@ const styles = StyleSheet.create({
     textAlign: 'center',
   },
   refreshButton: {
-    marginLeft: 8,
-    padding: 2,
+    marginLeft: 2,
     borderRadius: 8,
-    backgroundColor: 'transparent',
-    elevation: 2,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 1 },
-    shadowOpacity: 0.1,
-    shadowRadius: 2,
   },
   spinning: {
     transform: [{ rotate: '360deg' }],

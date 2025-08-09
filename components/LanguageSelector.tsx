@@ -19,14 +19,41 @@ interface LanguageSelectorProps {
   onLanguageChange?: (languageCode: string) => void;
 }
 
-const LANGUAGE_FLAGS = {
-  en: '🇺🇸',
-  id: '🇮🇩',
-};
-
 const LANGUAGE_CODES = {
   en: 'EN',
   id: 'ID',
+};
+
+const UKFlag = () => (
+  <View style={styles.flagCircle}>
+    <View style={{ position: 'absolute', width: '100%', height: '100%', backgroundColor: '#0A3161' }} />
+    <View style={{ position: 'absolute', width: '120%', height: 4, backgroundColor: 'white', top: '50%', left: '-10%', marginTop: -2, transform: [{ rotate: '45deg' }] }} />
+    <View style={{ position: 'absolute', width: '120%', height: 4, backgroundColor: 'white', top: '50%', left: '-10%', marginTop: -2, transform: [{ rotate: '-45deg' }] }} />
+    <View style={{ position: 'absolute', width: '120%', height: 2, backgroundColor: '#E0162B', top: '50%', left: '-10%', marginTop: -1, transform: [{ rotate: '45deg' }] }} />
+    <View style={{ position: 'absolute', width: '120%', height: 2, backgroundColor: '#E0162B', top: '50%', left: '-10%', marginTop: -1, transform: [{ rotate: '-45deg' }] }} />
+    <View style={{ position: 'absolute', width: '100%', height: 4, backgroundColor: 'white', top: '50%', marginTop: -2 }} />
+    <View style={{ position: 'absolute', height: '100%', width: 4, backgroundColor: 'white', left: '50%', marginLeft: -2 }} />
+    <View style={{ position: 'absolute', width: '100%', height: 2, backgroundColor: '#E0162B', top: '50%', marginTop: -1 }} />
+    <View style={{ position: 'absolute', height: '100%', width: 2, backgroundColor: '#E0162B', left: '50%', marginLeft: -1 }} />
+  </View>
+);
+
+const IndonesiaFlag = () => (
+  <View style={styles.flagCircle}>
+    <View style={{ flex: 1, backgroundColor: '#FF0000' }} />
+    <View style={{ flex: 1, backgroundColor: '#FFFFFF' }} />
+  </View>
+);
+
+const Flag = ({ languageCode }: { languageCode: string }) => {
+  switch (languageCode) {
+    case 'en':
+      return <UKFlag />;
+    case 'id':
+      return <IndonesiaFlag />;
+    default:
+      return null;
+  }
 };
 
 export function LanguageSelector({ 
@@ -68,9 +95,7 @@ export function LanguageSelector({
       onPress={() => setShowModal(true)}
       activeOpacity={0.7}
     >
-      <Text style={styles.flagIcon}>
-        {LANGUAGE_FLAGS[currentLanguage as keyof typeof LANGUAGE_FLAGS]}
-      </Text>
+      <Flag languageCode={currentLanguage} />
       <Text style={styles.languageCode}>
         {LANGUAGE_CODES[currentLanguage as keyof typeof LANGUAGE_CODES]}
       </Text>
@@ -94,9 +119,7 @@ export function LanguageSelector({
           </Text>
         </View>
         <View style={styles.flagContainer}>
-          <Text style={styles.flagIcon}>
-            {LANGUAGE_FLAGS[currentLanguage as keyof typeof LANGUAGE_FLAGS]}
-          </Text>
+          <Flag languageCode={currentLanguage} />
         </View>
       </View>
     </TouchableOpacity>
@@ -134,9 +157,7 @@ export function LanguageSelector({
                   disabled={isChanging}
                 >
                   <View style={styles.languageOptionContent}>
-                    <Text style={styles.languageFlag}>
-                      {LANGUAGE_FLAGS[language.code as keyof typeof LANGUAGE_FLAGS]}
-                    </Text>
+                    <Flag languageCode={language.code} />
                     <View style={styles.languageDetails}>
                       <Text style={styles.languageNativeName}>
                         {language.nativeName}
@@ -176,9 +197,12 @@ const styles = StyleSheet.create({
     paddingVertical: 6,
     minWidth: 50,
   },
-  flagIcon: {
-    fontSize: 16,
-    marginRight: 4,
+  flagCircle: {
+    width: 20,
+    height: 20,
+    borderRadius: 10,
+    marginRight: 8,
+    overflow: 'hidden',
   },
   languageCode: {
     fontSize: 12,
@@ -190,10 +214,6 @@ const styles = StyleSheet.create({
     borderRadius: 12,
     padding: 16,
     elevation: 2,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 1 },
-    shadowOpacity: 0.1,
-    shadowRadius: 3,
     borderWidth: 1,
     borderColor: '#E0E0E0',
   },
@@ -267,12 +287,9 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     flex: 1,
   },
-  languageFlag: {
-    fontSize: 24,
-    marginRight: 16,
-  },
   languageDetails: {
     flex: 1,
+    marginLeft: 16,
   },
   languageNativeName: {
     fontSize: 16,

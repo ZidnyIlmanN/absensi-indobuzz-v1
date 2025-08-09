@@ -25,6 +25,7 @@ import {
 import { ColorValue } from 'react-native';
 import { useAppContext } from '@/context/AppContext';
 import { ActivityRecord } from '@/types';
+import { useI18n } from '@/hooks/useI18n';
 
 const { width } = Dimensions.get('window');
 
@@ -39,6 +40,7 @@ export function DynamicAttendanceCard() {
     addActivity 
   } = useAppContext();
   const [isLoading, setIsLoading] = useState(false);
+  const { t } = useI18n();
 
   const handleClockIn = () => {
     router.push('/clock-in');
@@ -46,12 +48,12 @@ export function DynamicAttendanceCard() {
 
   const handleClockOut = () => {
     Alert.alert(
-      'Clock Out',
-      'Please take a selfie to verify your clock out',
+      t('attendance.clock_out'),
+      t('attendance.take_selfie_clock_out'),
       [
-        { text: 'Cancel', style: 'cancel' },
+        { text: t('common.cancel'), style: 'cancel' },
         {
-          text: 'Take Selfie',
+          text: t('clock_in.take_selfie'),
           onPress: () => {
             router.push('/clock-out/selfie');
           },
@@ -82,12 +84,12 @@ export function DynamicAttendanceCard() {
       setIsLoading(false);
 
       const stateMessages = {
-        working: 'Back to work mode',
-        overtime: 'Overtime mode activated',
-        client_visit: 'Client visit started',
+        working: t('home.working'),
+        overtime: t('overtime.overtime_mode'),
+        client_visit: t('client_visit.client_visit'),
       };
 
-      Alert.alert('Status Updated', stateMessages[newState] || 'Status changed');
+      Alert.alert(t('common.success'), stateMessages[newState] || t('common.success'));
     }, 1000);
   };
   
@@ -95,11 +97,11 @@ export function DynamicAttendanceCard() {
     if (!isWorking) {
       return {
         state: 'ready',
-        title: 'Ready to Start',
-        subtitle: 'Tap to begin your workday with selfie verification',
+        title: t('attendance.ready_to_start'),
+        subtitle: t('attendance.tap_to_begin'),
         colors: ['#4A90E2', '#357ABD'] as readonly ColorValue[],
         icon: <LogIn size={24} color="white" />,
-        buttonText: 'Clock In',
+        buttonText: t('attendance.clock_in'),
         buttonAction: handleClockIn,
       };
     }
@@ -111,52 +113,52 @@ export function DynamicAttendanceCard() {
         );
         return {
           state: 'working',
-          title: 'Currently Working',
-          subtitle: `Started at ${currentAttendance?.clockIn.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}`,
+          title: t('attendance.currently_working'),
+          subtitle: `${t('attendance.started_at')} ${currentAttendance?.clockIn.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}`,
           colors: ['#4CAF50', '#45A049'] as readonly ColorValue[],
           icon: <Activity size={24} color="white" />,
-          buttonText: hasTakenBreak ? '' : 'Start Break',
+          buttonText: hasTakenBreak ? '' : t('attendance.start_break'),
           buttonAction: hasTakenBreak ? undefined : () => router.push('/start-break/selfie'),
         };
       }
       case 'break':
         return {
           state: 'break',
-          title: 'On Break',
-          subtitle: 'Enjoy your break time',
+          title: t('attendance.on_break'),
+          subtitle: t('attendance.enjoy_break'),
           colors: ['#FF9800', '#F57C00'] as readonly ColorValue[],
           icon: <Coffee size={24} color="white" />,
-          buttonText: 'End Break',
+          buttonText: t('attendance.end_break'),
           buttonAction: () => router.push('/end-break/selfie'),
         };
       case 'overtime':
         return {
           state: 'overtime',
-          title: 'Overtime Mode',
-          subtitle: 'Working extended hours',
+          title: t('overtime.overtime_mode'),
+          subtitle: t('overtime.working_extended_hours'),
           colors: ['#9C27B0', '#7B1FA2'] as readonly ColorValue[],
           icon: <RotateCcw size={24} color="white" />,
-          buttonText: 'End Overtime',
+          buttonText: t('overtime.end_overtime'),
           buttonAction: () => setCurrentStatus('working'),
         };
       case 'client_visit':
         return {
           state: 'client_visit',
-          title: 'Client Visit',
-          subtitle: 'Currently visiting client',
+          title: t('client_visit.client_visit'),
+          subtitle: t('client_visit.currently_visiting'),
           colors: ['#2196F3', '#1976D2'] as readonly ColorValue[],
           icon: <Users size={24} color="white" />,
-          buttonText: 'End Client Visit',
+          buttonText: t('client_visit.end_client_visit'),
           buttonAction: () => setCurrentStatus('working'),
         };
       default:
         return {
           state: 'working',
-          title: 'Currently Working',
-          subtitle: `Started at ${currentAttendance?.clockIn.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}`,
+          title: t('attendance.currently_working'),
+          subtitle: `${t('attendance.started_at')} ${currentAttendance?.clockIn.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}`,
           colors: ['#4CAF50', '#45A049'] as readonly ColorValue[],
           icon: <Activity size={24} color="white" />,
-          buttonText: 'Start Break',
+          buttonText: t('attendance.start_break'),
           buttonAction: () => router.push('/start-break/selfie'),
         };
     }
@@ -203,7 +205,7 @@ export function DynamicAttendanceCard() {
               <View style={styles.buttonContent}>
 
                 <Text style={styles.buttonText}>
-                  {isLoading ? 'Processing...' : config.buttonText}
+                  {isLoading ? t('common.loading') : config.buttonText}
                 </Text>
               </View>
             </TouchableOpacity>
@@ -219,7 +221,7 @@ export function DynamicAttendanceCard() {
                     onPress={() => handleStateChange('overtime')}
                   >
                     <RotateCcw size={16} color="#4A90E2" />
-                    <Text style={styles.secondaryButtonText}>Overtime</Text>
+                    <Text style={styles.secondaryButtonText}>{t('overtime.start_overtime')}</Text>
                   </TouchableOpacity>
 
                   <TouchableOpacity
@@ -227,7 +229,7 @@ export function DynamicAttendanceCard() {
                     onPress={() => handleStateChange('client_visit')}
                   >
                     <Users size={16} color="#4A90E2" />
-                    <Text style={styles.secondaryButtonText}>Client Visit</Text>
+                    <Text style={styles.secondaryButtonText}>{t('client_visit.start_client_visit')}</Text>
                   </TouchableOpacity>
                 </>
               )}
@@ -237,7 +239,7 @@ export function DynamicAttendanceCard() {
                 onPress={handleClockOut}
               >
                 <LogOut size={16} color="#F44336" />
-                <Text style={[styles.secondaryButtonText, { color: '#F44336' }]}>Clock Out</Text>
+                <Text style={[styles.secondaryButtonText, { color: '#F44336' }]}>{t('attendance.clock_out')}</Text>
               </TouchableOpacity>
             </View>
           )}
@@ -387,4 +389,3 @@ const styles = StyleSheet.create({
     fontWeight: '500',
   },
 });
-

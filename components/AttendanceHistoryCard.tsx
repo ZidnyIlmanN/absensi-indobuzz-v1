@@ -17,7 +17,7 @@ import {
   Camera,
 } from 'lucide-react-native';
 import { AttendanceRecord } from '@/types';
-import { useTranslation } from 'react-i18next';
+import { useI18n } from '@/hooks/useI18n';
 
 interface AttendanceHistoryCardProps {
   record: AttendanceRecord;
@@ -32,7 +32,7 @@ export function AttendanceHistoryCard({
   onPress,
   index,
 }: AttendanceHistoryCardProps) {
-  const { t } = useTranslation();
+  const { t } = useI18n();
   const scaleValue = new Animated.Value(1);
 
   const handlePressIn = () => {
