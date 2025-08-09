@@ -66,6 +66,20 @@ export interface Request {
   reviewNotes?: string;
 }
 
+export interface LeaveRequest {
+  id: string;
+  userId: string;
+  leaveType: 'full_day' | 'half_day';
+  leaveDate: string;
+  description: string;
+  attachments: string[];
+  status: 'pending' | 'approved' | 'rejected';
+  submittedAt: Date;
+  reviewedAt?: Date;
+  reviewedBy?: string;
+  reviewNotes?: string;
+}
+
 export interface Notification {
   id: string;
   userId: string;

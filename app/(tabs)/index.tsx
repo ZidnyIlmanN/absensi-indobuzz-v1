@@ -166,7 +166,7 @@ export default function HomeScreen() {
 
     },
     {
-      title: t('home.time_off'),
+      title: 'Ajukan Izin',
       icon: <Calendar size={24} color="#FF6B6B" />,
 
     },
@@ -304,7 +304,7 @@ export default function HomeScreen() {
                         router.push('/live-attendance-protected');
                         break;
                       case 2:
-                        router.push('/timeoff');
+                        router.push('/ajukan-izin');
                         break;
                       case 3:
                         router.push('/reimburse');
