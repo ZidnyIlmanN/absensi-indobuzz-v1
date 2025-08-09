@@ -10,12 +10,14 @@ import {
   Modal,
   Image,
   RefreshControl,
+  Animated,
+  Dimensions,
 } from 'react-native';
 import { StatusBar } from 'expo-status-bar';
 import { LinearGradient } from 'expo-linear-gradient';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { router } from 'expo-router';
-import { ArrowLeft, Calendar, FileText, Plus, X, Upload, Trash2, CircleCheck as CheckCircle, CircleAlert as AlertCircle, Clock, Camera, File } from 'lucide-react-native';
+import { ArrowLeft, Calendar, FileText, Plus, X, Upload, Trash2, CircleCheck as CheckCircle, CircleAlert as AlertCircle, Clock, Camera, File, ChevronRight, Info, DollarSign, Users, MapPin } from 'lucide-react-native';
 import { useAppContext } from '@/context/AppContext';
 import { leaveRequestsService, LeaveRequest } from '@/services/leaveRequest';
 import { LoadingSpinner } from '@/components/LoadingSpinner';
@@ -24,12 +26,31 @@ import { useTranslation } from 'react-i18next';
 import { imageService } from '@/services/imageService';
 import * as DocumentPicker from 'expo-document-picker';
 import DateTimePicker from '@react-native-community/datetimepicker';
+import { PermitDetailModal } from '@/components/PermitDetailModal';
+
+const { width } = Dimensions.get('window');
 
 interface FormData {
   leaveType: 'full_day' | 'half_day';
   leaveDate: string;
   description: string;
   attachments: string[];
+}
+
+interface PermitType {
+  id: string;
+  title: string;
+  description: string;
+  icon: React.ReactNode;
+  color: string;
+  backgroundColor: string;
+  requirements: string[];
+  processingTime: string;
+  requiredDocuments: string[];
+  fees: string;
+  applicationSteps: string[];
+  eligibility: string[];
+  notes?: string[];
 }
 
 export default function AjukanIzinScreen() {
@@ -43,6 +64,11 @@ export default function AjukanIzinScreen() {
   const [leaveRequests, setLeaveRequests] = useState<LeaveRequest[]>([]);
   const [isProcessing, setIsProcessing] = useState(false);
   const [showDatePicker, setShowDatePicker] = useState(false);
+  const [selectedPermitType, setSelectedPermitType] = useState<PermitType | null>(null);
+  const [showPermitDetail, setShowPermitDetail] = useState(false);
+  const [animatedValues] = useState(() => 
+    Array.from({ length: 4 }, () => new Animated.Value(1))
+  );
 
   const [formData, setFormData] = useState<FormData>({
     leaveType: 'full_day',
@@ -50,6 +76,165 @@ export default function AjukanIzinScreen() {
     description: '',
     attachments: [],
   });
+
+  // Define permit types with detailed information
+  const permitTypes: PermitType[] = [
+    {
+      id: 'annual_leave',
+      title: t('leave_request.annual_leave'),
+      description: 'Paid time off for vacation, personal matters, or rest',
+      icon: <Calendar size={24} color="#4A90E2" />,
+      color: '#4A90E2',
+      backgroundColor: '#E3F2FD',
+      requirements: [
+        'Minimum 3 days advance notice',
+        'Manager approval required',
+        'Available leave balance',
+        'No conflicting team schedules'
+      ],
+      processingTime: '2-3 business days',
+      requiredDocuments: [
+        'Leave application form',
+        'Work handover document (if applicable)',
+        'Travel itinerary (for vacation leave)'
+      ],
+      fees: 'Free',
+      applicationSteps: [
+        'Fill out the leave application form',
+        'Attach required documents',
+        'Submit for manager review',
+        'Receive approval notification',
+        'Enjoy your time off!'
+      ],
+      eligibility: [
+        'Permanent employees',
+        'Completed probation period',
+        'Available leave balance',
+        'No pending disciplinary actions'
+      ],
+      notes: [
+        'Annual leave must be used within the calendar year',
+        'Maximum 10 consecutive days without special approval',
+        'Leave balance resets annually'
+      ]
+    },
+    {
+      id: 'sick_leave',
+      title: t('leave_request.sick_leave'),
+      description: 'Medical leave for illness or health-related issues',
+      icon: <FileText size={24} color="#F44336" />,
+      color: '#F44336',
+      backgroundColor: '#FFEBEE',
+      requirements: [
+        'Medical certificate required (for >3 days)',
+        'Immediate notification to supervisor',
+        'Doctor\'s note for extended absence'
+      ],
+      processingTime: 'Immediate approval for emergency cases',
+      requiredDocuments: [
+        'Medical certificate',
+        'Doctor\'s prescription (if applicable)',
+        'Hospital discharge summary (if applicable)'
+      ],
+      fees: 'Free',
+      applicationSteps: [
+        'Notify supervisor immediately',
+        'Submit sick leave application',
+        'Provide medical documentation',
+        'Receive automatic approval',
+        'Focus on recovery'
+      ],
+      eligibility: [
+        'All employees',
+        'Valid medical documentation',
+        'Genuine health condition'
+      ],
+      notes: [
+        'Sick leave does not count against annual leave',
+        'Extended sick leave may require HR review',
+        'Return-to-work clearance may be required'
+      ]
+    },
+    {
+      id: 'emergency_leave',
+      title: t('leave_request.emergency_leave'),
+      description: 'Urgent leave for family emergencies or unforeseen circumstances',
+      icon: <AlertCircle size={24} color="#FF9800" />,
+      color: '#FF9800',
+      backgroundColor: '#FFF3E0',
+      requirements: [
+        'Genuine emergency situation',
+        'Immediate notification required',
+        'Supporting documentation',
+        'Manager discretion approval'
+      ],
+      processingTime: 'Same day approval for genuine emergencies',
+      requiredDocuments: [
+        'Emergency leave application',
+        'Supporting evidence (hospital records, police report, etc.)',
+        'Contact information for verification'
+      ],
+      fees: 'Free',
+      applicationSteps: [
+        'Contact supervisor immediately',
+        'Explain emergency situation',
+        'Submit application with evidence',
+        'Receive expedited review',
+        'Handle emergency situation'
+      ],
+      eligibility: [
+        'All employees',
+        'Genuine emergency circumstances',
+        'Proper documentation available'
+      ],
+      notes: [
+        'Emergency leave may be unpaid depending on circumstances',
+        'False emergency claims may result in disciplinary action',
+        'Company may verify emergency situations'
+      ]
+    },
+    {
+      id: 'maternity_paternity',
+      title: t('leave_request.maternity_paternity'),
+      description: 'Leave for childbirth, adoption, or family care',
+      icon: <Users size={24} color="#9C27B0" />,
+      color: '#9C27B0',
+      backgroundColor: '#F3E5F5',
+      requirements: [
+        'Minimum 1 month advance notice',
+        'Medical documentation required',
+        'HR approval and coordination',
+        'Minimum 6 months employment'
+      ],
+      processingTime: '1-2 weeks for processing',
+      requiredDocuments: [
+        'Medical certificate from doctor',
+        'Expected delivery date confirmation',
+        'Birth certificate (post-birth)',
+        'Adoption papers (for adoption leave)'
+      ],
+      fees: 'Free',
+      applicationSteps: [
+        'Notify HR of pregnancy/adoption',
+        'Submit maternity/paternity leave application',
+        'Provide medical documentation',
+        'Coordinate work handover',
+        'Receive leave approval and benefits information'
+      ],
+      eligibility: [
+        'Permanent employees',
+        'Minimum 6 months employment',
+        'Valid medical documentation',
+        'Compliance with company policy'
+      ],
+      notes: [
+        'Maternity leave: up to 3 months paid leave',
+        'Paternity leave: up to 2 weeks paid leave',
+        'Additional unpaid leave may be available',
+        'Job protection guaranteed during leave'
+      ]
+    }
+  ];
 
   React.useEffect(() => {
     loadLeaveRequests();
@@ -78,6 +263,49 @@ export default function AjukanIzinScreen() {
     setRefreshing(true);
     await loadLeaveRequests();
     setRefreshing(false);
+  };
+
+  const handlePermitTypePress = (permitType: PermitType, index: number) => {
+    // Animate the pressed card
+    Animated.sequence([
+      Animated.timing(animatedValues[index], {
+        toValue: 0.95,
+        duration: 100,
+        useNativeDriver: true,
+      }),
+      Animated.timing(animatedValues[index], {
+        toValue: 1,
+        duration: 100,
+        useNativeDriver: true,
+      }),
+    ]).start();
+
+    // Show detailed view
+    setSelectedPermitType(permitType);
+    setShowPermitDetail(true);
+  };
+
+  const closePermitDetail = () => {
+    setShowPermitDetail(false);
+    setSelectedPermitType(null);
+  };
+
+  const handleApplyFromDetail = (permitType: PermitType) => {
+    // Set the form type based on permit type
+    const leaveTypeMapping: { [key: string]: 'full_day' | 'half_day' } = {
+      annual_leave: 'full_day',
+      sick_leave: 'full_day',
+      emergency_leave: 'full_day',
+      maternity_paternity: 'full_day',
+    };
+
+    setFormData(prev => ({
+      ...prev,
+      leaveType: leaveTypeMapping[permitType.id] || 'full_day',
+    }));
+
+    closePermitDetail();
+    setShowModal(true);
   };
 
   const validateForm = (): boolean => {
@@ -417,6 +645,72 @@ export default function AjukanIzinScreen() {
           </View>
         </View>
 
+        {/* Permit Types Section */}
+        <View style={styles.section}>
+          <Text style={styles.sectionTitle}>{t('leave_request.permit_types')}</Text>
+          <Text style={styles.sectionSubtitle}>
+            {t('leave_request.select_permit_type_details')}
+          </Text>
+          
+          <View style={styles.permitTypesGrid}>
+            {permitTypes.map((permitType, index) => (
+              <Animated.View
+                key={permitType.id}
+                style={[
+                  styles.permitTypeCard,
+                  { transform: [{ scale: animatedValues[index] }] }
+                ]}
+              >
+                <TouchableOpacity
+                  style={[
+                    styles.permitTypeButton,
+                    { backgroundColor: permitType.backgroundColor }
+                  ]}
+                  onPress={() => handlePermitTypePress(permitType, index)}
+                  activeOpacity={0.8}
+                >
+                  <View style={styles.permitTypeHeader}>
+                    <View style={[styles.permitTypeIcon, { backgroundColor: permitType.color }]}>
+                      {permitType.icon}
+                    </View>
+                    <View style={styles.permitTypeInfo}>
+                      <Text style={styles.permitTypeTitle}>{permitType.title}</Text>
+                      <Text style={styles.permitTypeDescription}>
+                        {permitType.description}
+                      </Text>
+                    </View>
+                    <View style={styles.permitTypeAction}>
+                      <Info size={16} color={permitType.color} />
+                      <ChevronRight size={16} color={permitType.color} />
+                    </View>
+                  </View>
+                  
+                  <View style={styles.permitTypeFooter}>
+                    <View style={styles.permitTypeDetail}>
+                      <Clock size={12} color="#666" />
+                      <Text style={styles.permitTypeDetailText}>
+                        {permitType.processingTime}
+                      </Text>
+                    </View>
+                    <View style={styles.permitTypeDetail}>
+                      <DollarSign size={12} color="#666" />
+                      <Text style={styles.permitTypeDetailText}>
+                        {permitType.fees}
+                      </Text>
+                    </View>
+                  </View>
+                  
+                  <View style={styles.tapToViewIndicator}>
+                    <Text style={styles.tapToViewText}>
+                      {t('leave_request.tap_for_details')}
+                    </Text>
+                  </View>
+                </TouchableOpacity>
+              </Animated.View>
+            ))}
+          </View>
+        </View>
+
         {/* Leave Requests List */}
         <View style={styles.section}>
           <Text style={styles.sectionTitle}>{t('leave_request.recent_leave_requests')}</Text>
@@ -684,6 +978,14 @@ export default function AjukanIzinScreen() {
           </View>
         </View>
       </Modal>
+
+      {/* Permit Detail Modal */}
+      <PermitDetailModal
+        visible={showPermitDetail}
+        onClose={closePermitDetail}
+        permitType={selectedPermitType}
+        onApply={handleApplyFromDetail}
+      />
     </View>
   );
 }
@@ -754,6 +1056,90 @@ const styles = StyleSheet.create({
   statLabel: {
     fontSize: 12,
     color: '#666',
+  },
+  permitTypesGrid: {
+    gap: 16,
+  },
+  permitTypeCard: {
+    marginBottom: 4,
+  },
+  permitTypeButton: {
+    borderRadius: 16,
+    padding: 20,
+    elevation: 3,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.1,
+    shadowRadius: 6,
+    borderWidth: 1,
+    borderColor: 'rgba(0, 0, 0, 0.05)',
+  },
+  permitTypeHeader: {
+    flexDirection: 'row',
+    alignItems: 'flex-start',
+    marginBottom: 16,
+  },
+  permitTypeIcon: {
+    width: 48,
+    height: 48,
+    borderRadius: 24,
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginRight: 16,
+    elevation: 2,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 1 },
+    shadowOpacity: 0.1,
+    shadowRadius: 2,
+  },
+  permitTypeInfo: {
+    flex: 1,
+  },
+  permitTypeTitle: {
+    fontSize: 18,
+    fontWeight: '600',
+    color: '#1A1A1A',
+    marginBottom: 6,
+  },
+  permitTypeDescription: {
+    fontSize: 14,
+    color: '#666',
+    lineHeight: 20,
+  },
+  permitTypeAction: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4,
+  },
+  permitTypeFooter: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    marginBottom: 12,
+  },
+  permitTypeDetail: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: 'rgba(255, 255, 255, 0.7)',
+    paddingHorizontal: 12,
+    paddingVertical: 6,
+    borderRadius: 12,
+  },
+  permitTypeDetailText: {
+    fontSize: 12,
+    color: '#666',
+    marginLeft: 6,
+    fontWeight: '500',
+  },
+  tapToViewIndicator: {
+    alignItems: 'center',
+    paddingTop: 8,
+    borderTopWidth: 1,
+    borderTopColor: 'rgba(0, 0, 0, 0.1)',
+  },
+  tapToViewText: {
+    fontSize: 12,
+    color: '#999',
+    fontStyle: 'italic',
   },
   section: {
     marginBottom: 24,
