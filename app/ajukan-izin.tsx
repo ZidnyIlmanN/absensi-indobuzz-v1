@@ -17,11 +17,12 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { router } from 'expo-router';
 import { ArrowLeft, Calendar, FileText, Plus, X, Upload, Trash2, CircleCheck as CheckCircle, CircleAlert as AlertCircle, Clock, Camera, File } from 'lucide-react-native';
 import { useAppContext } from '@/context/AppContext';
-import { leaveRequestsService, LeaveRequest } from '@/services/leaveRequests';
+import { leaveRequestsService, LeaveRequest } from '@/services/leaveRequest';
 import { LoadingSpinner } from '@/components/LoadingSpinner';
 import { EmptyState } from '@/components/EmptyState';
-import { ImagePickerModal } from '@/components/ImagePickerModal';
 import { useTranslation } from 'react-i18next';
+import { imageService } from '@/services/imageService';
+import * as DocumentPicker from 'expo-document-picker';
 
 interface FormData {
   leaveType: 'full_day' | 'half_day';
@@ -35,11 +36,11 @@ export default function AjukanIzinScreen() {
   const { t } = useTranslation();
   const { user } = useAppContext();
   const [showModal, setShowModal] = useState(false);
-  const [showImagePicker, setShowImagePicker] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
   const [leaveRequests, setLeaveRequests] = useState<LeaveRequest[]>([]);
+  const [isProcessing, setIsProcessing] = useState(false);
 
   const [formData, setFormData] = useState<FormData>({
     leaveType: 'full_day',
@@ -176,6 +177,142 @@ export default function AjukanIzinScreen() {
       ...prev,
       attachments: prev.attachments.filter((_, i) => i !== index),
     }));
+  };
+
+  const handleCameraCapture = async () => {
+    try {
+      setIsProcessing(true);
+      
+      const permissions = await imageService.requestPermissions();
+      if (!permissions.camera) {
+        Alert.alert('Permission Required', 'Camera permission is required to take photos');
+        return;
+      }
+      
+      const result = await imageService.captureFromCamera({
+        allowsEditing: false,
+        quality: 0.8,
+      });
+
+      if (result.error) {
+        Alert.alert('Camera Error', result.error);
+        return;
+      }
+
+      if (result.cancelled) {
+        return;
+      }
+
+      if (result.uri) {
+        handleImageSelected(result.uri);
+      }
+    } catch (error) {
+      Alert.alert('Error', 'Failed to capture photo from camera');
+    } finally {
+      setIsProcessing(false);
+    }
+  };
+
+  const handleGallerySelection = async () => {
+    try {
+      setIsProcessing(true);
+      
+      const permissions = await imageService.requestPermissions();
+      if (!permissions.mediaLibrary) {
+        Alert.alert('Permission Required', 'Media library permission is required to select photos');
+        return;
+      }
+      
+      const result = await imageService.selectFromGallery({
+        allowsEditing: false,
+        quality: 0.8,
+      });
+
+      if (result.error) {
+        Alert.alert('Gallery Error', result.error);
+        return;
+      }
+
+      if (result.cancelled) {
+        return;
+      }
+
+      if (result.uri) {
+        handleImageSelected(result.uri);
+      }
+    } catch (error) {
+      Alert.alert('Error', 'Failed to select photo from gallery');
+    } finally {
+      setIsProcessing(false);
+    }
+  };
+
+  const handleDocumentSelection = async () => {
+    try {
+      setIsProcessing(true);
+      
+      const result = await DocumentPicker.getDocumentAsync({
+        type: ['image/*', 'application/pdf', 'text/*'],
+        copyToCacheDirectory: true,
+        multiple: false,
+      });
+
+      if (result.canceled) {
+        return;
+      }
+
+      if (result.assets && result.assets.length > 0) {
+        const asset = result.assets[0];
+        
+        // Check file size
+        if (asset.size && asset.size > 10 * 1024 * 1024) { // 10MB default
+          Alert.alert(
+            'File Too Large',
+            `File size must be less than 10MB`
+          );
+          return;
+        }
+
+        handleImageSelected(asset.uri);
+      }
+    } catch (error) {
+      Alert.alert('Error', 'Failed to select document');
+    } finally {
+      setIsProcessing(false);
+    }
+  };
+
+  const handleAttachmentPress = () => {
+    Alert.alert(
+      'Add Attachment',
+      'Choose how you want to add your file',
+      [
+        {
+          text: 'Camera',
+          onPress: handleCameraCapture,
+          style: 'default',
+        },
+        {
+          text: 'Photo Gallery',
+          onPress: handleGallerySelection,
+          style: 'default',
+        },
+        {
+          text: 'Document',
+          onPress: handleDocumentSelection,
+          style: 'default',
+        },
+        {
+          text: 'Cancel',
+          onPress: () => {},
+          style: 'cancel',
+        },
+      ],
+      {
+        cancelable: true,
+        onDismiss: () => {},
+      }
+    );
   };
 
   const getStatusColor = (status: string) => {
@@ -466,7 +603,8 @@ export default function AjukanIzinScreen() {
               <Text style={styles.inputLabel}>Lampiran (Opsional)</Text>
               <TouchableOpacity
                 style={styles.attachmentButton}
-                onPress={() => setShowImagePicker(true)}
+                onPress={handleAttachmentPress}
+                disabled={isProcessing}
               >
                 <Upload size={20} color="#4A90E2" />
                 <Text style={styles.attachmentButtonText}>Add Attachment</Text>
@@ -532,17 +670,6 @@ export default function AjukanIzinScreen() {
           </View>
         </View>
       </Modal>
-
-      {/* Image Picker Modal */}
-      <ImagePickerModal
-        visible={showImagePicker}
-        onClose={() => setShowImagePicker(false)}
-        onImageSelected={handleImageSelected}
-        title="Add Attachment"
-        subtitle="Choose a photo or document to attach to your leave request"
-        allowEditing={false}
-        quality={0.8}
-      />
     </View>
   );
 }
