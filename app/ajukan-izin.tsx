@@ -23,6 +23,7 @@ import { EmptyState } from '@/components/EmptyState';
 import { useTranslation } from 'react-i18next';
 import { imageService } from '@/services/imageService';
 import * as DocumentPicker from 'expo-document-picker';
+import DateTimePicker from '@react-native-community/datetimepicker';
 
 interface FormData {
   leaveType: 'full_day' | 'half_day';
@@ -41,6 +42,7 @@ export default function AjukanIzinScreen() {
   const [refreshing, setRefreshing] = useState(false);
   const [leaveRequests, setLeaveRequests] = useState<LeaveRequest[]>([]);
   const [isProcessing, setIsProcessing] = useState(false);
+  const [showDatePicker, setShowDatePicker] = useState(false);
 
   const [formData, setFormData] = useState<FormData>({
     leaveType: 'full_day',
@@ -61,12 +63,12 @@ export default function AjukanIzinScreen() {
       const { requests, error } = await leaveRequestsService.getUserLeaveRequests(user.id);
       
       if (error) {
-        Alert.alert('Error', error);
+        Alert.alert(t('common.error'), error);
       } else {
         setLeaveRequests(requests);
       }
     } catch (error) {
-      Alert.alert('Error', 'Failed to load leave requests');
+      Alert.alert(t('common.error'), t('leave_request.validation.submit_failed'));
     } finally {
       setIsLoading(false);
     }
@@ -80,17 +82,17 @@ export default function AjukanIzinScreen() {
 
   const validateForm = (): boolean => {
     if (!formData.leaveDate) {
-      Alert.alert('Error', 'Please select a leave date');
+      Alert.alert(t('common.error'), t('leave_request.validation.select_date'));
       return false;
     }
 
     if (!formData.description.trim()) {
-      Alert.alert('Error', 'Please provide a description for your leave request');
+      Alert.alert(t('common.error'), t('leave_request.validation.provide_description'));
       return false;
     }
 
     if (formData.description.trim().length < 10) {
-      Alert.alert('Error', 'Description must be at least 10 characters long');
+      Alert.alert(t('common.error'), t('leave_request.validation.description_min_length'));
       return false;
     }
 
@@ -100,7 +102,7 @@ export default function AjukanIzinScreen() {
     today.setHours(0, 0, 0, 0);
 
     if (selectedDate < today) {
-      Alert.alert('Error', 'Leave date must be today or in the future');
+      Alert.alert(t('common.error'), t('leave_request.validation.future_date'));
       return false;
     }
 
@@ -109,7 +111,7 @@ export default function AjukanIzinScreen() {
 
   const handleSubmit = async () => {
     if (!user) {
-      Alert.alert('Error', 'User not authenticated');
+      Alert.alert(t('common.error'), t('leave_request.validation.user_not_authenticated'));
       return;
     }
 
@@ -127,21 +129,21 @@ export default function AjukanIzinScreen() {
       });
 
       if (error) {
-        Alert.alert('Error', error);
+        Alert.alert(t('common.error'), error);
         return;
       }
 
       Alert.alert(
-        'Success',
-        'Your leave request has been submitted successfully!',
-        [{ text: 'OK', onPress: () => {
+        t('common.success'),
+        t('leave_request.leave_request_submitted'),
+        [{ text: t('common.ok'), onPress: () => {
           setShowModal(false);
           resetForm();
           loadLeaveRequests();
         }}]
       );
     } catch (error) {
-      Alert.alert('Error', 'Failed to submit leave request');
+      Alert.alert(t('common.error'), t('leave_request.validation.submit_failed'));
     } finally {
       setIsSubmitting(false);
     }
@@ -157,12 +159,15 @@ export default function AjukanIzinScreen() {
   };
 
   const handleDateSelect = () => {
-    // For demo purposes, set a future date
-    const tomorrow = new Date();
-    tomorrow.setDate(tomorrow.getDate() + 1);
-    const dateString = tomorrow.toISOString().split('T')[0];
-    
-    setFormData(prev => ({ ...prev, leaveDate: dateString }));
+    setShowDatePicker(true);
+  };
+
+  const onDateChange = (event: any, selectedDate?: Date) => {
+    setShowDatePicker(false);
+    if (selectedDate) {
+      const dateString = selectedDate.toISOString().split('T')[0];
+      setFormData(prev => ({ ...prev, leaveDate: dateString }));
+    }
   };
 
   const handleImageSelected = (uri: string) => {
@@ -185,7 +190,7 @@ export default function AjukanIzinScreen() {
       
       const permissions = await imageService.requestPermissions();
       if (!permissions.camera) {
-        Alert.alert('Permission Required', 'Camera permission is required to take photos');
+        Alert.alert(t('leave_request.permission_required'), t('leave_request.camera_permission_required'));
         return;
       }
       
@@ -195,7 +200,7 @@ export default function AjukanIzinScreen() {
       });
 
       if (result.error) {
-        Alert.alert('Camera Error', result.error);
+        Alert.alert(t('leave_request.camera_error'), result.error);
         return;
       }
 
@@ -207,7 +212,7 @@ export default function AjukanIzinScreen() {
         handleImageSelected(result.uri);
       }
     } catch (error) {
-      Alert.alert('Error', 'Failed to capture photo from camera');
+      Alert.alert(t('common.error'), t('leave_request.capture_error'));
     } finally {
       setIsProcessing(false);
     }
@@ -219,7 +224,7 @@ export default function AjukanIzinScreen() {
       
       const permissions = await imageService.requestPermissions();
       if (!permissions.mediaLibrary) {
-        Alert.alert('Permission Required', 'Media library permission is required to select photos');
+        Alert.alert(t('leave_request.permission_required'), t('leave_request.media_permission_required'));
         return;
       }
       
@@ -229,7 +234,7 @@ export default function AjukanIzinScreen() {
       });
 
       if (result.error) {
-        Alert.alert('Gallery Error', result.error);
+        Alert.alert(t('leave_request.gallery_error'), result.error);
         return;
       }
 
@@ -241,7 +246,7 @@ export default function AjukanIzinScreen() {
         handleImageSelected(result.uri);
       }
     } catch (error) {
-      Alert.alert('Error', 'Failed to select photo from gallery');
+      Alert.alert(t('common.error'), t('leave_request.select_error'));
     } finally {
       setIsProcessing(false);
     }
@@ -267,8 +272,8 @@ export default function AjukanIzinScreen() {
         // Check file size
         if (asset.size && asset.size > 10 * 1024 * 1024) { // 10MB default
           Alert.alert(
-            'File Too Large',
-            `File size must be less than 10MB`
+            t('leave_request.file_too_large'),
+            t('leave_request.file_size_limit')
           );
           return;
         }
@@ -276,7 +281,7 @@ export default function AjukanIzinScreen() {
         handleImageSelected(asset.uri);
       }
     } catch (error) {
-      Alert.alert('Error', 'Failed to select document');
+      Alert.alert(t('common.error'), t('leave_request.document_error'));
     } finally {
       setIsProcessing(false);
     }
@@ -284,26 +289,26 @@ export default function AjukanIzinScreen() {
 
   const handleAttachmentPress = () => {
     Alert.alert(
-      'Add Attachment',
-      'Choose how you want to add your file',
+      t('leave_request.add_attachment_title'),
+      t('leave_request.add_attachment_message'),
       [
         {
-          text: 'Camera',
+          text: t('leave_request.camera'),
           onPress: handleCameraCapture,
           style: 'default',
         },
         {
-          text: 'Photo Gallery',
+          text: t('leave_request.photo_gallery'),
           onPress: handleGallerySelection,
           style: 'default',
         },
         {
-          text: 'Document',
+          text: t('leave_request.document'),
           onPress: handleDocumentSelection,
           style: 'default',
         },
         {
-          text: 'Cancel',
+          text: t('common.cancel'),
           onPress: () => {},
           style: 'cancel',
         },
@@ -342,7 +347,7 @@ export default function AjukanIzinScreen() {
   };
 
   const getLeaveTypeLabel = (type: string) => {
-    return type === 'full_day' ? 'Full Day' : 'Half Day';
+    return type === 'full_day' ? t('leave_request.full_day') : t('leave_request.half_day');
   };
 
   const formatDate = (dateString: string) => {
@@ -370,7 +375,7 @@ export default function AjukanIzinScreen() {
           >
             <ArrowLeft size={24} color="white" />
           </TouchableOpacity>
-          <Text style={styles.headerTitle}>Ajukan Izin</Text>
+          <Text style={styles.headerTitle}>{t('leave_request.ajukan_izin')}</Text>
           <TouchableOpacity
             style={styles.addButton}
             onPress={() => setShowModal(true)}
@@ -392,7 +397,7 @@ export default function AjukanIzinScreen() {
           <View style={styles.statCard}>
             <FileText size={20} color="#4A90E2" />
             <Text style={styles.statValue}>{leaveRequests.length}</Text>
-            <Text style={styles.statLabel}>Total Requests</Text>
+            <Text style={styles.statLabel}>{t('leave_request.total_requests')}</Text>
           </View>
           
           <View style={styles.statCard}>
@@ -400,7 +405,7 @@ export default function AjukanIzinScreen() {
             <Text style={styles.statValue}>
               {leaveRequests.filter(r => r.status === 'pending').length}
             </Text>
-            <Text style={styles.statLabel}>Pending</Text>
+            <Text style={styles.statLabel}>{t('leave_request.pending')}</Text>
           </View>
           
           <View style={styles.statCard}>
@@ -408,22 +413,22 @@ export default function AjukanIzinScreen() {
             <Text style={styles.statValue}>
               {leaveRequests.filter(r => r.status === 'approved').length}
             </Text>
-            <Text style={styles.statLabel}>Approved</Text>
+            <Text style={styles.statLabel}>{t('leave_request.approved')}</Text>
           </View>
         </View>
 
         {/* Leave Requests List */}
         <View style={styles.section}>
-          <Text style={styles.sectionTitle}>Recent Leave Requests</Text>
+          <Text style={styles.sectionTitle}>{t('leave_request.recent_leave_requests')}</Text>
           
           {isLoading ? (
-            <LoadingSpinner text="Loading leave requests..." />
+            <LoadingSpinner text={t('leave_request.loading_requests')} />
           ) : leaveRequests.length === 0 ? (
             <EmptyState
               icon={<FileText size={48} color="#E0E0E0" />}
-              title="No leave requests yet"
-              message="Start by creating your first leave request"
-              actionText="Create Request"
+              title={t('leave_request.no_requests_yet')}
+              message={t('leave_request.start_creating_request')}
+              actionText={t('leave_request.create_request')}
               onAction={() => setShowModal(true)}
             />
           ) : (
@@ -453,7 +458,7 @@ export default function AjukanIzinScreen() {
                           styles.statusText,
                           { color: getStatusColor(request.status) }
                         ]}>
-                          {request.status.charAt(0).toUpperCase() + request.status.slice(1)}
+                          {t(`leave_request.${request.status}`)}
                         </Text>
                       </View>
                     </View>
@@ -467,7 +472,7 @@ export default function AjukanIzinScreen() {
                 {request.attachments.length > 0 && (
                   <View style={styles.attachmentsContainer}>
                     <Text style={styles.attachmentsLabel}>
-                      {request.attachments.length} attachment(s)
+                      {t('leave_request.attachments', { count: request.attachments.length })}
                     </Text>
                     <ScrollView horizontal showsHorizontalScrollIndicator={false}>
                       <View style={styles.attachmentsList}>
@@ -483,18 +488,18 @@ export default function AjukanIzinScreen() {
 
                 <View style={styles.requestFooter}>
                   <Text style={styles.submittedDate}>
-                    Submitted: {request.submittedAt.toLocaleDateString()}
+                    {t('leave_request.submitted')}: {request.submittedAt.toLocaleDateString()}
                   </Text>
                   {request.reviewedAt && (
                     <Text style={styles.reviewedDate}>
-                      Reviewed: {request.reviewedAt.toLocaleDateString()}
+                      {t('leave_request.reviewed')}: {request.reviewedAt.toLocaleDateString()}
                     </Text>
                   )}
                 </View>
 
                 {request.reviewNotes && (
                   <View style={styles.reviewNotesContainer}>
-                    <Text style={styles.reviewNotesLabel}>Review Notes:</Text>
+                    <Text style={styles.reviewNotesLabel}>{t('leave_request.review_notes')}:</Text>
                     <Text style={styles.reviewNotesText}>{request.reviewNotes}</Text>
                   </View>
                 )}
@@ -514,7 +519,7 @@ export default function AjukanIzinScreen() {
         <View style={styles.modalOverlay}>
           <View style={styles.modalContent}>
             <View style={styles.modalHeader}>
-              <Text style={styles.modalTitle}>Ajukan Izin Baru</Text>
+              <Text style={styles.modalTitle}>{t('leave_request.leave_request_form')}</Text>
               <TouchableOpacity
                 onPress={() => {
                   setShowModal(false);
@@ -528,7 +533,7 @@ export default function AjukanIzinScreen() {
 
             <ScrollView style={styles.modalBody} showsVerticalScrollIndicator={false}>
               {/* Leave Type Selection */}
-              <Text style={styles.inputLabel}>Jenis Izin</Text>
+              <Text style={styles.inputLabel}>{t('leave_request.leave_type')}</Text>
               <View style={styles.leaveTypeContainer}>
                 <TouchableOpacity
                   style={[
@@ -542,7 +547,7 @@ export default function AjukanIzinScreen() {
                     styles.leaveTypeText,
                     formData.leaveType === 'full_day' && styles.selectedLeaveTypeText
                   ]}>
-                    Full Day Leave
+                    {t('leave_request.full_day_leave')}
                   </Text>
                 </TouchableOpacity>
 
@@ -558,13 +563,13 @@ export default function AjukanIzinScreen() {
                     styles.leaveTypeText,
                     formData.leaveType === 'half_day' && styles.selectedLeaveTypeText
                   ]}>
-                    Half Day Leave
+                    {t('leave_request.half_day_leave')}
                   </Text>
                 </TouchableOpacity>
               </View>
 
               {/* Date Selection */}
-              <Text style={styles.inputLabel}>Tanggal Izin</Text>
+              <Text style={styles.inputLabel}>{t('leave_request.leave_date')}</Text>
               <TouchableOpacity style={styles.dateInput} onPress={handleDateSelect}>
                 <Calendar size={20} color="#666" />
                 <Text style={[
@@ -578,16 +583,16 @@ export default function AjukanIzinScreen() {
                         month: 'long',
                         day: 'numeric',
                       })
-                    : 'Select leave date'
+                    : t('leave_request.select_leave_date')
                   }
                 </Text>
               </TouchableOpacity>
 
               {/* Description */}
-              <Text style={styles.inputLabel}>Alasan/Keterangan</Text>
+              <Text style={styles.inputLabel}>{t('leave_request.description_reason')}</Text>
               <TextInput
                 style={styles.textArea}
-                placeholder="Jelaskan alasan pengajuan izin Anda..."
+                placeholder={t('leave_request.explain_leave_reason')}
                 value={formData.description}
                 onChangeText={(text) => setFormData(prev => ({ ...prev, description: text }))}
                 multiline
@@ -596,31 +601,31 @@ export default function AjukanIzinScreen() {
                 placeholderTextColor="#999"
               />
               <Text style={styles.characterCount}>
-                {formData.description.length}/500 characters
+                {t('leave_request.character_count', { count: formData.description.length })}
               </Text>
 
               {/* Attachments */}
-              <Text style={styles.inputLabel}>Lampiran (Opsional)</Text>
+              <Text style={styles.inputLabel}>{t('leave_request.attachments_optional')}</Text>
               <TouchableOpacity
                 style={styles.attachmentButton}
                 onPress={handleAttachmentPress}
                 disabled={isProcessing}
               >
                 <Upload size={20} color="#4A90E2" />
-                <Text style={styles.attachmentButtonText}>Add Attachment</Text>
+                <Text style={styles.attachmentButtonText}>{t('leave_request.add_attachment')}</Text>
               </TouchableOpacity>
 
               {/* Attachment Preview */}
               {formData.attachments.length > 0 && (
                 <View style={styles.attachmentPreviewContainer}>
                   <Text style={styles.attachmentPreviewTitle}>
-                    {formData.attachments.length} attachment(s) selected
+                    {t('leave_request.attachment_selected', { count: formData.attachments.length })}
                   </Text>
                   <ScrollView horizontal showsHorizontalScrollIndicator={false}>
                     <View style={styles.attachmentPreviewList}>
-                      {formData.attachments.map((uri, index) => (
+                      {formData.attachments.map((url, index) => (
                         <View key={index} style={styles.attachmentPreviewItem}>
-                          <Image source={{ uri }} style={styles.attachmentPreviewImage} />
+                          <Image source={{ uri: url }} style={styles.attachmentPreviewImage} />
                           <TouchableOpacity
                             style={styles.removeAttachmentButton}
                             onPress={() => removeAttachment(index)}
@@ -638,11 +643,20 @@ export default function AjukanIzinScreen() {
               <View style={styles.infoNote}>
                 <AlertCircle size={16} color="#4A90E2" />
                 <Text style={styles.infoText}>
-                  Pastikan semua informasi sudah benar sebelum mengajukan izin. 
-                  Permintaan yang sudah diajukan tidak dapat diubah.
+                  {t('leave_request.info_notes')}
                 </Text>
               </View>
             </ScrollView>
+
+            {showDatePicker && (
+              <DateTimePicker style={styles.datePickerWrapper}
+                value={formData.leaveDate ? new Date(formData.leaveDate) : new Date()}
+                mode="date"
+                display="default"
+                onChange={onDateChange}
+                minimumDate={new Date()} // Prevent selecting past dates
+              />
+            )}
 
             <View style={styles.modalFooter}>
               <TouchableOpacity
@@ -652,7 +666,7 @@ export default function AjukanIzinScreen() {
                   resetForm();
                 }}
               >
-                <Text style={styles.cancelButtonText}>Batal</Text>
+                <Text style={styles.cancelButtonText}>{t('common.cancel')}</Text>
               </TouchableOpacity>
               
               <TouchableOpacity
@@ -663,7 +677,7 @@ export default function AjukanIzinScreen() {
                 {isSubmitting ? (
                   <LoadingSpinner size="small" color="white" />
                 ) : (
-                  <Text style={styles.submitButtonText}>Ajukan Izin</Text>
+                  <Text style={styles.submitButtonText}>{t('leave_request.submit_leave_request')}</Text>
                 )}
               </TouchableOpacity>
             </View>
@@ -936,6 +950,10 @@ const styles = StyleSheet.create({
     color: '#1A1A1A',
     marginLeft: 12,
     flex: 1,
+  },
+  datePickerWrapper: {
+    borderRadius: 8,
+    margin: 20,
   },
   placeholderText: {
     color: '#999',
