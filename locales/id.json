@@ -811,11 +811,32 @@
     "submitted": "Diajukan",
     "reviewed": "Ditinjau",
     "review_notes": "Catatan Tinjauan",
+    "loading_requests": "Memuat permintaan izin...",
+    "attachments": "{{count}} lampiran",
+    "info_notes": "Pastikan semua informasi sudah benar sebelum mengajukan izin. Permintaan yang sudah diajukan tidak dapat diubah.",
+    "character_count": "{{count}}/500 karakter",
+    "add_attachment_title": "Tambah Lampiran",
+    "add_attachment_message": "Pilih cara untuk menambahkan file Anda",
+    "camera": "Kamera",
+    "photo_gallery": "Galeri Foto",
+    "document": "Dokumen",
+    "file_too_large": "File Terlalu Besar",
+    "file_size_limit": "Ukuran file harus kurang dari 10MB",
+    "permission_required": "Izin Diperlukan",
+    "camera_permission_required": "Izin kamera diperlukan untuk mengambil foto",
+    "media_permission_required": "Izin pustaka media diperlukan untuk memilih foto",
+    "camera_error": "Kesalahan Kamera",
+    "gallery_error": "Kesalahan Galeri",
+    "document_error": "Gagal memilih dokumen",
+    "capture_error": "Gagal mengambil foto dari kamera",
+    "select_error": "Gagal memilih foto dari galeri",
     "validation": {
       "select_date": "Silakan pilih tanggal izin",
       "provide_description": "Silakan berikan keterangan untuk pengajuan izin Anda",
       "description_min_length": "Keterangan harus minimal 10 karakter",
-      "future_date": "Tanggal izin harus hari ini atau di masa depan"
+      "future_date": "Tanggal izin harus hari ini atau di masa depan",
+      "user_not_authenticated": "Pengguna tidak terautentikasi",
+      "submit_failed": "Gagal mengajukan permintaan izin"
     }
   },
   "check_in": {
