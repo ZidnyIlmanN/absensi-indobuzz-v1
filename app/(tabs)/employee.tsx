@@ -21,9 +21,11 @@ import { useEmployees } from '@/hooks/useEmployees';
 import { Employee as EmployeeType } from '@/types';
 import { router } from 'expo-router';
 import { EmployeeCard } from '@/components/EmployeeCard';
+import { useI18n } from '@/hooks/useI18n';
 
 export default function EmployeeScreen() {
   const insets = useSafeAreaInsets();
+  const { t } = useI18n();
   const { 
     employees, 
     filteredEmployees, 
@@ -104,13 +106,13 @@ export default function EmployeeScreen() {
   const getStatusText = (status: string) => {
     switch (status) {
       case 'online':
-        return 'Working';
+        return t('employee.online');
       case 'break':
-        return 'On Break';
+        return t('employee.on_break');
       case 'offline':
-        return 'Offline';
+        return t('employee.offline');
       default:
-        return 'Unknown';
+        return t('common.na');
     }
   };
 
@@ -130,7 +132,7 @@ export default function EmployeeScreen() {
       <View style={styles.modalOverlay}>
         <View style={styles.modalContent}>
           <View style={styles.modalHeader}>
-            <Text style={styles.modalTitle}>Sort Employees</Text>
+            <Text style={styles.modalTitle}>{t('employee.sort_employees')}</Text>
             <TouchableOpacity onPress={() => setShowSortModal(false)}>
               <X size={24} color="#666" />
             </TouchableOpacity>
@@ -138,10 +140,10 @@ export default function EmployeeScreen() {
           
           <View style={styles.modalBody}>
             {[
-              { key: 'name', label: 'Name' },
-              { key: 'department', label: 'Department' },
-              { key: 'position', label: 'Position' },
-              { key: 'employee_id', label: 'Employee ID' },
+              { key: 'name', label: t('employee.name') },
+              { key: 'department', label: t('employee.department') },
+              { key: 'position', label: t('employee.position') },
+              { key: 'employee_id', label: t('employee.employee_id') },
             ].map((option) => (
               <TouchableOpacity
                 key={option.key}
@@ -174,7 +176,7 @@ export default function EmployeeScreen() {
       <View style={styles.modalOverlay}>
         <View style={styles.modalContent}>
           <View style={styles.modalHeader}>
-            <Text style={styles.modalTitle}>Filter Employees</Text>
+            <Text style={styles.modalTitle}>{t('employee.filter_employees')}</Text>
             <TouchableOpacity onPress={() => setShowFilterModal(false)}>
               <X size={24} color="#666" />
             </TouchableOpacity>
@@ -183,10 +185,10 @@ export default function EmployeeScreen() {
           <ScrollView style={styles.modalBody}>
             {/* Department Filter */}
             <View style={styles.filterSection}>
-              <Text style={styles.filterLabel}>Department</Text>
+              <Text style={styles.filterLabel}>{t('employee.department')}</Text>
               <TouchableOpacity style={styles.filterDropdown}>
                 <Text style={styles.filterDropdownText}>
-                  {selectedDepartment || 'All Departments'}
+                  {selectedDepartment || t('employee.all_departments')}
                 </Text>
                 <ChevronDown size={16} color="#666" />
               </TouchableOpacity>
@@ -197,7 +199,7 @@ export default function EmployeeScreen() {
                   onPress={() => setSelectedDepartment('')}
                 >
                   <Text style={[styles.filterOptionText, !selectedDepartment && styles.selectedFilterOptionText]}>
-                    All Departments
+                    {t('employee.all_departments')}
                   </Text>
                   {!selectedDepartment && <Check size={16} color="#4A90E2" />}
                 </TouchableOpacity>
@@ -219,10 +221,10 @@ export default function EmployeeScreen() {
 
             {/* Status Filter */}
             <View style={styles.filterSection}>
-              <Text style={styles.filterLabel}>Status</Text>
+              <Text style={styles.filterLabel}>{t('home.status')}</Text>
               <TouchableOpacity style={styles.filterDropdown}>
                 <Text style={styles.filterDropdownText}>
-                  {selectedStatus ? getStatusText(selectedStatus) : 'All Statuses'}
+                  {selectedStatus ? getStatusText(selectedStatus) : t('employee.all_statuses')}
                 </Text>
                 <ChevronDown size={16} color="#666" />
               </TouchableOpacity>
@@ -233,7 +235,7 @@ export default function EmployeeScreen() {
                   onPress={() => setSelectedStatus('')}
                 >
                   <Text style={[styles.filterOptionText, !selectedStatus && styles.selectedFilterOptionText]}>
-                    All Statuses
+                    {t('employee.all_statuses')}
                   </Text>
                   {!selectedStatus && <Check size={16} color="#4A90E2" />}
                 </TouchableOpacity>
@@ -258,10 +260,10 @@ export default function EmployeeScreen() {
 
             {/* Position Filter */}
             <View style={styles.filterSection}>
-              <Text style={styles.filterLabel}>Position</Text>
+              <Text style={styles.filterLabel}>{t('employee.position')}</Text>
               <TouchableOpacity style={styles.filterDropdown}>
                 <Text style={styles.filterDropdownText}>
-                  {selectedPosition || 'All Positions'}
+                  {selectedPosition || t('employee.all_positions')}
                 </Text>
                 <ChevronDown size={16} color="#666" />
               </TouchableOpacity>
@@ -272,7 +274,7 @@ export default function EmployeeScreen() {
                   onPress={() => setSelectedPosition('')}
                 >
                   <Text style={[styles.filterOptionText, !selectedPosition && styles.selectedFilterOptionText]}>
-                    All Positions
+                    {t('employee.all_positions')}
                   </Text>
                   {!selectedPosition && <Check size={16} color="#4A90E2" />}
                 </TouchableOpacity>
@@ -295,11 +297,11 @@ export default function EmployeeScreen() {
 
           <View style={styles.modalFooter}>
             <TouchableOpacity style={styles.clearButton} onPress={clearFilters}>
-              <Text style={styles.clearButtonText}>Clear All</Text>
+              <Text style={styles.clearButtonText}>{t('employee.clear_all')}</Text>
             </TouchableOpacity>
             
             <TouchableOpacity style={styles.applyButton} onPress={handleFilter}>
-              <Text style={styles.applyButtonText}>Apply Filters</Text>
+              <Text style={styles.applyButtonText}>{t('employee.apply_filters')}</Text>
             </TouchableOpacity>
           </View>
         </View>
@@ -316,9 +318,9 @@ export default function EmployeeScreen() {
         colors={['#4A90E2', '#357ABD']}
         style={[styles.header, { paddingTop: insets.top + 20 }]}
       >
-        <Text style={styles.headerTitle}>Employee Directory</Text>
+        <Text style={styles.headerTitle}>{t('employee.employee_directory')}</Text>
         <Text style={styles.headerSubtitle}>
-          {filteredEmployees.length} of {totalCount} employees • {workingEmployees} working
+          {filteredEmployees.length} {t('employee.of')} {totalCount} {t('employee.employees')} • {workingEmployees} {t('employee.working')}
         </Text>
       </LinearGradient>
 
@@ -335,7 +337,7 @@ export default function EmployeeScreen() {
             <Search size={20} color="#999" />
             <TextInput
               style={styles.searchInput}
-              placeholder="Search employees..."
+              placeholder={t('employee.search_employees')}
               value={searchQuery}
               onChangeText={onSearch}
               placeholderTextColor="#999"
@@ -359,9 +361,9 @@ export default function EmployeeScreen() {
             onPress={() => setShowSortModal(true)}
           >
             <Text style={styles.sortButtonText}>
-              {sortBy === 'name' ? 'Name' : 
-               sortBy === 'department' ? 'Dept' : 
-               sortBy === 'position' ? 'Pos' : 'ID'}
+              {sortBy === 'name' ? t('employee.name') : 
+               sortBy === 'department' ? t('employee.dept') : 
+               sortBy === 'position' ? t('employee.pos') : 'ID'}
             </Text>
             <Text style={styles.sortOrder}>
               {sortOrder === 'asc' ? '↑' : '↓'}
@@ -377,7 +379,7 @@ export default function EmployeeScreen() {
             </View>
             <View style={styles.statInfo}>
               <Text style={styles.statValue}>{filteredEmployees.length}</Text>
-              <Text style={styles.statLabel}>Showing</Text>
+              <Text style={styles.statLabel}>{t('employee.showing')}</Text>
             </View>
           </View>
           
@@ -387,7 +389,7 @@ export default function EmployeeScreen() {
             </View>
             <View style={styles.statInfo}>
               <Text style={styles.statValue}>{workingEmployees}</Text>
-              <Text style={styles.statLabel}>Working</Text>
+              <Text style={styles.statLabel}>{t('employee.working')}</Text>
             </View>
           </View>
           
@@ -397,7 +399,7 @@ export default function EmployeeScreen() {
             </View>
             <View style={styles.statInfo}>
               <Text style={styles.statValue}>{onBreakEmployees}</Text>
-              <Text style={styles.statLabel}>On Break</Text>
+              <Text style={styles.statLabel}>{t('employee.on_break')}</Text>
             </View>
           </View>
           
@@ -407,7 +409,7 @@ export default function EmployeeScreen() {
             </View>
             <View style={styles.statInfo}>
               <Text style={styles.statValue}>{offlineEmployees}</Text>
-              <Text style={styles.statLabel}>Offline</Text>
+              <Text style={styles.statLabel}>{t('employee.offline')}</Text>
             </View>
           </View>
         </View>
@@ -415,11 +417,11 @@ export default function EmployeeScreen() {
         {/* Active Filters Display */}
         {(selectedDepartment || selectedStatus || selectedPosition || searchQuery) && (
           <View style={styles.activeFiltersContainer}>
-            <Text style={styles.activeFiltersTitle}>Active Filters:</Text>
+            <Text style={styles.activeFiltersTitle}>{t('employee.active_filters')}</Text>
             <View style={styles.activeFilters}>
               {searchQuery && (
                 <View style={styles.activeFilter}>
-                  <Text style={styles.activeFilterText}>Search: "{searchQuery}"</Text>
+                  <Text style={styles.activeFilterText}>{t('employee.search')}: "{searchQuery}"</Text>
                   <TouchableOpacity onPress={() => onSearch('')}>
                     <X size={12} color="#4A90E2" />
                   </TouchableOpacity>
@@ -427,7 +429,7 @@ export default function EmployeeScreen() {
               )}
               {selectedDepartment && (
                 <View style={styles.activeFilter}>
-                  <Text style={styles.activeFilterText}>Dept: {selectedDepartment}</Text>
+                  <Text style={styles.activeFilterText}>{t('employee.dept')}: {selectedDepartment}</Text>
                   <TouchableOpacity onPress={() => setSelectedDepartment('')}>
                     <X size={12} color="#4A90E2" />
                   </TouchableOpacity>
@@ -435,7 +437,7 @@ export default function EmployeeScreen() {
               )}
               {selectedStatus && (
                 <View style={styles.activeFilter}>
-                  <Text style={styles.activeFilterText}>Status: {getStatusText(selectedStatus)}</Text>
+                  <Text style={styles.activeFilterText}>{t('home.status')}: {getStatusText(selectedStatus)}</Text>
                   <TouchableOpacity onPress={() => setSelectedStatus('')}>
                     <X size={12} color="#4A90E2" />
                   </TouchableOpacity>
@@ -443,7 +445,7 @@ export default function EmployeeScreen() {
               )}
               {selectedPosition && (
                 <View style={styles.activeFilter}>
-                  <Text style={styles.activeFilterText}>Pos: {selectedPosition}</Text>
+                  <Text style={styles.activeFilterText}>{t('employee.pos')}: {selectedPosition}</Text>
                   <TouchableOpacity onPress={() => setSelectedPosition('')}>
                     <X size={12} color="#4A90E2" />
                   </TouchableOpacity>
@@ -457,33 +459,33 @@ export default function EmployeeScreen() {
         <View style={styles.section}>
           <View style={styles.sectionHeader}>
             <Text style={styles.sectionTitle}>
-              {searchQuery ? 'Search Results' : 'All Employees'}
+              {searchQuery ? t('employee.search_results') : t('employee.all_employees')}
             </Text>
             <Text style={styles.resultCount}>
-              {filteredEmployees.length} result{filteredEmployees.length !== 1 ? 's' : ''}
+              {filteredEmployees.length} {filteredEmployees.length !== 1 ? t('employee.results') : t('employee.result')}
             </Text>
           </View>
           
           {isLoading ? (
-            <LoadingSpinner text="Loading employees..." />
+            <LoadingSpinner text={t('common.loading')} />
           ) : error ? (
             <EmptyState
               icon={<UserX size={48} color="#E0E0E0" />}
-              title="Error loading employees"
+              title={t('common.error')}
               message={error}
-              actionText="Retry"
+              actionText={t('common.retry')}
               onAction={refreshEmployees}
             />
           ) : filteredEmployees.length === 0 ? (
             <EmptyState
               icon={<UserX size={48} color="#E0E0E0" />}
-              title="No employees found"
+              title={t('employee.no_employees_found')}
               message={
                 searchQuery || selectedDepartment || selectedStatus || selectedPosition
-                  ? "Try adjusting your search or filter criteria"
-                  : "No employees available"
+                  ? t('employee.adjust_search')
+                  : t('employee.no_employees_available')
               }
-              actionText={searchQuery || selectedDepartment || selectedStatus || selectedPosition ? "Clear Filters" : undefined}
+              actionText={searchQuery || selectedDepartment || selectedStatus || selectedPosition ? t('employee.clear_filters') : undefined}
               onAction={searchQuery || selectedDepartment || selectedStatus || selectedPosition ? clearFilters : undefined}
             />
           ) : (

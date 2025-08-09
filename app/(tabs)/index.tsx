@@ -535,7 +535,7 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    backgroundColor: 'rgba(255, 255, 255, 0.3)',
+    backgroundColor: 'rgba(255, 255, 255, 0.38)',
     borderWidth: .5,
     borderColor: '#E0E0E0',
     borderRadius: 12,
@@ -626,7 +626,7 @@ const styles = StyleSheet.create({
   statsGrid: {
     flexDirection: 'row',
     justifyContent: 'space-between',
-    marginTop: 16,
+    marginTop: 16,     
   },
   statsCard: {
     flex: 1,

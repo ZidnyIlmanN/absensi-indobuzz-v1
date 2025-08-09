@@ -492,6 +492,9 @@ const styles = StyleSheet.create({
   },
   languageSelectorItem: {
     marginBottom: 8,
+    elevation: 2,
+    borderWidth: 1,
+    borderColor: '#E0E0E0',
   },
   logoutButton: {
     flexDirection: 'row',
