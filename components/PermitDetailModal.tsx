@@ -9,18 +9,7 @@ import {
   Animated,
   Dimensions,
 } from 'react-native';
-import {
-  X,
-  Clock,
-  FileText,
-  DollarSign,
-  CheckCircle,
-  Users,
-  AlertTriangle,
-  ChevronRight,
-  Play,
-  Info,
-} from 'lucide-react-native';
+import { X, Clock, FileText, DollarSign, CircleCheck as CheckCircle, Users, TriangleAlert as AlertTriangle, ChevronRight, Play, Info } from 'lucide-react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import { useTranslation } from 'react-i18next';
 
