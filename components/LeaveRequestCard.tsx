@@ -6,15 +6,7 @@ import {
   TouchableOpacity,
   Animated,
 } from 'react-native';
-import {
-  Calendar,
-  Clock,
-  FileText,
-  CheckCircle,
-  XCircle,
-  AlertCircle,
-  ChevronRight,
-} from 'lucide-react-native';
+import { Calendar, Clock, FileText, CircleCheck as CheckCircle, Circle as XCircle, CircleAlert as AlertCircle, ChevronRight } from 'lucide-react-native';
 import { LeaveRequest } from '@/services/leaveRequest';
 import { useTranslation } from 'react-i18next';
 

@@ -10,21 +10,7 @@ import {
   Dimensions,
   Alert,
 } from 'react-native';
-import {
-  X,
-  Calendar,
-  Clock,
-  User,
-  Building,
-  FileText,
-  CheckCircle,
-  XCircle,
-  AlertCircle,
-  MessageSquare,
-  Download,
-  Eye,
-  ChevronRight,
-} from 'lucide-react-native';
+import { X, Calendar, Clock, User, Building, FileText, CircleCheck as CheckCircle, Circle as XCircle, CircleAlert as AlertCircle, MessageSquare, Download, Eye, ChevronRight } from 'lucide-react-native';
 import { LeaveRequest } from '@/services/leaveRequest';
 import { LoadingSpinner } from './LoadingSpinner';
 import { useTranslation } from 'react-i18next';
