@@ -23,11 +23,12 @@ import { EmptyState } from '@/components/EmptyState';
 import { useTranslation } from 'react-i18next';
 import { imageService } from '@/services/imageService';
 import * as DocumentPicker from 'expo-document-picker';
-import DateTimePicker from '@react-native-community/datetimepicker';
+import { DateRangePicker } from '@/components/DateRangePicker';
 
 interface FormData {
   leaveType: 'full_day' | 'half_day';
-  leaveDate: string;
+  startDate: string;
+  endDate: string;
   description: string;
   attachments: string[];
 }
@@ -46,7 +47,8 @@ export default function AjukanIzinScreen() {
 
   const [formData, setFormData] = useState<FormData>({
     leaveType: 'full_day',
-    leaveDate: '',
+    startDate: '',
+    endDate: '',
     description: '',
     attachments: [],
   });
@@ -81,8 +83,8 @@ export default function AjukanIzinScreen() {
   };
 
   const validateForm = (): boolean => {
-    if (!formData.leaveDate) {
-      Alert.alert(t('common.error'), t('leave_request.validation.select_date'));
+    if (!formData.startDate || !formData.endDate) {
+      Alert.alert(t('common.error'), t('leave_request.validation.select_date_range'));
       return false;
     }
 
@@ -97,12 +99,19 @@ export default function AjukanIzinScreen() {
     }
 
     // Check if date is in the future
-    const selectedDate = new Date(formData.leaveDate);
+    const startDate = new Date(formData.startDate);
     const today = new Date();
     today.setHours(0, 0, 0, 0);
 
-    if (selectedDate < today) {
+    if (startDate < today) {
       Alert.alert(t('common.error'), t('leave_request.validation.future_date'));
+      return false;
+    }
+
+    // Validate end date is not before start date
+    const endDate = new Date(formData.endDate);
+    if (endDate < startDate) {
+      Alert.alert(t('common.error'), t('leave_request.validation.end_date_after_start'));
       return false;
     }
 
@@ -123,7 +132,8 @@ export default function AjukanIzinScreen() {
       const { request, error } = await leaveRequestsService.createLeaveRequest({
         userId: user.id,
         leaveType: formData.leaveType,
-        leaveDate: formData.leaveDate,
+        startDate: formData.startDate,
+        endDate: formData.endDate,
         description: formData.description.trim(),
         attachmentUris: formData.attachments,
       });
@@ -152,22 +162,19 @@ export default function AjukanIzinScreen() {
   const resetForm = () => {
     setFormData({
       leaveType: 'full_day',
-      leaveDate: '',
+      startDate: '',
+      endDate: '',
       description: '',
       attachments: [],
     });
   };
 
-  const handleDateSelect = () => {
-    setShowDatePicker(true);
-  };
-
-  const onDateChange = (event: any, selectedDate?: Date) => {
-    setShowDatePicker(false);
-    if (selectedDate) {
-      const dateString = selectedDate.toISOString().split('T')[0];
-      setFormData(prev => ({ ...prev, leaveDate: dateString }));
-    }
+  const handleDateRangeChange = (startDate: string | null, endDate: string | null) => {
+    setFormData(prev => ({
+      ...prev,
+      startDate: startDate || '',
+      endDate: endDate || '',
+    }));
   };
 
   const handleImageSelected = (uri: string) => {
@@ -320,6 +327,42 @@ export default function AjukanIzinScreen() {
     );
   };
 
+  const calculateLeaveDuration = () => {
+    if (!formData.startDate || !formData.endDate) return 0;
+    
+    const start = new Date(formData.startDate);
+    const end = new Date(formData.endDate);
+    const diffTime = end.getTime() - start.getTime();
+    const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24)) + 1;
+    
+    return Math.max(0, diffDays);
+  };
+
+  const formatDateRange = (startDate: string, endDate: string) => {
+    const start = new Date(startDate);
+    const end = new Date(endDate);
+    
+    if (startDate === endDate) {
+      return start.toLocaleDateString('en-US', {
+        weekday: 'long',
+        year: 'numeric',
+        month: 'long',
+        day: 'numeric',
+      });
+    }
+    
+    return `${start.toLocaleDateString('en-US', {
+      weekday: 'short',
+      month: 'short',
+      day: 'numeric',
+    })} - ${end.toLocaleDateString('en-US', {
+      weekday: 'short',
+      month: 'short',
+      day: 'numeric',
+      year: 'numeric',
+    })}`;
+  };
+
   const getStatusColor = (status: string) => {
     switch (status) {
       case 'approved':
@@ -437,7 +480,7 @@ export default function AjukanIzinScreen() {
                 <View style={styles.requestHeader}>
                   <View style={styles.requestInfo}>
                     <Text style={styles.requestDate}>
-                      {formatDate(request.leaveDate)}
+                      {formatDateRange(request.startDate, request.endDate)}
                     </Text>
                     <View style={styles.requestMeta}>
                       <View style={[
@@ -569,24 +612,24 @@ export default function AjukanIzinScreen() {
               </View>
 
               {/* Date Selection */}
-              <Text style={styles.inputLabel}>{t('leave_request.leave_date')}</Text>
-              <TouchableOpacity style={styles.dateInput} onPress={handleDateSelect}>
-                <Calendar size={20} color="#666" />
-                <Text style={[
-                  styles.dateText,
-                  !formData.leaveDate && styles.placeholderText
-                ]}>
-                  {formData.leaveDate 
-                    ? new Date(formData.leaveDate).toLocaleDateString('en-US', {
-                        weekday: 'long',
-                        year: 'numeric',
-                        month: 'long',
-                        day: 'numeric',
-                      })
-                    : t('leave_request.select_leave_date')
-                  }
-                </Text>
-              </TouchableOpacity>
+              <Text style={styles.inputLabel}>{t('leave_request.leave_date_range')}</Text>
+              <DateRangePicker
+                startDate={formData.startDate}
+                endDate={formData.endDate}
+                onDateRangeChange={handleDateRangeChange}
+                placeholder={t('leave_request.select_date_range')}
+                minDate={new Date().toISOString().split('T')[0]}
+              />
+              
+              {/* Duration Display */}
+              {formData.startDate && formData.endDate && (
+                <View style={styles.durationDisplay}>
+                  <Text style={styles.durationLabel}>{t('leave_request.total_duration')}:</Text>
+                  <Text style={styles.durationValue}>
+                    {calculateLeaveDuration()} {calculateLeaveDuration() === 1 ? t('leave_request.day') : t('leave_request.days')}
+                  </Text>
+                </View>
+              )}
 
               {/* Description */}
               <Text style={styles.inputLabel}>{t('leave_request.description_reason')}</Text>
@@ -647,16 +690,6 @@ export default function AjukanIzinScreen() {
                 </Text>
               </View>
             </ScrollView>
-
-            {showDatePicker && (
-              <DateTimePicker style={styles.datePickerWrapper}
-                value={formData.leaveDate ? new Date(formData.leaveDate) : new Date()}
-                mode="date"
-                display="default"
-                onChange={onDateChange}
-                minimumDate={new Date()} // Prevent selecting past dates
-              />
-            )}
 
             <View style={styles.modalFooter}>
               <TouchableOpacity
@@ -951,9 +984,24 @@ const styles = StyleSheet.create({
     marginLeft: 12,
     flex: 1,
   },
-  datePickerWrapper: {
+  durationDisplay: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    backgroundColor: '#E3F2FD',
+    padding: 12,
     borderRadius: 8,
-    margin: 20,
+    marginBottom: 8,
+  },
+  durationLabel: {
+    fontSize: 14,
+    color: '#1565C0',
+    fontWeight: '500',
+  },
+  durationValue: {
+    fontSize: 16,
+    color: '#4A90E2',
+    fontWeight: 'bold',
   },
   placeholderText: {
     color: '#999',

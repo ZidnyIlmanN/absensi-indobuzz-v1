@@ -161,7 +161,9 @@ export interface Database {
           title: string
           description: string
           start_date: string | null
-          end_date: string | null
+          start_date: string
+          end_date: string
+          duration_days: number
           amount: number | null
           attachments: Json | null
           status: 'pending' | 'approved' | 'rejected'
@@ -176,7 +178,8 @@ export interface Database {
           id?: string
           user_id: string
           type: 'leave' | 'permission' | 'reimbursement'
-          title: string
+          start_date: string
+          end_date: string
           description: string
           start_date?: string | null
           end_date?: string | null
@@ -191,7 +194,8 @@ export interface Database {
           updated_at?: string
         }
         Update: {
-          id?: string
+          start_date?: string
+          end_date?: string
           user_id?: string
           type?: 'leave' | 'permission' | 'reimbursement'
           title?: string

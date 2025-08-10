@@ -792,8 +792,12 @@
     "leave_type": "Leave Type",
     "full_day_leave": "Full Day Leave",
     "half_day_leave": "Half Day Leave",
-    "leave_date": "Leave Date",
-    "select_leave_date": "Select leave date",
+    "leave_date_range": "Leave Date Range",
+    "select_date_range": "Select date range",
+    "select_start_date": "Select start date",
+    "select_end_date": "Select end date",
+    "duration": "Duration",
+    "total_duration": "Total Duration",
     "description_reason": "Description/Reason",
     "explain_leave_reason": "Explain the reason for your leave request...",
     "attachments_optional": "Attachments (Optional)",
@@ -836,10 +840,11 @@
     "capture_error": "Failed to capture photo from camera",
     "select_error": "Failed to select photo from gallery",
     "validation": {
-      "select_date": "Please select a leave date",
+      "select_date_range": "Please select start and end dates",
       "provide_description": "Please provide a description for your leave request",
       "description_min_length": "Description must be at least 10 characters long",
       "future_date": "Leave date must be today or in the future",
+      "end_date_after_start": "End date must be on or after start date",
       "user_not_authenticated": "User not authenticated",
       "submit_failed": "Failed to submit leave request"
     }

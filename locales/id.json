@@ -787,8 +787,12 @@
     "leave_type": "Jenis Izin",
     "full_day_leave": "Izin Sehari Penuh",
     "half_day_leave": "Izin Setengah Hari",
-    "leave_date": "Tanggal Izin",
-    "select_leave_date": "Pilih tanggal izin",
+    "leave_date_range": "Rentang Tanggal Izin",
+    "select_date_range": "Pilih rentang tanggal",
+    "select_start_date": "Pilih tanggal mulai",
+    "select_end_date": "Pilih tanggal selesai",
+    "duration": "Durasi",
+    "total_duration": "Total Durasi",
     "description_reason": "Alasan/Keterangan",
     "explain_leave_reason": "Jelaskan alasan pengajuan izin Anda...",
     "attachments_optional": "Lampiran (Opsional)",
@@ -831,10 +835,11 @@
     "capture_error": "Gagal mengambil foto dari kamera",
     "select_error": "Gagal memilih foto dari galeri",
     "validation": {
-      "select_date": "Silakan pilih tanggal izin",
+      "select_date_range": "Silakan pilih tanggal mulai dan selesai",
       "provide_description": "Silakan berikan keterangan untuk pengajuan izin Anda",
       "description_min_length": "Keterangan harus minimal 10 karakter",
       "future_date": "Tanggal izin harus hari ini atau di masa depan",
+      "end_date_after_start": "Tanggal selesai harus sama atau setelah tanggal mulai",
       "user_not_authenticated": "Pengguna tidak terautentikasi",
       "submit_failed": "Gagal mengajukan permintaan izin"
     }

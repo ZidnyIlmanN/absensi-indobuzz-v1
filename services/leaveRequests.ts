@@ -5,7 +5,8 @@ export interface LeaveRequest {
   id: string;
   userId: string;
   leaveType: 'full_day' | 'half_day';
-  leaveDate: string;
+  startDate: string;
+  endDate: string;
   description: string;
   attachments: string[];
   status: 'pending' | 'approved' | 'rejected';
@@ -18,7 +19,8 @@ export interface LeaveRequest {
 export interface CreateLeaveRequestData {
   userId: string;
   leaveType: 'full_day' | 'half_day';
-  leaveDate: string;
+  startDate: string;
+  endDate: string;
   description: string;
   attachmentUris?: string[];
 }
@@ -61,7 +63,8 @@ export const leaveRequestsService = {
         .insert({
           user_id: data.userId,
           leave_type: data.leaveType,
-          leave_date: data.leaveDate,
+          start_date: data.startDate,
+          end_date: data.endDate,
           description: data.description,
           attachments: JSON.stringify(uploadedAttachments),
         })
@@ -108,7 +111,7 @@ export const leaveRequestsService = {
       }
       
       if (filters?.dateTo) {
-        query = query.lte('leave_date', filters.dateTo);
+        query = query.lte('end_date', filters.dateTo);
       }
 
       const { data, error } = await query;
@@ -245,7 +248,8 @@ export const leaveRequestsService = {
       id: data.id,
       userId: data.user_id,
       leaveType: data.leave_type,
-      leaveDate: data.leave_date,
+      startDate: data.start_date,
+      endDate: data.end_date,
       description: data.description,
       attachments: data.attachments ? JSON.parse(data.attachments) : [],
       status: data.status,
