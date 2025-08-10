@@ -126,6 +126,7 @@ export interface Database {
           location_lng: number | null
           location_address: string | null
           notes: string | null
+          selfie_url: string | null
           created_at: string
         }
         Insert: {
@@ -138,6 +139,7 @@ export interface Database {
           location_lng?: number | null
           location_address?: string | null
           notes?: string | null
+          selfie_url?: string | null
           created_at?: string
         }
         Update: {
@@ -150,6 +152,7 @@ export interface Database {
           location_lng?: number | null
           location_address?: string | null
           notes?: string | null
+          selfie_url?: string | null
           created_at?: string
         }
       }
@@ -161,9 +164,7 @@ export interface Database {
           title: string
           description: string
           start_date: string | null
-          start_date: string
-          end_date: string
-          duration_days: number
+          end_date: string | null
           amount: number | null
           attachments: Json | null
           status: 'pending' | 'approved' | 'rejected'
@@ -178,8 +179,7 @@ export interface Database {
           id?: string
           user_id: string
           type: 'leave' | 'permission' | 'reimbursement'
-          start_date: string
-          end_date: string
+          title: string
           description: string
           start_date?: string | null
           end_date?: string | null
@@ -194,8 +194,7 @@ export interface Database {
           updated_at?: string
         }
         Update: {
-          start_date?: string
-          end_date?: string
+          id?: string
           user_id?: string
           type?: 'leave' | 'permission' | 'reimbursement'
           title?: string
@@ -204,6 +203,57 @@ export interface Database {
           end_date?: string | null
           amount?: number | null
           attachments?: Json | null
+          status?: 'pending' | 'approved' | 'rejected'
+          submitted_at?: string
+          reviewed_at?: string | null
+          reviewed_by?: string | null
+          review_notes?: string | null
+          created_at?: string
+          updated_at?: string
+        }
+      }
+      leave_requests: {
+        Row: {
+          id: string
+          user_id: string
+          leave_type: 'full_day' | 'half_day'
+          start_date: string
+          end_date: string
+          description: string
+          attachments: Json
+          status: 'pending' | 'approved' | 'rejected'
+          submitted_at: string
+          reviewed_at: string | null
+          reviewed_by: string | null
+          review_notes: string | null
+          duration_days: number
+          created_at: string
+          updated_at: string
+        }
+        Insert: {
+          id?: string
+          user_id: string
+          leave_type: 'full_day' | 'half_day'
+          start_date: string
+          end_date: string
+          description: string
+          attachments?: Json
+          status?: 'pending' | 'approved' | 'rejected'
+          submitted_at?: string
+          reviewed_at?: string | null
+          reviewed_by?: string | null
+          review_notes?: string | null
+          created_at?: string
+          updated_at?: string
+        }
+        Update: {
+          id?: string
+          user_id?: string
+          leave_type?: 'full_day' | 'half_day'
+          start_date?: string
+          end_date?: string
+          description?: string
+          attachments?: Json
           status?: 'pending' | 'approved' | 'rejected'
           submitted_at?: string
           reviewed_at?: string | null
