@@ -20,6 +20,8 @@ import { useAppContext } from '@/context/AppContext';
 import { leaveRequestsService, LeaveRequest } from '@/services/leaveRequest';
 import { LoadingSpinner } from '@/components/LoadingSpinner';
 import { EmptyState } from '@/components/EmptyState';
+import { LeaveRequestDetailModal } from '@/components/LeaveRequestDetailModal';
+import { LeaveRequestCard } from '@/components/LeaveRequestCard';
 import { useTranslation } from 'react-i18next';
 import { imageService } from '@/services/imageService';
 import * as DocumentPicker from 'expo-document-picker';
@@ -44,6 +46,8 @@ export default function AjukanIzinScreen() {
   const [leaveRequests, setLeaveRequests] = useState<LeaveRequest[]>([]);
   const [isProcessing, setIsProcessing] = useState(false);
   const [showDatePicker, setShowDatePicker] = useState(false);
+  const [selectedLeaveRequest, setSelectedLeaveRequest] = useState<LeaveRequest | null>(null);
+  const [showDetailModal, setShowDetailModal] = useState(false);
 
   const [formData, setFormData] = useState<FormData>({
     leaveType: 'full_day',
@@ -189,6 +193,16 @@ export default function AjukanIzinScreen() {
       ...prev,
       attachments: prev.attachments.filter((_, i) => i !== index),
     }));
+  };
+
+  const handleLeaveRequestPress = (request: LeaveRequest) => {
+    setSelectedLeaveRequest(request);
+    setShowDetailModal(true);
+  };
+
+  const closeDetailModal = () => {
+    setShowDetailModal(false);
+    setSelectedLeaveRequest(null);
   };
 
   const handleCameraCapture = async () => {
@@ -476,77 +490,12 @@ export default function AjukanIzinScreen() {
             />
           ) : (
             leaveRequests.map((request) => (
-              <View key={request.id} style={styles.requestCard}>
-                <View style={styles.requestHeader}>
-                  <View style={styles.requestInfo}>
-                    <Text style={styles.requestDate}>
-                      {formatDateRange(request.startDate, request.endDate)}
-                    </Text>
-                    <View style={styles.requestMeta}>
-                      <View style={[
-                        styles.typeBadge,
-                        { backgroundColor: request.leaveType === 'full_day' ? '#E3F2FD' : '#FFF3E0' }
-                      ]}>
-                        <Text style={[
-                          styles.typeBadgeText,
-                          { color: request.leaveType === 'full_day' ? '#4A90E2' : '#FF9800' }
-                        ]}>
-                          {getLeaveTypeLabel(request.leaveType)}
-                        </Text>
-                      </View>
-                      
-                      <View style={styles.statusContainer}>
-                        {getStatusIcon(request.status)}
-                        <Text style={[
-                          styles.statusText,
-                          { color: getStatusColor(request.status) }
-                        ]}>
-                          {t(`leave_request.${request.status}`)}
-                        </Text>
-                      </View>
-                    </View>
-                  </View>
-                </View>
-
-                <Text style={styles.requestDescription}>
-                  {request.description}
-                </Text>
-
-                {request.attachments.length > 0 && (
-                  <View style={styles.attachmentsContainer}>
-                    <Text style={styles.attachmentsLabel}>
-                      {t('leave_request.attachments', { count: request.attachments.length })}
-                    </Text>
-                    <ScrollView horizontal showsHorizontalScrollIndicator={false}>
-                      <View style={styles.attachmentsList}>
-                        {request.attachments.map((url, index) => (
-                          <View key={index} style={styles.attachmentPreview}>
-                            <File size={16} color="#4A90E2" />
-                          </View>
-                        ))}
-                      </View>
-                    </ScrollView>
-                  </View>
-                )}
-
-                <View style={styles.requestFooter}>
-                  <Text style={styles.submittedDate}>
-                    {t('leave_request.submitted')}: {request.submittedAt.toLocaleDateString()}
-                  </Text>
-                  {request.reviewedAt && (
-                    <Text style={styles.reviewedDate}>
-                      {t('leave_request.reviewed')}: {request.reviewedAt.toLocaleDateString()}
-                    </Text>
-                  )}
-                </View>
-
-                {request.reviewNotes && (
-                  <View style={styles.reviewNotesContainer}>
-                    <Text style={styles.reviewNotesLabel}>{t('leave_request.review_notes')}:</Text>
-                    <Text style={styles.reviewNotesText}>{request.reviewNotes}</Text>
-                  </View>
-                )}
-              </View>
+              <LeaveRequestCard
+                key={request.id}
+                request={request}
+                onPress={handleLeaveRequestPress}
+                showActions={true}
+              />
             ))
           )}
         </View>
@@ -717,6 +666,14 @@ export default function AjukanIzinScreen() {
           </View>
         </View>
       </Modal>
+
+      {/* Leave Request Detail Modal */}
+      <LeaveRequestDetailModal
+        visible={showDetailModal}
+        onClose={closeDetailModal}
+        leaveRequest={selectedLeaveRequest}
+        isLoading={false}
+      />
     </View>
   );
 }
@@ -805,100 +762,6 @@ const styles = StyleSheet.create({
     elevation: 2,
     borderWidth: 1,
     borderColor: '#E0E0E0',
-  },
-  requestHeader: {
-    marginBottom: 12,
-  },
-  requestInfo: {
-    flex: 1,
-  },
-  requestDate: {
-    fontSize: 16,
-    fontWeight: '600',
-    color: '#1A1A1A',
-    marginBottom: 8,
-  },
-  requestMeta: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-  },
-  typeBadge: {
-    paddingHorizontal: 12,
-    paddingVertical: 4,
-    borderRadius: 12,
-  },
-  typeBadgeText: {
-    fontSize: 12,
-    fontWeight: '500',
-  },
-  statusContainer: {
-    flexDirection: 'row',
-    alignItems: 'center',
-  },
-  statusText: {
-    fontSize: 12,
-    fontWeight: '500',
-    marginLeft: 4,
-  },
-  requestDescription: {
-    fontSize: 14,
-    color: '#666',
-    lineHeight: 20,
-    marginBottom: 12,
-  },
-  attachmentsContainer: {
-    marginBottom: 12,
-  },
-  attachmentsLabel: {
-    fontSize: 12,
-    color: '#4A90E2',
-    marginBottom: 8,
-  },
-  attachmentsList: {
-    flexDirection: 'row',
-    gap: 8,
-  },
-  attachmentPreview: {
-    width: 32,
-    height: 32,
-    borderRadius: 8,
-    backgroundColor: '#E3F2FD',
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  requestFooter: {
-    borderTopWidth: 1,
-    borderTopColor: '#F0F0F0',
-    paddingTop: 12,
-  },
-  submittedDate: {
-    fontSize: 12,
-    color: '#999',
-    marginBottom: 2,
-  },
-  reviewedDate: {
-    fontSize: 12,
-    color: '#666',
-  },
-  reviewNotesContainer: {
-    backgroundColor: '#F8F9FA',
-    borderRadius: 8,
-    padding: 12,
-    marginTop: 12,
-    borderLeftWidth: 4,
-    borderLeftColor: '#4A90E2',
-  },
-  reviewNotesLabel: {
-    fontSize: 12,
-    fontWeight: '600',
-    color: '#4A90E2',
-    marginBottom: 4,
-  },
-  reviewNotesText: {
-    fontSize: 12,
-    color: '#666',
-    lineHeight: 16,
   },
   modalOverlay: {
     flex: 1,

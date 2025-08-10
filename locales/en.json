@@ -847,7 +847,19 @@
       "end_date_after_start": "End date must be on or after start date",
       "user_not_authenticated": "User not authenticated",
       "submit_failed": "Failed to submit leave request"
-    }
+    },
+    "leave_request_details": "Leave Request Details",
+    "employee_information": "Employee Information",
+    "leave_information": "Leave Information",
+    "leave_period": "Leave Period",
+    "reason_description": "Reason/Description",
+    "attachment_preview": "Attachment Preview",
+    "approval_workflow": "Approval Workflow",
+    "submission_details": "Submission Details",
+    "submitted_on": "Submitted On",
+    "reviewed_on": "Reviewed On",
+    "request_not_found": "Request Not Found",
+    "request_not_available": "The requested leave request is not available"
   },
   "check_in": {
     "check_in": "Check In",

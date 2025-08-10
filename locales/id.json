@@ -842,7 +842,19 @@
       "end_date_after_start": "Tanggal selesai harus sama atau setelah tanggal mulai",
       "user_not_authenticated": "Pengguna tidak terautentikasi",
       "submit_failed": "Gagal mengajukan permintaan izin"
-    }
+    },
+    "leave_request_details": "Detail Pengajuan Izin",
+    "employee_information": "Informasi Karyawan",
+    "leave_information": "Informasi Izin",
+    "leave_period": "Periode Izin",
+    "reason_description": "Alasan/Keterangan",
+    "attachment_preview": "Pratinjau Lampiran",
+    "approval_workflow": "Alur Persetujuan",
+    "submission_details": "Detail Pengajuan",
+    "submitted_on": "Diajukan Pada",
+    "reviewed_on": "Ditinjau Pada",
+    "request_not_found": "Permintaan Tidak Ditemukan",
+    "request_not_available": "Permintaan izin yang diminta tidak tersedia"
   },
   "check_in": {
     "check_in": "Masuk",
