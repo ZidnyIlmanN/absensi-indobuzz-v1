@@ -49,6 +49,71 @@ export function useI18n(): UseI18nReturn {
     return i18nService.formatDate(date, options);
   }, [currentLanguage]);
 
+  const formatDateString = useCallback((dateString: string, options?: Intl.DateTimeFormatOptions) => {
+    const date = new Date(dateString);
+    return formatDate(date, options);
+  }, [formatDate]);
+
+  const getDateFormat = useCallback(() => {
+    return currentLanguage === 'id' ? 'DD/MM/YYYY' : 'MM/DD/YYYY';
+  }, [currentLanguage]);
+
+  const formatLeaveDate = useCallback((dateString: string) => {
+    const date = new Date(dateString);
+    const locale = currentLanguage === 'id' ? 'id-ID' : 'en-US';
+    
+    try {
+      return new Intl.DateTimeFormat(locale, {
+        weekday: 'long',
+        year: 'numeric',
+        month: 'long',
+        day: 'numeric',
+      }).format(date);
+    } catch (error) {
+      return date.toLocaleDateString();
+    }
+  }, [currentLanguage]);
+
+  const formatLeaveDateShort = useCallback((dateString: string) => {
+    const date = new Date(dateString);
+    const locale = currentLanguage === 'id' ? 'id-ID' : 'en-US';
+    
+    try {
+      if (currentLanguage === 'id') {
+        return new Intl.DateTimeFormat(locale, {
+          day: '2-digit',
+          month: '2-digit',
+          year: 'numeric',
+        }).format(date);
+      } else {
+        return new Intl.DateTimeFormat(locale, {
+          month: '2-digit',
+          day: '2-digit',
+          year: 'numeric',
+        }).format(date);
+      }
+    } catch (error) {
+      return date.toLocaleDateString();
+    }
+  }, [currentLanguage]);
+
+  const formatSubmissionDate = useCallback((date: Date) => {
+    const locale = currentLanguage === 'id' ? 'id-ID' : 'en-US';
+    
+    try {
+      return new Intl.DateTimeFormat(locale, {
+        weekday: 'long',
+        year: 'numeric',
+        month: 'long',
+        day: 'numeric',
+        hour: '2-digit',
+        minute: '2-digit',
+      }).format(date);
+    } catch (error) {
+      return date.toLocaleDateString();
+    }
+  }, [currentLanguage]);
+
   // Listen to app state changes to refresh translations if needed
   useEffect(() => {
     const handleAppStateChange = (nextAppState: AppStateStatus) => {
@@ -75,6 +140,11 @@ export function useI18n(): UseI18nReturn {
     formatNumber,
     formatCurrency,
     formatDate,
+    formatDateString,
+    formatLeaveDate,
+    formatLeaveDateShort,
+    formatSubmissionDate,
+    getDateFormat,
     isChangingLanguage,
   };
 }
