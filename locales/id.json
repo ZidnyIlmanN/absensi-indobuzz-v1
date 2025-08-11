@@ -839,6 +839,7 @@
     "start_date": "Tanggal Mulai",
     "end_date": "Tanggal Selesai",
     "images": "gambar",
+    "image_preview": "Pratinjau Gambar",
     "date_format_hint": "Format: {{format}}",
     "validation": {
       "select_date_range": "Silakan pilih tanggal mulai dan selesai",
@@ -849,6 +850,9 @@
       "user_not_authenticated": "Pengguna tidak terautentikasi",
       "submit_failed": "Gagal mengajukan permintaan izin"
     },
+    "upload_error": "Gagal mengupload file",
+    "upload_success": "File berhasil diupload",
+    "compression_info": "File dikompres dari {original}MB menjadi {compressed}MB ({ratio}% pengurangan)",
     "leave_request_details": "Detail Pengajuan Izin",
     "employee_information": "Informasi Karyawan",
     "leave_information": "Informasi Izin",
@@ -860,7 +864,8 @@
     "submitted_on": "Diajukan Pada",
     "reviewed_on": "Ditinjau Pada",
     "request_not_found": "Permintaan Tidak Ditemukan",
-    "request_not_available": "Permintaan izin yang diminta tidak tersedia"
+    "request_not_available": "Permintaan izin yang diminta tidak tersedia",
+    "documents": "Dokumen"
   },
   "check_in": {
     "check_in": "Masuk",

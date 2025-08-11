@@ -802,7 +802,7 @@
     "explain_leave_reason": "Explain the reason for your leave request...",
     "attachments_optional": "Attachments (Optional)",
     "add_attachment": "Add Attachment",
-    "attachment_selected": "{{count}} attachment(s) selected",
+    "attachment_selected": "{{count}} attachment selected",
     "submit_leave_request": "Submit Leave Request",
     "submitting": "Submitting...",
     "cancel": "Cancel",
@@ -821,7 +821,7 @@
     "reviewed": "Reviewed",
     "review_notes": "Review Notes",
     "loading_requests": "Loading leave requests...",
-    "attachments": "Attachment(s)",
+    "attachments": "Attachment",
     "info_notes": "Make sure all information is correct before submitting. Submitted requests cannot be changed.",
     "character_count": "{{count}}/500 characters",
     "add_attachment_title": "Add Attachment",
@@ -844,6 +844,7 @@
     "start_date": "Start Date",
     "end_date": "End Date",
     "images": "Images",
+    "image_preview": "Images Preview",
     "date_format_hint": "Format: {{format}}",
     "validation": {
       "select_date_range": "Please select start and end dates",
@@ -865,7 +866,8 @@
     "submitted_on": "Submitted On",
     "reviewed_on": "Reviewed On",
     "request_not_found": "Request Not Found",
-    "request_not_available": "The requested leave request is not available"
+    "request_not_available": "The requested leave request is not available",
+    "documents": "Documents"
   },
   "check_in": {
     "check_in": "Check In",
