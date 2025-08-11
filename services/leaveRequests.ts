@@ -162,13 +162,35 @@ export const leaveRequestsService = {
         return { url: null, error: validation.error || 'Invalid file' };
       }
 
+      let processedFileUri = fileUri;
+      const fileExtension = this.getFileExtension(fileUri);
+      const contentType = this.getContentType(fileExtension);
+
+      // Compress image if it's a supported image type
+      if (contentType.startsWith('image/')) {
+        console.log('Attachment is an image, attempting compression...');
+        const compressionResult = await imageService.compressImage(fileUri, {
+          quality: 0.7,
+          maxWidth: 1024,
+          maxHeight: 1024,
+          format: 'jpeg',
+        });
+
+        if (compressionResult.error || !compressionResult.uri) {
+          console.warn('Image compression failed, uploading original file. Error:', compressionResult.error);
+        } else {
+          processedFileUri = compressionResult.uri;
+          console.log('Image compressed successfully:', processedFileUri);
+        }
+      }
+
       // Generate unique filename
       const timestamp = new Date().toISOString().replace(/[:.]/g, '-');
-      const fileExtension = this.getFileExtension(fileUri);
-      const fileName = `${userId}/leave-requests/attachment_${timestamp}${fileExtension}`;
+      const finalFileExtension = this.getFileExtension(processedFileUri);
+      const fileName = `${userId}/leave-requests/attachment_${timestamp}${finalFileExtension}`;
 
-      // Convert file to ArrayBuffer (reusing logic from imageService)
-      const response = await fetch(fileUri);
+      // Convert file to ArrayBuffer
+      const response = await fetch(processedFileUri);
       const arrayBuffer = await response.arrayBuffer();
 
       if (arrayBuffer.byteLength === 0) {
@@ -179,7 +201,7 @@ export const leaveRequestsService = {
       const { data, error } = await supabase.storage
         .from('leave-attachments')
         .upload(fileName, arrayBuffer, {
-          contentType: this.getContentType(fileExtension),
+          contentType: this.getContentType(finalFileExtension),
           upsert: false,
         });
 
