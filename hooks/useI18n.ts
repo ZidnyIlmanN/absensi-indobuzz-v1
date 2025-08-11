@@ -12,6 +12,11 @@ interface UseI18nReturn {
   formatNumber: (number: number) => string;
   formatCurrency: (amount: number) => string;
   formatDate: (date: Date, options?: Intl.DateTimeFormatOptions) => string;
+  formatDateString: (dateString: string, options?: Intl.DateTimeFormatOptions) => string;
+  formatLeaveDate: (dateString: string) => string;
+  formatLeaveDateShort: (dateString: string) => string;
+  formatSubmissionDate: (date: Date) => string;
+  getDateFormat: () => string;
   isChangingLanguage: boolean;
 }
 
