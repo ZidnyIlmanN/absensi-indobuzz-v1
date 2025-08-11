@@ -3,7 +3,6 @@ import {
   View,
   Text,
   StyleSheet,
-  Modal,
   ScrollView,
   TouchableOpacity,
   Image,
@@ -16,6 +15,7 @@ import { LoadingSpinner } from './LoadingSpinner';
 import { useI18n } from '@/hooks/useI18n';
 import { useAppContext } from '@/context/AppContext';
 import { AttachmentPreview } from './AttachmentPreview';
+import { DraggableModal } from './DraggableModal';
 
 const { width } = Dimensions.get('window');
 
@@ -268,37 +268,15 @@ export function LeaveRequestDetailModal({
   );
 
   return (
-    <Modal
-      animationType="slide"
-      transparent={true}
+    <DraggableModal
       visible={visible}
-      onRequestClose={onClose}
+      onClose={onClose}
+      title={t('leave_request.leave_request_details')}
+      showCloseButton={true}
+      showDragIndicator={true}
+      enableDrag={true}
+      dismissThreshold={0.25}
     >
-      <View style={styles.modalOverlay}>
-        <View style={styles.modalContent}>
-          {/* Header */}
-          <View style={styles.modalHeader}>
-            <View style={styles.headerLeft}>
-              <Text style={styles.modalTitle}>
-                {t('leave_request.leave_request_details')}
-              </Text>
-              {leaveRequest && (
-                <View style={styles.headerMeta}>
-                  <View style={[
-                    styles.statusBadge,
-                    { backgroundColor: getStatusColor(leaveRequest.status) }
-                  ]}>
-                    <Text style={styles.statusBadgeText}>
-                      {t(`leave_request.${leaveRequest.status}`)}
-                    </Text>
-                  </View>
-                </View>
-              )}
-            </View>
-            <TouchableOpacity onPress={onClose} style={styles.closeButton}>
-              <X size={24} color="#666" />
-            </TouchableOpacity>
-          </View>
 
           {isLoading ? (
             <View style={styles.loadingContainer}>
@@ -306,6 +284,18 @@ export function LeaveRequestDetailModal({
             </View>
           ) : leaveRequest ? (
             <ScrollView style={styles.modalBody} showsVerticalScrollIndicator={false}>
+              {/* Status Header */}
+              <View style={styles.statusHeader}>
+                <View style={[
+                  styles.statusBadge,
+                  { backgroundColor: getStatusColor(leaveRequest.status) }
+                ]}>
+                  <Text style={styles.statusBadgeText}>
+                    {t(`leave_request.${leaveRequest.status}`)}
+                  </Text>
+                </View>
+              </View>
+
               {/* Employee Information */}
               <View style={styles.section}>
                 <Text style={styles.sectionTitle}>{t('leave_request.employee_information')}</Text>
@@ -473,45 +463,17 @@ export function LeaveRequestDetailModal({
               <Text style={styles.errorMessage}>{t('leave_request.request_not_available')}</Text>
             </View>
           )}
-        </View>
-      </View>
-    </Modal>
+    </DraggableModal>
   );
 }
 
 const styles = StyleSheet.create({
-  modalOverlay: {
-    flex: 1,
-    backgroundColor: 'rgba(0, 0, 0, 0.5)',
-    justifyContent: 'flex-end',
-  },
-  modalContent: {
-    backgroundColor: 'white',
-    borderTopLeftRadius: 20,
-    borderTopRightRadius: 20,
-    maxHeight: '95%',
-    minHeight: '60%',
-  },
-  modalHeader: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'flex-start',
-    padding: 20,
+  statusHeader: {
+    alignItems: 'center',
+    paddingVertical: 16,
     borderBottomWidth: 1,
     borderBottomColor: '#F0F0F0',
-  },
-  headerLeft: {
-    flex: 1,
-  },
-  modalTitle: {
-    fontSize: 20,
-    fontWeight: 'bold',
-    color: '#1A1A1A',
-    marginBottom: 8,
-  },
-  headerMeta: {
-    flexDirection: 'row',
-    alignItems: 'center',
+    marginBottom: 16,
   },
   statusBadge: {
     paddingHorizontal: 12,
@@ -523,10 +485,6 @@ const styles = StyleSheet.create({
     fontWeight: '600',
     color: 'white',
   },
-  closeButton: {
-    padding: 4,
-    marginLeft: 16,
-  },
   loadingContainer: {
     flex: 1,
     justifyContent: 'center',
@@ -535,7 +493,6 @@ const styles = StyleSheet.create({
   },
   modalBody: {
     flex: 1,
-    paddingHorizontal: 20,
   },
   section: {
     marginBottom: 24,

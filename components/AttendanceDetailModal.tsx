@@ -3,7 +3,6 @@ import {
   View,
   Text,
   StyleSheet,
-  Modal,
   ScrollView,
   TouchableOpacity,
   Image,
@@ -25,6 +24,7 @@ import {
 import { AttendanceRecord } from '@/types';
 import { LoadingSpinner } from './LoadingSpinner';
 import { useI18n } from '@/hooks/useI18n';
+import { DraggableModal } from './DraggableModal';
 
 const { width, height } = Dimensions.get('window');
 
@@ -207,63 +207,59 @@ export function AttendanceDetailModal({
     if (!selectedPhoto) return null;
 
     return (
-      <View style={styles.fullscreenOverlay}>
-        <View style={styles.fullscreenContent}>
-          <View style={styles.fullscreenHeader}>
-            <Text style={styles.fullscreenTitle}>
-              {selectedPhoto.title}
-            </Text>
-            <TouchableOpacity onPress={closePhotoModal}>
-              <X size={24} color="white" />
-            </TouchableOpacity>
-          </View>
-
+      <DraggableModal
+        visible={!!selectedPhoto}
+        onClose={closePhotoModal}
+        title={selectedPhoto.title}
+        showCloseButton={true}
+        showDragIndicator={true}
+        enableDrag={true}
+        dismissThreshold={0.3}
+        backgroundColor="black"
+        overlayColor="rgba(0, 0, 0, 0.95)"
+      >
+        <View style={styles.photoModalContent}>
           <Image 
             source={{ uri: selectedPhoto.url }} 
             style={styles.fullscreenImage}
             resizeMode="contain"
           />
-
-          <View style={styles.fullscreenInfo}>
-            <Text style={styles.fullscreenDate}>
+          
+          <View style={styles.photoModalInfo}>
+            <Text style={styles.photoModalDate}>
               {formatDateTime(selectedPhoto.timestamp)}
             </Text>
             
             <View style={[
-              styles.fullscreenTypeBadge,
+              styles.photoModalTypeBadge,
               { backgroundColor: selectedPhoto.color }
             ]}>
-              <Text style={styles.fullscreenTypeBadgeText}>
+              <Text style={styles.photoModalTypeBadgeText}>
                 {selectedPhoto.title}
               </Text>
             </View>
           </View>
         </View>
-      </View>
+      </DraggableModal>
     );
   };
 
   return (
-    <Modal
-      animationType="slide"
-      transparent={true}
+    <DraggableModal
       visible={visible}
-      onRequestClose={onClose}
+      onClose={onClose}
+      title={t('attendance.attendance_details')}
+      showCloseButton={true}
+      showDragIndicator={true}
+      enableDrag={true}
+      dismissThreshold={0.25}
     >
-      <View style={styles.modalContainer}>
-        <View style={styles.modalContent}>
-          {/* Header */}
-          <View style={styles.modalHeader}>
-            <View style={styles.headerInfo}>
-              <Text style={styles.modalTitle}>{t('attendance.attendance_details')}</Text>
-              <Text style={styles.modalDate}>{formatDate(attendance.clockIn)}</Text>
-            </View>
-            <TouchableOpacity onPress={onClose} style={styles.closeButton}>
-              <X size={24} color="#666" />
-            </TouchableOpacity>
-          </View>
+      <ScrollView style={styles.modalBody} showsVerticalScrollIndicator={false}>
+        {/* Date Header */}
+        <View style={styles.dateHeader}>
+          <Text style={styles.modalDate}>{formatDate(attendance.clockIn)}</Text>
+        </View>
 
-          <ScrollView style={styles.modalBody} showsVerticalScrollIndicator={false}>
             {/* Status Badge */}
             <View style={styles.statusSection}>
               <View style={[
@@ -453,60 +449,33 @@ export function AttendanceDetailModal({
               </View>
             )}
           </ScrollView>
-        </View>
 
         {/* Render fullscreen photo overlay here */}
         {renderFullscreenPhoto()}
-      </View>
-    </Modal>
+    </DraggableModal>
   );
 }
 
 const styles = StyleSheet.create({
-  modalContainer: {
-    flex: 1,
-    justifyContent: 'flex-end',
-    backgroundColor: 'rgba(0, 0, 0, 0.5)',
-  },
-  modalContent: {
-    backgroundColor: 'white',
-    borderTopLeftRadius: 20,
-    borderTopRightRadius: 20,
-    maxHeight: '90%',
-    minHeight: '60%',
-    overflow: 'hidden', // Ensures fullscreen overlay is contained if not positioned absolutely
-  },
-  modalHeader: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
+  dateHeader: {
     alignItems: 'center',
-    padding: 20,
+    paddingVertical: 16,
     borderBottomWidth: 1,
     borderBottomColor: '#F0F0F0',
-  },
-  headerInfo: {
-    flex: 1,
-  },
-  modalTitle: {
-    fontSize: 20,
-    fontWeight: 'bold',
-    color: '#1A1A1A',
-    marginBottom: 4,
+    marginBottom: 16,
   },
   modalDate: {
-    fontSize: 14,
+    fontSize: 16,
+    fontWeight: '600',
     color: '#666',
-  },
-  closeButton: {
-    padding: 4,
   },
   modalBody: {
     flex: 1,
-    paddingHorizontal: 20,
   },
   statusSection: {
     alignItems: 'center',
     paddingVertical: 16,
+    marginBottom: 16,
   },
   statusBadge: {
     paddingHorizontal: 16,
@@ -611,11 +580,10 @@ const styles = StyleSheet.create({
     fontWeight: '500',
   },
   photosScrollView: {
-    marginHorizontal: -20,
     marginBottom: 16,
   },
   photosScrollContent: {
-    paddingHorizontal: 20,
+    paddingHorizontal: 0,
   },
   photoItem: {
     width: 120,
@@ -749,58 +717,33 @@ const styles = StyleSheet.create({
     color: '#1A1A1A',
     lineHeight: 20,
   },
-  // Styles for the fullscreen photo overlay VIEW
-  fullscreenOverlay: {
-    position: 'absolute',
-    top: 0,
-    left: 0,
-    right: 0,
-    bottom: 0,
-    backgroundColor: 'rgba(0, 0, 0, 0.9)',
+  // Styles for photo modal content
+  photoModalContent: {
+    flex: 1,
     justifyContent: 'center',
     alignItems: 'center',
-    zIndex: 100, // Ensure it's on top
-  },
-  fullscreenContent: {
-    width: '90%',
-    height: '80%',
-    backgroundColor: 'black',
-    borderRadius: 16,
-    overflow: 'hidden',
-  },
-  fullscreenHeader: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    padding: 20,
-    backgroundColor: 'rgba(0, 0, 0, 0.8)',
-  },
-  fullscreenTitle: {
-    fontSize: 18,
-    fontWeight: 'bold',
-    color: 'white',
   },
   fullscreenImage: {
-    flex: 1,
-    width: '100%',
+    width: width - 40,
+    height: height * 0.6,
+    borderRadius: 12,
   },
-  fullscreenInfo: {
-    padding: 20,
-    backgroundColor: 'rgba(0, 0, 0, 0.8)',
+  photoModalInfo: {
+    paddingVertical: 20,
     alignItems: 'center',
   },
-  fullscreenDate: {
+  photoModalDate: {
     fontSize: 14,
     color: 'white',
     marginBottom: 8,
     textAlign: 'center',
   },
-  fullscreenTypeBadge: {
+  photoModalTypeBadge: {
     paddingHorizontal: 12,
     paddingVertical: 6,
     borderRadius: 16,
   },
-  fullscreenTypeBadgeText: {
+  photoModalTypeBadgeText: {
     fontSize: 12,
     fontWeight: '600',
     color: 'white',
