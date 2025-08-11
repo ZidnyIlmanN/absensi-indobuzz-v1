@@ -18,10 +18,14 @@ import { router } from 'expo-router';
 import { ArrowLeft, Calendar, FileText, Plus, X, Upload, Trash2, CircleCheck as CheckCircle, CircleAlert as AlertCircle, Clock, Camera, File } from 'lucide-react-native';
 import { useAppContext } from '@/context/AppContext';
 import { leaveRequestsService, LeaveRequest } from '@/services/leaveRequest';
+import { leaveAttachmentService } from '@/services/leaveAttachmentService';
+import { imageCompressionService } from '@/services/imageCompressionService';
 import { LoadingSpinner } from '@/components/LoadingSpinner';
 import { EmptyState } from '@/components/EmptyState';
 import { LeaveRequestDetailModal } from '@/components/LeaveRequestDetailModal';
 import { LeaveRequestCard } from '@/components/LeaveRequestCard';
+import { AttachmentUploadProgress } from '@/components/AttachmentUploadProgress';
+import { CompressionStatsModal } from '@/components/CompressionStatsModal';
 import { useTranslation } from 'react-i18next';
 import { imageService } from '@/services/imageService';
 import * as DocumentPicker from 'expo-document-picker';
@@ -48,6 +52,10 @@ export default function AjukanIzinScreen() {
   const [showDatePicker, setShowDatePicker] = useState(false);
   const [selectedLeaveRequest, setSelectedLeaveRequest] = useState<LeaveRequest | null>(null);
   const [showDetailModal, setShowDetailModal] = useState(false);
+  const [showUploadProgress, setShowUploadProgress] = useState(false);
+  const [uploadProgress, setUploadProgress] = useState(0);
+  const [currentUploadFile, setCurrentUploadFile] = useState(0);
+  const [showCompressionStats, setShowCompressionStats] = useState(false);
 
   const [formData, setFormData] = useState<FormData>({
     leaveType: 'full_day',
@@ -131,22 +139,87 @@ export default function AjukanIzinScreen() {
     if (!validateForm()) return;
 
     setIsSubmitting(true);
+    
+    // Show upload progress if there are attachments
+    if (formData.attachments.length > 0) {
+      setShowUploadProgress(true);
+      setUploadProgress(0);
+      setCurrentUploadFile(0);
+    }
 
     try {
+      // Process attachments with compression
+      let processedAttachments: string[] = [];
+      
+      if (formData.attachments.length > 0) {
+        console.log('🗜️ Processing attachments with compression...');
+        
+        const uploadResults = await leaveAttachmentService.uploadMultipleAttachments(
+          user.id,
+          formData.attachments,
+          {
+            compressionPreset: 'balanced',
+            generateThumbnail: true,
+            validateBeforeUpload: true,
+          },
+          (completed, total) => {
+            setCurrentUploadFile(completed);
+            setUploadProgress((completed / total) * 100);
+          }
+        );
+        
+        // Check for upload errors
+        const failedUploads = uploadResults.filter(result => result.error);
+        if (failedUploads.length > 0) {
+          setShowUploadProgress(false);
+          Alert.alert(
+            t('common.error'), 
+            `Failed to upload ${failedUploads.length} attachment(s): ${failedUploads[0].error}`
+          );
+          return;
+        }
+        
+        // Get successful upload URLs
+        processedAttachments = uploadResults
+          .map(result => result.url)
+          .filter(url => url !== null) as string[];
+        
+        // Log compression statistics
+        const compressionStats = uploadResults
+          .map(result => result.compressionStats)
+          .filter(stats => stats !== undefined);
+        
+        if (compressionStats.length > 0) {
+          const totalOriginalSize = compressionStats.reduce((sum, stats) => sum + stats!.originalSize, 0);
+          const totalCompressedSize = compressionStats.reduce((sum, stats) => sum + stats!.compressedSize, 0);
+          const totalSavings = totalOriginalSize - totalCompressedSize;
+          const savingsPercentage = Math.round((totalSavings / totalOriginalSize) * 100);
+          
+          console.log('📊 Attachment compression summary:', {
+            originalSize: `${Math.round(totalOriginalSize / 1024)}KB`,
+            compressedSize: `${Math.round(totalCompressedSize / 1024)}KB`,
+            savings: `${savingsPercentage}%`,
+            filesProcessed: compressionStats.length,
+          });
+        }
+      }
+      
       const { request, error } = await leaveRequestsService.createLeaveRequest({
         userId: user.id,
         leaveType: formData.leaveType,
         startDate: formData.startDate,
         endDate: formData.endDate,
         description: formData.description.trim(),
-        attachmentUris: formData.attachments,
+        attachmentUris: processedAttachments,
       });
 
       if (error) {
+        setShowUploadProgress(false);
         Alert.alert(t('common.error'), error);
         return;
       }
 
+      setShowUploadProgress(false);
       Alert.alert(
         t('common.success'),
         t('leave_request.leave_request_submitted'),
@@ -157,6 +230,7 @@ export default function AjukanIzinScreen() {
         }}]
       );
     } catch (error) {
+      setShowUploadProgress(false);
       Alert.alert(t('common.error'), t('leave_request.validation.submit_failed'));
     } finally {
       setIsSubmitting(false);
@@ -433,12 +507,20 @@ export default function AjukanIzinScreen() {
             <ArrowLeft size={24} color="white" />
           </TouchableOpacity>
           <Text style={styles.headerTitle}>{t('leave_request.ajukan_izin')}</Text>
-          <TouchableOpacity
-            style={styles.addButton}
-            onPress={() => setShowModal(true)}
-          >
-            <Plus size={24} color="white" />
-          </TouchableOpacity>
+          <View style={styles.headerActions}>
+            <TouchableOpacity
+              style={styles.statsButton}
+              onPress={() => setShowCompressionStats(true)}
+            >
+              <Text style={styles.statsButtonText}>📊</Text>
+            </TouchableOpacity>
+            <TouchableOpacity
+              style={styles.addButton}
+              onPress={() => setShowModal(true)}
+            >
+              <Plus size={24} color="white" />
+            </TouchableOpacity>
+          </View>
         </View>
       </LinearGradient>
 
@@ -635,7 +717,7 @@ export default function AjukanIzinScreen() {
               <View style={styles.infoNote}>
                 <AlertCircle size={16} color="#4A90E2" />
                 <Text style={styles.infoText}>
-                  {t('leave_request.info_notes')}
+                  {t('leave_request.info_notes')} Images will be automatically compressed to optimize storage.
                 </Text>
               </View>
             </ScrollView>
@@ -674,6 +756,23 @@ export default function AjukanIzinScreen() {
         leaveRequest={selectedLeaveRequest}
         isLoading={false}
       />
+
+      {/* Upload Progress Modal */}
+      <AttachmentUploadProgress
+        visible={showUploadProgress}
+        progress={uploadProgress}
+        currentFile={currentUploadFile}
+        totalFiles={formData.attachments.length}
+        compressionEnabled={true}
+        onComplete={() => setShowUploadProgress(false)}
+      />
+
+      {/* Compression Stats Modal */}
+      <CompressionStatsModal
+        visible={showCompressionStats}
+        onClose={() => setShowCompressionStats(false)}
+        userId={user?.id || ''}
+      />
     </View>
   );
 }
@@ -691,6 +790,22 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
+  },
+  headerActions: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+  },
+  statsButton: {
+    width: 40,
+    height: 40,
+    borderRadius: 20,
+    backgroundColor: 'rgba(255, 255, 255, 0.2)',
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  statsButtonText: {
+    fontSize: 16,
   },
   backButton: {
     width: 40,

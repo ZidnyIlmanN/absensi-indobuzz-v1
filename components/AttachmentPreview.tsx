@@ -22,6 +22,7 @@ import {
 } from 'lucide-react-native';
 import { LoadingSpinner } from './LoadingSpinner';
 import { useTranslation } from 'react-i18next';
+import { imageCompressionService } from '@/services/imageCompressionService';
 
 const { width } = Dimensions.get('window');
 const previewImageSize = (width - 80) / 3; // 3 images per row with padding
@@ -32,6 +33,7 @@ interface AttachmentPreviewProps {
   maxPreviewImages?: number;
   showDownloadButton?: boolean;
   onDownload?: (url: string, index: number) => void;
+  showCompressionInfo?: boolean;
 }
 
 export function AttachmentPreview({
@@ -40,13 +42,22 @@ export function AttachmentPreview({
   maxPreviewImages = 6,
   showDownloadButton = true,
   onDownload,
+  showCompressionInfo = false,
 }: AttachmentPreviewProps) {
   const { t } = useTranslation();
   const [expandedImage, setExpandedImage] = useState<string | null>(null);
   const [isExpanded, setIsExpanded] = useState(false);
   const [imageLoading, setImageLoading] = useState<{ [key: string]: boolean }>({});
   const [imageErrors, setImageErrors] = useState<{ [key: string]: boolean }>({});
+  const [compressionStats, setCompressionStats] = useState<any>(null);
 
+  // Load compression stats if requested
+  useEffect(() => {
+    if (showCompressionInfo) {
+      const stats = imageCompressionService.getCompressionStats();
+      setCompressionStats(stats);
+    }
+  }, [showCompressionInfo]);
   if (!attachments || attachments.length === 0) {
     return null;
   }
@@ -129,6 +140,13 @@ export function AttachmentPreview({
         <Text style={styles.title}>
           {title} ({attachments.length})
         </Text>
+        {showCompressionInfo && compressionStats && compressionStats.processedCount > 0 && (
+          <View style={styles.compressionBadge}>
+            <Text style={styles.compressionBadgeText}>
+              {compressionStats.averageCompressionPercentage}% compressed
+            </Text>
+          </View>
+        )}
         {hasMoreImages && (
           <TouchableOpacity
             style={styles.expandButton}
@@ -146,6 +164,14 @@ export function AttachmentPreview({
         )}
       </View>
 
+      {/* Compression Info */}
+      {showCompressionInfo && compressionStats && compressionStats.processedCount > 0 && (
+        <View style={styles.compressionInfo}>
+          <Text style={styles.compressionInfoText}>
+            💾 Storage optimized: {compressionStats.totalSavingsMB.toFixed(1)}MB saved through automatic compression
+          </Text>
+        </View>
+      )}
       {/* Images Grid */}
       {images.length > 0 && (
         <View style={styles.section}>
@@ -304,6 +330,19 @@ const styles = StyleSheet.create({
     fontSize: 16,
     fontWeight: '600',
     color: '#1A1A1A',
+    flex: 1,
+  },
+  compressionBadge: {
+    backgroundColor: '#E8F5E8',
+    paddingHorizontal: 8,
+    paddingVertical: 4,
+    borderRadius: 12,
+    marginLeft: 8,
+  },
+  compressionBadgeText: {
+    fontSize: 10,
+    color: '#2E7D32',
+    fontWeight: '600',
   },
   expandButton: {
     flexDirection: 'row',
@@ -312,6 +351,7 @@ const styles = StyleSheet.create({
     paddingHorizontal: 12,
     paddingVertical: 6,
     borderRadius: 16,
+    marginLeft: 8,
   },
   expandButtonText: {
     fontSize: 12,
@@ -491,5 +531,18 @@ const styles = StyleSheet.create({
     backgroundColor: '#E3F2FD',
     justifyContent: 'center',
     alignItems: 'center',
+  },
+  compressionInfo: {
+    backgroundColor: '#E8F5E8',
+    borderRadius: 8,
+    padding: 12,
+    marginTop: 8,
+    borderLeftWidth: 4,
+    borderLeftColor: '#4CAF50',
+  },
+  compressionInfoText: {
+    fontSize: 12,
+    color: '#2E7D32',
+    lineHeight: 16,
   },
 });
