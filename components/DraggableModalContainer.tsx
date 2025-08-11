@@ -5,8 +5,14 @@ import {
   Dimensions,
   TouchableOpacity,
 } from 'react-native';
-import { PanGestureHandler } from 'react-native-gesture-handler';
-import Animated from 'react-native-reanimated';
+import { Gesture, GestureDetector } from 'react-native-gesture-handler';
+import Animated, { 
+  useSharedValue, 
+  useAnimatedStyle, 
+  withSpring, 
+  withTiming,
+  runOnJS,
+} from 'react-native-reanimated';
 import { useDraggableModal } from '@/hooks/useDraggableModal';
 
 const { height: SCREEN_HEIGHT } = Dimensions.get('window');
@@ -28,23 +34,58 @@ export function DraggableModalContainer({
   dismissThreshold = 0.3,
   snapThreshold = 0.15,
 }: DraggableModalContainerProps) {
-  const {
-    panGestureHandler,
-    translateY,
-    isDragging,
-    resetPosition,
-  } = useDraggableModal({
-    onClose,
-    dismissThreshold,
-    snapThreshold,
-    enableDrag,
-  });
+  const translateY = useSharedValue(0);
+  const isDragging = useSharedValue(false);
+
+  const resetPosition = () => {
+    translateY.value = withSpring(0);
+    isDragging.value = false;
+  };
+
+  const panGesture = Gesture.Pan()
+    .onStart(() => {
+      isDragging.value = true;
+    })
+    .onUpdate((event) => {
+      // Only allow downward dragging
+      if (event.translationY > 0) {
+        translateY.value = event.translationY;
+      }
+    })
+    .onEnd((event) => {
+      isDragging.value = false;
+      
+      const dragDistance = Math.max(0, event.translationY);
+      const dragPercentage = dragDistance / SCREEN_HEIGHT;
+      const hasHighVelocity = event.velocityY > 1000;
+
+      // Determine if should dismiss or snap back
+      const shouldDismiss = 
+        dragPercentage > dismissThreshold || 
+        (hasHighVelocity && dragPercentage > snapThreshold);
+
+      if (shouldDismiss) {
+        // Animate to bottom and dismiss
+        translateY.value = withTiming(SCREEN_HEIGHT, { duration: 300 }, () => {
+          runOnJS(onClose)();
+          translateY.value = 0; // Reset for next time
+        });
+      } else {
+        // Snap back to top
+        translateY.value = withSpring(0);
+      }
+    });
+
+  const animatedStyle = useAnimatedStyle(() => ({
+    transform: [{ translateY: translateY.value }],
+    opacity: isDragging.value ? 0.95 : 1,
+  }));
 
   React.useEffect(() => {
     if (visible) {
       resetPosition();
     }
-  }, [visible, resetPosition]);
+  }, [visible]);
 
   if (!visible) return null;
 
@@ -52,10 +93,7 @@ export function DraggableModalContainer({
     <Animated.View
       style={[
         styles.modalContent,
-        {
-          transform: [{ translateY }],
-          opacity: isDragging ? 0.95 : 1,
-        },
+        animatedStyle,
       ]}
     >
       {/* Drag Handle */}
@@ -74,10 +112,10 @@ export function DraggableModalContainer({
         onPress={onClose}
       />
       
-      {enableDrag && panGestureHandler ? (
-        <PanGestureHandler {...panGestureHandler}>
+      {enableDrag ? (
+        <GestureDetector gesture={panGesture}>
           {modalContent}
-        </PanGestureHandler>
+        </GestureDetector>
       ) : (
         modalContent
       )}
