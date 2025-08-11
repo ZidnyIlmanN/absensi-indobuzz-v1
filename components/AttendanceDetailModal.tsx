@@ -24,7 +24,7 @@ import {
 } from 'lucide-react-native';
 import { AttendanceRecord } from '@/types';
 import { LoadingSpinner } from './LoadingSpinner';
-import { useI18n } from '@/hooks/useI18n';
+import { useTranslation } from 'react-i18next';
 
 const { width, height } = Dimensions.get('window');
 
@@ -51,7 +51,7 @@ export function AttendanceDetailModal({
   attendance,
   workHours,
 }: AttendanceDetailModalProps) {
-  const { t } = useI18n();
+  const { t } = useTranslation();
   const [selectedPhoto, setSelectedPhoto] = useState<PhotoItem | null>(null);
   const [imageLoading, setImageLoading] = useState<{ [key: string]: boolean }>({});
   const [imageErrors, setImageErrors] = useState<{ [key: string]: boolean }>({});
@@ -67,7 +67,7 @@ export function AttendanceDetailModal({
         type: 'clock_in',
         url: attendance.selfieUrl,
         timestamp: attendance.clockIn,
-        title: t('attendance.clock_in'),
+        title: 'Clock In',
         icon: <LogIn size={12} color="white" />,
         color: '#4CAF50',
       });
