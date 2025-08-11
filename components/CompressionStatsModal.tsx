@@ -8,16 +8,7 @@ import {
   TouchableOpacity,
   Dimensions,
 } from 'react-native';
-import {
-  X,
-  BarChart3,
-  TrendingDown,
-  HardDrive,
-  Image as ImageIcon,
-  FileText,
-  Zap,
-  Info,
-} from 'lucide-react-native';
+import { X, ChartBar as BarChart3, TrendingDown, HardDrive, Image as ImageIcon, FileText, Zap, Info } from 'lucide-react-native';
 import { imageCompressionService } from '@/services/imageCompressionService';
 import { leaveAttachmentService } from '@/services/leaveAttachmentService';
 import { LoadingSpinner } from './LoadingSpinner';
