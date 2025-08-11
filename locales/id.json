@@ -858,7 +858,8 @@
   },
   "check_in": {
     "check_in": "Masuk",
-    "good_morning": "Selamat Pagi!",
+    "image_preview": "Pratinjau Gambar",
+    "date_format_hint": "Format: {{format}}"
     "ready_to_start": "Siap memulai hari kerja? Mari kita absen masuk.",
     "clock_in_process": "Proses Absen Masuk",
     "select_location": "Pilih Lokasi",

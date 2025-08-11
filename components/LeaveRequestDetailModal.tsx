@@ -13,8 +13,9 @@ import {
 import { X, Calendar, Clock, User, Building, FileText, CircleCheck as CheckCircle, Circle as XCircle, CircleAlert as AlertCircle, MessageSquare, Download, Eye, ChevronRight } from 'lucide-react-native';
 import { LeaveRequest } from '@/services/leaveRequest';
 import { LoadingSpinner } from './LoadingSpinner';
-import { useTranslation } from 'react-i18next';
+import { useI18n } from '@/hooks/useI18n';
 import { useAppContext } from '@/context/AppContext';
+import { AttachmentPreview } from './AttachmentPreview';
 
 const { width } = Dimensions.get('window');
 
@@ -42,30 +43,11 @@ export function LeaveRequestDetailModal({
   leaveRequest,
   isLoading = false,
 }: LeaveRequestDetailModalProps) {
-  const { t } = useTranslation();
+  const { t, formatLeaveDate, formatLeaveDateShort, formatSubmissionDate } = useI18n();
   const { user } = useAppContext();
   const [selectedAttachment, setSelectedAttachment] = useState<string | null>(null);
-  const [showAttachmentModal, setShowAttachmentModal] = useState(false);
-  const [imageLoading, setImageLoading] = useState<{ [key: string]: boolean }>({});
 
   if (!leaveRequest && !isLoading) return null;
-
-  const formatDate = (dateString: string) => {
-    return new Date(dateString).toLocaleDateString('en-US', {
-      weekday: 'long',
-      year: 'numeric',
-      month: 'long',
-      day: 'numeric',
-    });
-  };
-
-  const formatDateShort = (dateString: string) => {
-    return new Date(dateString).toLocaleDateString('en-US', {
-      month: 'short',
-      day: 'numeric',
-      year: 'numeric',
-    });
-  };
 
   const calculateDuration = () => {
     if (!leaveRequest) return 0;
@@ -285,269 +267,214 @@ export function LeaveRequestDetailModal({
   );
 
   return (
-    <>
-      <Modal
-        animationType="slide"
-        transparent={true}
-        visible={visible}
-        onRequestClose={onClose}
-      >
-        <View style={styles.modalOverlay}>
-          <View style={styles.modalContent}>
-            {/* Header */}
-            <View style={styles.modalHeader}>
-              <View style={styles.headerLeft}>
-                <Text style={styles.modalTitle}>
-                  {t('leave_request.leave_request_details')}
-                </Text>
-                {leaveRequest && (
-                  <View style={styles.headerMeta}>
-                    <View style={[
-                      styles.statusBadge,
-                      { backgroundColor: getStatusColor(leaveRequest.status) }
-                    ]}>
-                      <Text style={styles.statusBadgeText}>
-                        {t(`leave_request.${leaveRequest.status}`)}
-                      </Text>
-                    </View>
-                  </View>
-                )}
-              </View>
-              <TouchableOpacity onPress={onClose} style={styles.closeButton}>
-                <X size={24} color="#666" />
-              </TouchableOpacity>
-            </View>
-
-            {isLoading ? (
-              <View style={styles.loadingContainer}>
-                <LoadingSpinner text={t('common.loading')} />
-              </View>
-            ) : leaveRequest ? (
-              <ScrollView style={styles.modalBody} showsVerticalScrollIndicator={false}>
-                {/* Employee Information */}
-                <View style={styles.section}>
-                  <Text style={styles.sectionTitle}>{t('leave_request.employee_information')}</Text>
-                  <View style={styles.employeeCard}>
-                    <View style={styles.employeeHeader}>
-                      <View style={styles.employeeAvatar}>
-                        <User size={24} color="#4A90E2" />
-                      </View>
-                      <View style={styles.employeeInfo}>
-                        <Text style={styles.employeeName}>{user?.name || 'Employee Name'}</Text>
-                        <Text style={styles.employeePosition}>{user?.position || 'Position'}</Text>
-                        <Text style={styles.employeeDepartment}>{user?.department || 'Department'}</Text>
-                        <Text style={styles.employeeId}>ID: {user?.employeeId || 'N/A'}</Text>
-                      </View>
-                    </View>
-                  </View>
-                </View>
-
-                {/* Leave Information */}
-                <View style={styles.section}>
-                  <Text style={styles.sectionTitle}>{t('leave_request.leave_information')}</Text>
-                  
-                  <View style={styles.infoGrid}>
-                    <View style={styles.infoCard}>
-                      <View style={styles.infoIcon}>
-                        <Calendar size={20} color="#4A90E2" />
-                      </View>
-                      <View style={styles.infoContent}>
-                        <Text style={styles.infoLabel}>{t('leave_request.leave_type')}</Text>
-                        <View style={[
-                          styles.typeBadge,
-                          { backgroundColor: getLeaveTypeColor(leaveRequest.leaveType) }
-                        ]}>
-                          <Text style={styles.typeBadgeText}>
-                            {getLeaveTypeLabel(leaveRequest.leaveType)}
-                          </Text>
-                        </View>
-                      </View>
-                    </View>
-
-                    <View style={styles.infoCard}>
-                      <View style={styles.infoIcon}>
-                        <Clock size={20} color="#FF9800" />
-                      </View>
-                      <View style={styles.infoContent}>
-                        <Text style={styles.infoLabel}>{t('leave_request.duration')}</Text>
-                        <Text style={styles.infoValue}>
-                          {calculateDuration()} {calculateDuration() === 1 ? t('leave_request.day') : t('leave_request.days')}
-                        </Text>
-                      </View>
-                    </View>
-                  </View>
-
-                  <View style={styles.dateRangeCard}>
-                    <View style={styles.dateRangeHeader}>
-                      <Calendar size={16} color="#666" />
-                      <Text style={styles.dateRangeTitle}>{t('leave_request.leave_period')}</Text>
-                    </View>
-                    
-                    <View style={styles.dateRangeContent}>
-                      <View style={styles.dateItem}>
-                        <Text style={styles.dateLabel}>{t('leave_request.start_date')}</Text>
-                        <Text style={styles.dateValue}>{formatDate(leaveRequest.startDate)}</Text>
-                      </View>
-                      
-                      <View style={styles.dateArrow}>
-                        <ChevronRight size={16} color="#E0E0E0" />
-                      </View>
-                      
-                      <View style={styles.dateItem}>
-                        <Text style={styles.dateLabel}>{t('leave_request.end_date')}</Text>
-                        <Text style={styles.dateValue}>{formatDate(leaveRequest.endDate)}</Text>
-                      </View>
-                    </View>
-                  </View>
-                </View>
-
-                {/* Reason/Description */}
-                <View style={styles.section}>
-                  <Text style={styles.sectionTitle}>{t('leave_request.reason_description')}</Text>
-                  <View style={styles.descriptionCard}>
-                    <Text style={styles.descriptionText}>{leaveRequest.description}</Text>
-                  </View>
-                </View>
-
-                {/* Attachments */}
-                {leaveRequest.attachments.length > 0 && (
-                  <View style={styles.section}>
-                    <Text style={styles.sectionTitle}>
-                      {t('leave_request.attachments')} ({leaveRequest.attachments.length})
+    <Modal
+      animationType="slide"
+      transparent={true}
+      visible={visible}
+      onRequestClose={onClose}
+    >
+      <View style={styles.modalOverlay}>
+        <View style={styles.modalContent}>
+          {/* Header */}
+          <View style={styles.modalHeader}>
+            <View style={styles.headerLeft}>
+              <Text style={styles.modalTitle}>
+                {t('leave_request.leave_request_details')}
+              </Text>
+              {leaveRequest && (
+                <View style={styles.headerMeta}>
+                  <View style={[
+                    styles.statusBadge,
+                    { backgroundColor: getStatusColor(leaveRequest.status) }
+                  ]}>
+                    <Text style={styles.statusBadgeText}>
+                      {t(`leave_request.${leaveRequest.status}`)}
                     </Text>
-                    
-                    <ScrollView 
-                      horizontal 
-                      showsHorizontalScrollIndicator={false}
-                      style={styles.attachmentsScrollView}
-                    >
-                      <View style={styles.attachmentsContainer}>
-                        {leaveRequest.attachments.map((url, index) => 
-                          renderAttachmentPreview(url, index)
-                        )}
-                      </View>
-                    </ScrollView>
                   </View>
-                )}
+                </View>
+              )}
+            </View>
+            <TouchableOpacity onPress={onClose} style={styles.closeButton}>
+              <X size={24} color="#666" />
+            </TouchableOpacity>
+          </View>
 
-                {/* Approval Workflow */}
-                {renderApprovalWorkflow()}
-
-                {/* Submission Details */}
-                <View style={styles.section}>
-                  <Text style={styles.sectionTitle}>{t('leave_request.submission_details')}</Text>
-                  
-                  <View style={styles.submissionCard}>
-                    <View style={styles.submissionItem}>
-                      <Text style={styles.submissionLabel}>{t('leave_request.submitted_on')}</Text>
-                      <Text style={styles.submissionValue}>
-                        {leaveRequest.submittedAt.toLocaleDateString('en-US', {
-                          weekday: 'long',
-                          year: 'numeric',
-                          month: 'long',
-                          day: 'numeric',
-                          hour: '2-digit',
-                          minute: '2-digit',
-                        })}
-                      </Text>
+          {isLoading ? (
+            <View style={styles.loadingContainer}>
+              <LoadingSpinner text={t('common.loading')} />
+            </View>
+          ) : leaveRequest ? (
+            <ScrollView style={styles.modalBody} showsVerticalScrollIndicator={false}>
+              {/* Employee Information */}
+              <View style={styles.section}>
+                <Text style={styles.sectionTitle}>{t('leave_request.employee_information')}</Text>
+                <View style={styles.employeeCard}>
+                  <View style={styles.employeeHeader}>
+                    <View style={styles.employeeAvatar}>
+                      <User size={24} color="#4A90E2" />
                     </View>
-                    
-                    {leaveRequest.reviewedAt && (
-                      <View style={styles.submissionItem}>
-                        <Text style={styles.submissionLabel}>{t('leave_request.reviewed_on')}</Text>
-                        <Text style={styles.submissionValue}>
-                          {leaveRequest.reviewedAt.toLocaleDateString('en-US', {
-                            weekday: 'long',
-                            year: 'numeric',
-                            month: 'long',
-                            day: 'numeric',
-                            hour: '2-digit',
-                            minute: '2-digit',
-                          })}
+                    <View style={styles.employeeInfo}>
+                      <Text style={styles.employeeName}>{user?.name || 'Employee Name'}</Text>
+                      <Text style={styles.employeePosition}>{user?.position || 'Position'}</Text>
+                      <Text style={styles.employeeDepartment}>{user?.department || 'Department'}</Text>
+                      <Text style={styles.employeeId}>ID: {user?.employeeId || 'N/A'}</Text>
+                    </View>
+                  </View>
+                </View>
+              </View>
+
+              {/* Leave Information */}
+              <View style={styles.section}>
+                <Text style={styles.sectionTitle}>{t('leave_request.leave_information')}</Text>
+                
+                <View style={styles.infoGrid}>
+                  <View style={styles.infoCard}>
+                    <View style={styles.infoIcon}>
+                      <Calendar size={20} color="#4A90E2" />
+                    </View>
+                    <View style={styles.infoContent}>
+                      <Text style={styles.infoLabel}>{t('leave_request.leave_type')}</Text>
+                      <View style={[
+                        styles.typeBadge,
+                        { backgroundColor: getLeaveTypeColor(leaveRequest.leaveType) }
+                      ]}>
+                        <Text style={styles.typeBadgeText}>
+                          {getLeaveTypeLabel(leaveRequest.leaveType)}
                         </Text>
                       </View>
-                    )}
+                    </View>
+                  </View>
+
+                  <View style={styles.infoCard}>
+                    <View style={styles.infoIcon}>
+                      <Clock size={20} color="#FF9800" />
+                    </View>
+                    <View style={styles.infoContent}>
+                      <Text style={styles.infoLabel}>{t('leave_request.duration')}</Text>
+                      <Text style={styles.infoValue}>
+                        {calculateDuration()} {calculateDuration() === 1 ? t('leave_request.day') : t('leave_request.days')}
+                      </Text>
+                    </View>
                   </View>
                 </View>
 
-                {/* Action Buttons */}
-                {leaveRequest.status === 'pending' && (
-                  <View style={styles.actionSection}>
-                    <TouchableOpacity
-                      style={styles.editButton}
-                      onPress={() => {
-                        Alert.alert('Edit Request', 'Edit functionality would be implemented here.');
-                      }}
-                    >
-                      <Text style={styles.editButtonText}>{t('common.edit')}</Text>
-                    </TouchableOpacity>
-                    
-                    <TouchableOpacity
-                      style={styles.cancelButton}
-                      onPress={() => {
-                        Alert.alert(
-                          'Cancel Request',
-                          'Are you sure you want to cancel this leave request?',
-                          [
-                            { text: 'No', style: 'cancel' },
-                            { text: 'Yes', style: 'destructive' },
-                          ]
-                        );
-                      }}
-                    >
-                      <Text style={styles.cancelButtonText}>{t('common.cancel')}</Text>
-                    </TouchableOpacity>
+                <View style={styles.dateRangeCard}>
+                  <View style={styles.dateRangeHeader}>
+                    <Calendar size={16} color="#666" />
+                    <Text style={styles.dateRangeTitle}>{t('leave_request.leave_period')}</Text>
                   </View>
-                )}
-              </ScrollView>
-            ) : (
-              <View style={styles.errorContainer}>
-                <FileText size={48} color="#E0E0E0" />
-                <Text style={styles.errorTitle}>{t('leave_request.request_not_found')}</Text>
-                <Text style={styles.errorMessage}>{t('leave_request.request_not_available')}</Text>
+                  
+                  <View style={styles.dateRangeContent}>
+                    <View style={styles.dateItem}>
+                      <Text style={styles.dateLabel}>{t('leave_request.start_date')}</Text>
+                      <Text style={styles.dateValue}>{formatLeaveDate(leaveRequest.startDate)}</Text>
+                    </View>
+                    
+                    <View style={styles.dateArrow}>
+                      <ChevronRight size={16} color="#E0E0E0" />
+                    </View>
+                    
+                    <View style={styles.dateItem}>
+                      <Text style={styles.dateLabel}>{t('leave_request.end_date')}</Text>
+                      <Text style={styles.dateValue}>{formatLeaveDate(leaveRequest.endDate)}</Text>
+                    </View>
+                  </View>
+                </View>
               </View>
-            )}
-          </View>
-        </View>
-      </Modal>
 
-      {/* Attachment Viewer Modal */}
-      <Modal
-        animationType="fade"
-        transparent={true}
-        visible={showAttachmentModal}
-        onRequestClose={() => setShowAttachmentModal(false)}
-      >
-        <View style={styles.attachmentModalOverlay}>
-          <View style={styles.attachmentModalContent}>
-            <View style={styles.attachmentModalHeader}>
-              <Text style={styles.attachmentModalTitle}>{t('leave_request.attachment_preview')}</Text>
-              <TouchableOpacity onPress={() => setShowAttachmentModal(false)}>
-                <X size={24} color="white" />
-              </TouchableOpacity>
+              {/* Reason/Description */}
+              <View style={styles.section}>
+                <Text style={styles.sectionTitle}>{t('leave_request.reason_description')}</Text>
+                <View style={styles.descriptionCard}>
+                  <Text style={styles.descriptionText}>{leaveRequest.description}</Text>
+                </View>
+              </View>
+
+              {/* Attachments */}
+              {leaveRequest.attachments.length > 0 && (
+                <View style={styles.section}>
+                  <AttachmentPreview
+                    attachments={leaveRequest.attachments}
+                    title={t('leave_request.attachments')}
+                    maxPreviewImages={6}
+                    showDownloadButton={true}
+                    onDownload={(url, index) => {
+                      Alert.alert(
+                        t('common.download'),
+                        'Download functionality would be implemented here.',
+                        [{ text: t('common.ok') }]
+                      );
+                    }}
+                  />
+                </View>
+              )}
+
+              {/* Approval Workflow */}
+              {renderApprovalWorkflow()}
+
+              {/* Submission Details */}
+              <View style={styles.section}>
+                <Text style={styles.sectionTitle}>{t('leave_request.submission_details')}</Text>
+                
+                <View style={styles.submissionCard}>
+                  <View style={styles.submissionItem}>
+                    <Text style={styles.submissionLabel}>{t('leave_request.submitted_on')}</Text>
+                    <Text style={styles.submissionValue}>
+                      {formatSubmissionDate(leaveRequest.submittedAt)}
+                    </Text>
+                  </View>
+                  
+                  {leaveRequest.reviewedAt && (
+                    <View style={styles.submissionItem}>
+                      <Text style={styles.submissionLabel}>{t('leave_request.reviewed_on')}</Text>
+                      <Text style={styles.submissionValue}>
+                        {formatSubmissionDate(leaveRequest.reviewedAt)}
+                      </Text>
+                    </View>
+                  )}
+                </View>
+              </View>
+
+              {/* Action Buttons */}
+              {leaveRequest.status === 'pending' && (
+                <View style={styles.actionSection}>
+                  <TouchableOpacity
+                    style={styles.editButton}
+                    onPress={() => {
+                      Alert.alert('Edit Request', 'Edit functionality would be implemented here.');
+                    }}
+                  >
+                    <Text style={styles.editButtonText}>{t('common.edit')}</Text>
+                  </TouchableOpacity>
+                  
+                  <TouchableOpacity
+                    style={styles.cancelButton}
+                    onPress={() => {
+                      Alert.alert(
+                        'Cancel Request',
+                        'Are you sure you want to cancel this leave request?',
+                        [
+                          { text: 'No', style: 'cancel' },
+                          { text: 'Yes', style: 'destructive' },
+                        ]
+                      );
+                    }}
+                  >
+                    <Text style={styles.cancelButtonText}>{t('common.cancel')}</Text>
+                  </TouchableOpacity>
+                </View>
+              )}
+            </ScrollView>
+          ) : (
+            <View style={styles.errorContainer}>
+              <FileText size={48} color="#E0E0E0" />
+              <Text style={styles.errorTitle}>{t('leave_request.request_not_found')}</Text>
+              <Text style={styles.errorMessage}>{t('leave_request.request_not_available')}</Text>
             </View>
-
-            {selectedAttachment && (
-              <Image 
-                source={{ uri: selectedAttachment }} 
-                style={styles.fullscreenImage}
-                resizeMode="contain"
-              />
-            )}
-
-            <View style={styles.attachmentModalActions}>
-              <TouchableOpacity
-                style={styles.attachmentModalAction}
-                onPress={() => handleDownloadAttachment(selectedAttachment || '')}
-              >
-                <Download size={20} color="white" />
-                <Text style={styles.attachmentModalActionText}>{t('common.download')}</Text>
-              </TouchableOpacity>
-            </View>
-          </View>
+          )}
         </View>
-      </Modal>
-    </>
+      </View>
+    </Modal>
   );
 }
 
@@ -764,72 +691,6 @@ const styles = StyleSheet.create({
   attachmentsScrollView: {
     marginHorizontal: -20,
   },
-  attachmentsContainer: {
-    flexDirection: 'row',
-    paddingHorizontal: 20,
-    gap: 12,
-  },
-  attachmentItem: {
-    width: 120,
-    backgroundColor: 'white',
-    borderRadius: 12,
-    overflow: 'hidden',
-    elevation: 2,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 1 },
-    shadowOpacity: 0.1,
-    shadowRadius: 3,
-  },
-  imageAttachment: {
-    position: 'relative',
-    height: 80,
-  },
-  attachmentImage: {
-    width: '100%',
-    height: '100%',
-  },
-  imageLoading: {
-    position: 'absolute',
-    top: 0,
-    left: 0,
-    right: 0,
-    bottom: 0,
-    backgroundColor: '#F8F9FA',
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  imageOverlay: {
-    position: 'absolute',
-    top: 8,
-    right: 8,
-    width: 24,
-    height: 24,
-    borderRadius: 12,
-    backgroundColor: 'rgba(0, 0, 0, 0.6)',
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  documentAttachment: {
-    height: 80,
-    justifyContent: 'center',
-    alignItems: 'center',
-    backgroundColor: '#F8F9FA',
-  },
-  documentName: {
-    fontSize: 10,
-    color: '#666',
-    marginTop: 4,
-  },
-  attachmentActions: {
-    flexDirection: 'row',
-    justifyContent: 'space-around',
-    paddingVertical: 8,
-    borderTopWidth: 1,
-    borderTopColor: '#F0F0F0',
-  },
-  attachmentAction: {
-    padding: 4,
-  },
   workflowSection: {
     marginBottom: 24,
   },
@@ -981,54 +842,5 @@ const styles = StyleSheet.create({
     fontSize: 14,
     color: '#999',
     textAlign: 'center',
-  },
-  attachmentModalOverlay: {
-    flex: 1,
-    backgroundColor: 'rgba(0, 0, 0, 0.9)',
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  attachmentModalContent: {
-    width: '90%',
-    height: '80%',
-    backgroundColor: 'black',
-    borderRadius: 16,
-    overflow: 'hidden',
-  },
-  attachmentModalHeader: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    padding: 20,
-    backgroundColor: 'rgba(0, 0, 0, 0.8)',
-  },
-  attachmentModalTitle: {
-    fontSize: 18,
-    fontWeight: 'bold',
-    color: 'white',
-  },
-  fullscreenImage: {
-    flex: 1,
-    width: '100%',
-  },
-  attachmentModalActions: {
-    flexDirection: 'row',
-    justifyContent: 'center',
-    padding: 20,
-    backgroundColor: 'rgba(0, 0, 0, 0.8)',
-  },
-  attachmentModalAction: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    backgroundColor: 'rgba(255, 255, 255, 0.2)',
-    paddingHorizontal: 20,
-    paddingVertical: 12,
-    borderRadius: 12,
-  },
-  attachmentModalActionText: {
-    fontSize: 16,
-    color: 'white',
-    marginLeft: 8,
-    fontWeight: '500',
   },
 });

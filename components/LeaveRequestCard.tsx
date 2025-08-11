@@ -8,7 +8,7 @@ import {
 } from 'react-native';
 import { Calendar, Clock, FileText, CircleCheck as CheckCircle, Circle as XCircle, CircleAlert as AlertCircle, ChevronRight } from 'lucide-react-native';
 import { LeaveRequest } from '@/services/leaveRequest';
-import { useTranslation } from 'react-i18next';
+import { useI18n } from '@/hooks/useI18n';
 
 interface LeaveRequestCardProps {
   request: LeaveRequest;
@@ -21,7 +21,7 @@ export function LeaveRequestCard({
   onPress,
   showActions = true,
 }: LeaveRequestCardProps) {
-  const { t } = useTranslation();
+  const { t, formatLeaveDateShort } = useI18n();
   const scaleValue = new Animated.Value(1);
 
   const handlePressIn = () => {
@@ -43,22 +43,10 @@ export function LeaveRequestCard({
     const end = new Date(endDate);
     
     if (startDate === endDate) {
-      return start.toLocaleDateString('en-US', {
-        weekday: 'short',
-        month: 'short',
-        day: 'numeric',
-        year: 'numeric',
-      });
+      return formatLeaveDateShort(startDate);
     }
     
-    return `${start.toLocaleDateString('en-US', {
-      month: 'short',
-      day: 'numeric',
-    })} - ${end.toLocaleDateString('en-US', {
-      month: 'short',
-      day: 'numeric',
-      year: 'numeric',
-    })}`;
+    return `${formatLeaveDateShort(startDate)} - ${formatLeaveDateShort(endDate)}`;
   };
 
   const calculateDuration = () => {
@@ -175,19 +163,12 @@ export function LeaveRequestCard({
         {/* Footer */}
         <View style={styles.footer}>
           <Text style={styles.submittedDate}>
-            {t('leave_request.submitted')}: {request.submittedAt.toLocaleDateString('en-US', {
-              month: 'short',
-              day: 'numeric',
-              year: 'numeric',
-            })}
+            {t('leave_request.submitted')}: {formatLeaveDateShort(request.submittedAt.toISOString().split('T')[0])}
           </Text>
           
           {request.reviewedAt && (
             <Text style={styles.reviewedDate}>
-              {t('leave_request.reviewed')}: {request.reviewedAt.toLocaleDateString('en-US', {
-                month: 'short',
-                day: 'numeric',
-              })}
+              {t('leave_request.reviewed')}: {formatLeaveDateShort(request.reviewedAt.toISOString().split('T')[0])}
             </Text>
           )}
         </View>

@@ -9,7 +9,7 @@ import {
 } from 'react-native';
 import { Calendar, DateData } from 'react-native-calendars';
 import { Calendar as CalendarIcon, X, Check } from 'lucide-react-native';
-import { useTranslation } from 'react-i18next';
+import { useI18n } from '@/hooks/useI18n';
 
 const { width } = Dimensions.get('window');
 
@@ -37,7 +37,7 @@ export function DateRangePicker({
   placeholder = 'Select date range',
   disabled = false,
 }: DateRangePickerProps) {
-  const { t } = useTranslation();
+  const { t, formatLeaveDateShort, getDateFormat } = useI18n();
   const [showCalendar, setShowCalendar] = useState(false);
   const [tempStartDate, setTempStartDate] = useState<string | null>(startDate);
   const [tempEndDate, setTempEndDate] = useState<string | null>(endDate);
@@ -46,13 +46,7 @@ export function DateRangePicker({
   const formatDisplayDate = (dateString: string | null) => {
     if (!dateString) return null;
     
-    const date = new Date(dateString);
-    return date.toLocaleDateString('en-US', {
-      weekday: 'short',
-      day: 'numeric',
-      month: 'short',
-      year: 'numeric',
-    });
+    return formatLeaveDateShort(dateString);
   };
 
   const calculateDaysDifference = (start: string | null, end: string | null): number => {
@@ -206,6 +200,7 @@ export function DateRangePicker({
             {/* Instructions */}
             <View style={styles.instructionsContainer}>
               <Text style={styles.instructionsText}>
+                {t('leave_request.date_format_hint', { format: getDateFormat() })} • {' '}
                 {selectionMode === 'start' 
                   ? t('leave_request.select_start_date')
                   : t('leave_request.select_end_date')

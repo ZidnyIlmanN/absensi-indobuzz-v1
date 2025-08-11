@@ -866,6 +866,11 @@ const styles = StyleSheet.create({
     color: '#4A90E2',
     fontWeight: 'bold',
   },
+  durationDates: {
+    fontSize: 12,
+    color: '#666',
+    marginTop: 4,
+  },
   placeholderText: {
     color: '#999',
   },

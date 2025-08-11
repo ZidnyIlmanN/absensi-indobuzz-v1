@@ -863,7 +863,8 @@
   },
   "check_in": {
     "check_in": "Check In",
-    "good_morning": "Good Morning!",
+    "image_preview": "Image Preview",
+    "date_format_hint": "Format: {{format}}"
     "ready_to_start": "Ready to start your workday? Let's get you clocked in.",
     "clock_in_process": "Clock-In Process",
     "select_location": "Select Location",
