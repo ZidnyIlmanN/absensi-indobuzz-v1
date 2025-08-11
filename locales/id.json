@@ -89,7 +89,7 @@
     "pending": "Menunggu",
     "view_all_features": "Lihat Semua\nFitur",
     "live_attendance": "Absensi\nLangsung",
-    "time_off": "Cuti",
+    "request_permission": "Ajukan\nIzin",
     "reimburse": "Reimburse"
   },
   "attendance": {
@@ -770,7 +770,7 @@
   "all_features": {
     "all_features": "Semua Fitur",
     "live_attendance": "Absensi Langsung",
-    "time_off": "Cuti",
+    "request_permission": "Ajukan Izin",
     "reimburse": "Reimburse",
     "attendance_history": "Riwayat Absensi",
     "shift_schedule": "Jadwal Shift",
@@ -816,7 +816,7 @@
     "reviewed": "Ditinjau",
     "review_notes": "Catatan Tinjauan",
     "loading_requests": "Memuat permintaan izin...",
-    "attachments": "{{count}} lampiran",
+    "attachments": "Lampiran",
     "info_notes": "Pastikan semua informasi sudah benar sebelum mengajukan izin. Permintaan yang sudah diajukan tidak dapat diubah.",
     "character_count": "{{count}}/500 karakter",
     "add_attachment_title": "Tambah Lampiran",
@@ -834,6 +834,12 @@
     "document_error": "Gagal memilih dokumen",
     "capture_error": "Gagal mengambil foto dari kamera",
     "select_error": "Gagal memilih foto dari galeri",
+    "days": "Hari",
+    "day": "Hari",
+    "start_date": "Tanggal Mulai",
+    "end_date": "Tanggal Selesai",
+    "images": "gambar",
+    "date_format_hint": "Format: {{format}}",
     "validation": {
       "select_date_range": "Silakan pilih tanggal mulai dan selesai",
       "provide_description": "Silakan berikan keterangan untuk pengajuan izin Anda",
@@ -859,7 +865,7 @@
   "check_in": {
     "check_in": "Masuk",
     "image_preview": "Pratinjau Gambar",
-    "date_format_hint": "Format: {{format}}"
+    "date_format_hint": "Format: {{format}}",
     "ready_to_start": "Siap memulai hari kerja? Mari kita absen masuk.",
     "clock_in_process": "Proses Absen Masuk",
     "select_location": "Pilih Lokasi",

@@ -89,7 +89,7 @@
     "pending": "Pending",
     "view_all_features": "View All\nFeatures",
     "live_attendance": "Live\nAttendance",
-    "time_off": "Time Off",
+    "request_permission": "Request\nPermission",
     "reimburse": "Reimburse"
   },
   "attendance": {
@@ -775,7 +775,7 @@
   "all_features": {
     "all_features": "All Features",
     "live_attendance": "Live Attendance",
-    "time_off": "Time Off",
+    "request_permission": "Request Permission",
     "reimburse": "Reimburse",
     "attendance_history": "Attendance History",
     "shift_schedule": "Shift Schedule",
@@ -821,7 +821,7 @@
     "reviewed": "Reviewed",
     "review_notes": "Review Notes",
     "loading_requests": "Loading leave requests...",
-    "attachments": "{{count}} attachment(s)",
+    "attachments": "Attachment(s)",
     "info_notes": "Make sure all information is correct before submitting. Submitted requests cannot be changed.",
     "character_count": "{{count}}/500 characters",
     "add_attachment_title": "Add Attachment",
@@ -839,6 +839,12 @@
     "document_error": "Failed to select document",
     "capture_error": "Failed to capture photo from camera",
     "select_error": "Failed to select photo from gallery",
+    "days": "Days",
+    "day": "Day",
+    "start_date": "Start Date",
+    "end_date": "End Date",
+    "images": "Images",
+    "date_format_hint": "Format: {{format}}",
     "validation": {
       "select_date_range": "Please select start and end dates",
       "provide_description": "Please provide a description for your leave request",
@@ -864,7 +870,7 @@
   "check_in": {
     "check_in": "Check In",
     "image_preview": "Image Preview",
-    "date_format_hint": "Format: {{format}}"
+    "date_format_hint": "Format: {{format}}",
     "ready_to_start": "Ready to start your workday? Let's get you clocked in.",
     "clock_in_process": "Clock-In Process",
     "select_location": "Select Location",
