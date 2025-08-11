@@ -170,7 +170,7 @@ export const leaveRequestsService = {
       if (contentType.startsWith('image/')) {
         console.log('Attachment is an image, attempting compression...');
         const compressionResult = await imageService.compressImage(fileUri, {
-          quality: 0.7,
+          quality: 0.4,
           maxWidth: 1024,
           maxHeight: 1024,
           format: 'jpeg',

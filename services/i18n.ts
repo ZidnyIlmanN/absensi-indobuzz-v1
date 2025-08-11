@@ -1,7 +1,7 @@
 import i18n from 'i18next';
 import { initReactI18next } from 'react-i18next';
 import AsyncStorage from '@react-native-async-storage/async-storage';
-import * as Localization from 'expo-localization';
+import * as Localization from 'expo-localization'; // This import is correct and should not cause an error if expo-localization is installed.
 import { Platform } from 'react-native';
 
 // Import translation files
