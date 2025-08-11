@@ -126,7 +126,6 @@ export default function LiveAttendanceScreen() {
         contentContainerStyle={styles.scrollViewContent}
       >
         <DynamicAttendanceCard />
-
         <View style={styles.section}>
           <Text style={styles.sectionTitle}>{t('live_attendance_screen.others')}</Text>
           <View style={styles.quickActionsGrid}>

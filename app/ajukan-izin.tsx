@@ -17,7 +17,7 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { router } from 'expo-router';
 import { ArrowLeft, Calendar, FileText, Plus, X, Upload, Trash2, CircleCheck as CheckCircle, CircleAlert as AlertCircle, Clock, Camera, File } from 'lucide-react-native';
 import { useAppContext } from '@/context/AppContext';
-import { leaveRequestsService, LeaveRequest } from '@/services/leaveRequest';
+import { leaveRequestsService, LeaveRequest } from '@/services/leaveRequests';
 import { LoadingSpinner } from '@/components/LoadingSpinner';
 import { EmptyState } from '@/components/EmptyState';
 import { LeaveRequestDetailModal } from '@/components/LeaveRequestDetailModal';
