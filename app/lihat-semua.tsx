@@ -7,7 +7,7 @@ import {
   TouchableOpacity,
 } from 'react-native';
 import { router } from 'expo-router';
-import { Grid2x2 as Grid, TrendingUp, Calendar, Clock, DollarSign, Users, FileText, Settings, CircleHelp as HelpCircle, Bell, ArrowLeft, Camera, Layers } from 'lucide-react-native';
+import { Grid2x2 as Grid, TrendingUp, Calendar, Clock, DollarSign, Users, FileText, Settings, CircleHelp as HelpCircle, Bell, ArrowLeft, Camera } from 'lucide-react-native';
 import { Cloud } from 'lucide-react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useTranslation } from 'react-i18next';
@@ -28,7 +28,6 @@ export default function LihatSemuaScreen() {
     { title: t('all_features.notifications'), icon: <Bell size={24} color="#F44336" />, route: '/notifications' as any },
     { title: t('all_features.selfie_gallery'), icon: <Camera size={24} color="#E91E63" />, route: '/selfie-gallery' as any },
     { title: t('all_features.weather_details'), icon: <Cloud size={24} color="#87CEEB" />, route: '/weather-details' as any },
-    { title: 'Modal Demo', icon: <Layers size={24} color="#9C27B0" />, route: '/modal-demo' as any },
   ];
 
   return (
