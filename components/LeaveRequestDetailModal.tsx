@@ -10,15 +10,12 @@ import {
   Dimensions,
   Alert,
 } from 'react-native';
-import { PanGestureHandler } from 'react-native-gesture-handler';
-import Animated from 'react-native-reanimated';
 import { X, Calendar, Clock, User, Building, FileText, CircleCheck as CheckCircle, Circle as XCircle, CircleAlert as AlertCircle, MessageSquare, Download, Eye, ChevronRight } from 'lucide-react-native';
-import { LeaveRequest } from '@/services/leaveRequest';
+import { LeaveRequest } from '@/services/leaveRequests';
 import { LoadingSpinner } from './LoadingSpinner';
 import { useI18n } from '@/hooks/useI18n';
 import { useAppContext } from '@/context/AppContext';
 import { AttachmentPreview } from './AttachmentPreview';
-import { DraggableModalContainer } from './DraggableModalContainer';
 
 const { width } = Dimensions.get('window');
 
@@ -277,43 +274,38 @@ export function LeaveRequestDetailModal({
       visible={visible}
       onRequestClose={onClose}
     >
-      <DraggableModalContainer
-        visible={visible}
-        onClose={onClose}
-        enableDrag={true}
-        dismissThreshold={0.3}
-        snapThreshold={0.15}
-      >
-        {/* Header */}
-        <View style={styles.modalHeader}>
-          <View style={styles.headerLeft}>
-            <Text style={styles.modalTitle}>
-              {t('leave_request.leave_request_details')}
-            </Text>
-            {leaveRequest && (
-              <View style={styles.headerMeta}>
-                <View style={[
-                  styles.statusBadge,
-                  { backgroundColor: getStatusColor(leaveRequest.status) }
-                ]}>
-                  <Text style={styles.statusBadgeText}>
-                    {t(`leave_request.${leaveRequest.status}`)}
-                  </Text>
+      <View style={styles.modalOverlay}>
+        <View style={styles.modalContent}>
+          {/* Header */}
+          <View style={styles.modalHeader}>
+            <View style={styles.headerLeft}>
+              <Text style={styles.modalTitle}>
+                {t('leave_request.leave_request_details')}
+              </Text>
+              {leaveRequest && (
+                <View style={styles.headerMeta}>
+                  <View style={[
+                    styles.statusBadge,
+                    { backgroundColor: getStatusColor(leaveRequest.status) }
+                  ]}>
+                    <Text style={styles.statusBadgeText}>
+                      {t(`leave_request.${leaveRequest.status}`)}
+                    </Text>
+                  </View>
                 </View>
-              </View>
-            )}
+              )}
+            </View>
+            <TouchableOpacity onPress={onClose} style={styles.closeButton}>
+              <X size={24} color="#666" />
+            </TouchableOpacity>
           </View>
-          <TouchableOpacity onPress={onClose} style={styles.closeButton}>
-            <X size={24} color="#666" />
-          </TouchableOpacity>
-        </View>
 
-        {isLoading ? (
-          <View style={styles.loadingContainer}>
-            <LoadingSpinner text={t('common.loading')} />
-          </View>
-        ) : leaveRequest ? (
-          <ScrollView style={styles.modalBody} showsVerticalScrollIndicator={false}>
+          {isLoading ? (
+            <View style={styles.loadingContainer}>
+              <LoadingSpinner text={t('common.loading')} />
+            </View>
+          ) : leaveRequest ? (
+            <ScrollView style={styles.modalBody} showsVerticalScrollIndicator={false}>
               {/* Employee Information */}
               <View style={styles.section}>
                 <Text style={styles.sectionTitle}>{t('leave_request.employee_information')}</Text>
@@ -473,20 +465,33 @@ export function LeaveRequestDetailModal({
                   </TouchableOpacity>
                 </View>
               )}
-          </ScrollView>
-        ) : (
-          <View style={styles.errorContainer}>
-            <FileText size={48} color="#E0E0E0" />
-            <Text style={styles.errorTitle}>{t('leave_request.request_not_found')}</Text>
-            <Text style={styles.errorMessage}>{t('leave_request.request_not_available')}</Text>
-          </View>
-        )}
-      </DraggableModalContainer>
+            </ScrollView>
+          ) : (
+            <View style={styles.errorContainer}>
+              <FileText size={48} color="#E0E0E0" />
+              <Text style={styles.errorTitle}>{t('leave_request.request_not_found')}</Text>
+              <Text style={styles.errorMessage}>{t('leave_request.request_not_available')}</Text>
+            </View>
+          )}
+        </View>
+      </View>
     </Modal>
   );
 }
 
 const styles = StyleSheet.create({
+  modalOverlay: {
+    flex: 1,
+    backgroundColor: 'rgba(0, 0, 0, 0.5)',
+    justifyContent: 'flex-end',
+  },
+  modalContent: {
+    backgroundColor: 'white',
+    borderTopLeftRadius: 20,
+    borderTopRightRadius: 20,
+    maxHeight: '95%',
+    minHeight: '95%',
+  },
   modalHeader: {
     flexDirection: 'row',
     justifyContent: 'space-between',

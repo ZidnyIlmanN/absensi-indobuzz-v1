@@ -9,8 +9,6 @@ import {
   Image,
   Dimensions,
 } from 'react-native';
-import { PanGestureHandler } from 'react-native-gesture-handler';
-import Animated from 'react-native-reanimated';
 import {
   X,
   Clock,
@@ -27,7 +25,6 @@ import {
 import { AttendanceRecord } from '@/types';
 import { LoadingSpinner } from './LoadingSpinner';
 import { useTranslation } from 'react-i18next';
-import { DraggableModalContainer } from './DraggableModalContainer';
 
 const { width, height } = Dimensions.get('window');
 
@@ -210,46 +207,39 @@ export function AttendanceDetailModal({
     if (!selectedPhoto) return null;
 
     return (
-      <Modal
-        animationType="fade"
-        transparent={true}
-        visible={!!selectedPhoto}
-        onRequestClose={() => setSelectedPhoto(null)}
-      >
-        <View style={styles.fullscreenOverlay}>
-          <View style={styles.fullscreenContent}>
-            <View style={styles.fullscreenHeader}>
-              <Text style={styles.fullscreenTitle}>
+      <View style={styles.fullscreenOverlay}>
+        <View style={styles.fullscreenContent}>
+          <View style={styles.fullscreenHeader}>
+            <Text style={styles.fullscreenTitle}>
+              {selectedPhoto.title}
+            </Text>
+            <TouchableOpacity onPress={closePhotoModal}>
+              <X size={24} color="white" />
+            </TouchableOpacity>
+          </View>
+
+          <Image 
+            source={{ uri: selectedPhoto.url }} 
+            style={styles.fullscreenImage}
+            resizeMode="contain"
+          />
+
+          <View style={styles.fullscreenInfo}>
+            <Text style={styles.fullscreenDate}>
+              {formatDateTime(selectedPhoto.timestamp)}
+            </Text>
+            
+            <View style={[
+              styles.fullscreenTypeBadge,
+              { backgroundColor: selectedPhoto.color }
+            ]}>
+              <Text style={styles.fullscreenTypeBadgeText}>
                 {selectedPhoto.title}
               </Text>
-              <TouchableOpacity onPress={closePhotoModal}>
-                <X size={24} color="white" />
-              </TouchableOpacity>
-            </View>
-
-            <Image 
-              source={{ uri: selectedPhoto.url }} 
-              style={styles.fullscreenImage}
-              resizeMode="contain"
-            />
-
-            <View style={styles.fullscreenInfo}>
-              <Text style={styles.fullscreenDate}>
-                {formatDateTime(selectedPhoto.timestamp)}
-              </Text>
-            
-              <View style={[
-                styles.fullscreenTypeBadge,
-                { backgroundColor: selectedPhoto.color }
-              ]}>
-                <Text style={styles.fullscreenTypeBadgeText}>
-                  {selectedPhoto.title}
-                </Text>
-              </View>
             </View>
           </View>
         </View>
-      </Modal>
+      </View>
     );
   };
 
@@ -260,223 +250,232 @@ export function AttendanceDetailModal({
       visible={visible}
       onRequestClose={onClose}
     >
-      <DraggableModalContainer
-        visible={visible}
-        onClose={onClose}
-        enableDrag={true}
-        dismissThreshold={0.3}
-        snapThreshold={0.15}
-      >
-        {/* Header */}
-        <View style={styles.modalHeader}>
-          <View style={styles.headerInfo}>
-            <Text style={styles.modalTitle}>{t('attendance.attendance_details')}</Text>
-            <Text style={styles.modalDate}>{formatDate(attendance.clockIn)}</Text>
-          </View>
-          <TouchableOpacity onPress={onClose} style={styles.closeButton}>
-            <X size={24} color="#666" />
-          </TouchableOpacity>
-        </View>
-
-        <ScrollView style={styles.modalBody} showsVerticalScrollIndicator={false}>
-          {/* Status Badge */}
-          <View style={styles.statusSection}>
-            <View style={[
-              styles.statusBadge,
-              { backgroundColor: attendance.status === 'completed' ? '#4CAF50' : '#4A90E2' }
-            ]}>
-              <Text style={styles.statusBadgeText}>
-                {attendance.status === 'completed' ? t('attendance.completed') : t('attendance.working')}
-              </Text>
+      <View style={styles.modalContainer}>
+        <View style={styles.modalContent}>
+          {/* Header */}
+          <View style={styles.modalHeader}>
+            <View style={styles.headerInfo}>
+              <Text style={styles.modalTitle}>{t('attendance.attendance_details')}</Text>
+              <Text style={styles.modalDate}>{formatDate(attendance.clockIn)}</Text>
             </View>
+            <TouchableOpacity onPress={onClose} style={styles.closeButton}>
+              <X size={24} color="#666" />
+            </TouchableOpacity>
           </View>
 
-          {/* Time Summary */}
-          <View style={styles.summarySection}>
-            <Text style={styles.sectionTitle}>{t('attendance.time_summary')}</Text>
-            <View style={styles.summaryGrid}>
-              <View style={styles.summaryItem}>
-                <Clock size={20} color="#4A90E2" />
-                <Text style={styles.summaryLabel}>{t('attendance.work_hours')}</Text>
-                <Text style={styles.summaryValue}>{workHours}</Text>
-              </View>
-              <View style={styles.summaryItem}>
-                <Coffee size={20} color="#FF9800" />
-                <Text style={styles.summaryLabel}>{t('attendance.break_time')}</Text>
-                <Text style={styles.summaryValue}>
-                  {Math.floor(attendance.breakTime / 60)}h {attendance.breakTime % 60}m
+          <ScrollView style={styles.modalBody} showsVerticalScrollIndicator={false}>
+            {/* Status Badge */}
+            <View style={styles.statusSection}>
+              <View style={[
+                styles.statusBadge,
+                { backgroundColor: attendance.status === 'completed' ? '#4CAF50' : '#4A90E2' }
+              ]}>
+                <Text style={styles.statusBadgeText}>
+                  {attendance.status === 'completed' ? t('attendance.completed') : t('attendance.working')}
                 </Text>
               </View>
             </View>
-          </View>
 
-          {/* Timeline */}
-          <View style={styles.timelineSection}>
-            <Text style={styles.sectionTitle}>{t('attendance.timeline')}</Text>
-            
-            {/* Clock In */}
-            <View style={styles.timelineItem}>
-              <View style={styles.timelineIcon}>
-                <LogIn size={20} color="#4CAF50" />
-              </View>
-              <View style={styles.timelineContent}>
-                <Text style={styles.timelineTitle}>{t('attendance.clock_in')}</Text>
-                <Text style={styles.timelineTime}>{formatTime(attendance.clockIn)}</Text>
-                <Text style={styles.timelineLocation}>{attendance.location.address}</Text>
+            {/* Time Summary */}
+            <View style={styles.summarySection}>
+              <Text style={styles.sectionTitle}>{t('attendance.time_summary')}</Text>
+              <View style={styles.summaryGrid}>
+                <View style={styles.summaryItem}>
+                  <Clock size={20} color="#4A90E2" />
+                  <Text style={styles.summaryLabel}>{t('attendance.work_hours')}</Text>
+                  <Text style={styles.summaryValue}>{workHours}</Text>
+                </View>
+                <View style={styles.summaryItem}>
+                  <Coffee size={20} color="#FF9800" />
+                  <Text style={styles.summaryLabel}>{t('attendance.break_time')}</Text>
+                  <Text style={styles.summaryValue}>
+                    {Math.floor(attendance.breakTime / 60)}h {attendance.breakTime % 60}m
+                  </Text>
+                </View>
               </View>
             </View>
 
-            {/* Break Start */}
-            {breakStarted !== '-' && (
-              <View style={styles.timelineItem}>
-                <View style={styles.timelineIcon}>
-                  <Coffee size={20} color="#FF9800" />
-                </View>
-                <View style={styles.timelineContent}>
-                  <Text style={styles.timelineTitle}>{t('attendance.break_started')}</Text>
-                  <Text style={styles.timelineTime}>{breakStarted}</Text>
-                </View>
-              </View>
-            )}
-
-            {/* Break End */}
-            {breakEnded !== '-' && (
-              <View style={styles.timelineItem}>
-                <View style={styles.timelineIcon}>
-                  <Play size={20} color="#E91E63" />
-                </View>
-                <View style={styles.timelineContent}>
-                  <Text style={styles.timelineTitle}>{t('attendance.break_ended')}</Text>
-                  <Text style={styles.timelineTime}>{breakEnded}</Text>
-                </View>
-              </View>
-            )}
-
-            {/* Clock Out */}
-            {attendance.clockOut && (
-              <View style={styles.timelineItem}>
-                <View style={styles.timelineIcon}>
-                  <LogOut size={20} color="#F44336" />
-                </View>
-                <View style={styles.timelineContent}>
-                  <Text style={styles.timelineTitle}>{t('attendance.clock_out')}</Text>
-                  <Text style={styles.timelineTime}>{formatTime(attendance.clockOut)}</Text>
-                </View>
-              </View>
-            )}
-          </View>
-
-          {/* Enhanced Photos Section */}
-          {photoItems.length > 0 && (
-            <View style={styles.photosSection}>
-              <View style={styles.photosSectionHeader}>
-                <Text style={styles.sectionTitle}>{t('attendance.verification_photos')}</Text>
-                <View style={styles.photosCount}>
-                  <Camera size={16} color="#4A90E2" />
-                  <Text style={styles.photosCountText}>{photoItems.length} {t('attendance.photos')}</Text>
-                </View>
-              </View>
+            {/* Timeline */}
+            <View style={styles.timelineSection}>
+              <Text style={styles.sectionTitle}>{t('attendance.timeline')}</Text>
               
-              <ScrollView 
-                horizontal 
-                showsHorizontalScrollIndicator={false}
-                style={styles.photosScrollView}
-                contentContainerStyle={styles.photosScrollContent}
-              >
-                {photoItems.map((photo) => (
-                  <TouchableOpacity
-                    key={photo.id}
-                    style={styles.photoItem}
-                    onPress={() => handlePhotoPress(photo)}
-                    activeOpacity={0.8}
-                  >
-                    <View style={styles.photoContainer}>
-                      {imageLoading[photo.id] && (
-                        <View style={styles.photoLoading}>
-                          <LoadingSpinner size="small" color="#4A90E2" />
-                        </View>
-                      )}
-                      
-                      {imageErrors[photo.id] ? (
-                        <View style={styles.photoError}>
-                          <Camera size={24} color="#E0E0E0" />
-                          <Text style={styles.photoErrorText}>{t('attendance.failed_to_load')}</Text>
-                          <TouchableOpacity
-                            style={styles.retryButton}
-                            onPress={() => {
-                              setImageErrors(prev => ({ ...prev, [photo.id]: false }));
-                              setImageLoading(prev => ({ ...prev, [photo.id]: true }));
-                            }}
-                          >
-                            <Text style={styles.retryButtonText}>{t('common.retry')}</Text>
-                          </TouchableOpacity>
-                        </View>
-                      ) : (
-                        <Image
-                          source={{ uri: photo.url }}
-                          style={styles.photoImage}
-                          onLoadStart={() => handleImageLoadStart(photo.id)}
-                          onLoad={() => handleImageLoad(photo.id)}
-                          onError={() => handleImageError(photo.id)}
-                        />
-                      )}
-                      
-                      <View style={styles.photoOverlay}>
-                        <View style={[styles.photoTypeBadge, { backgroundColor: photo.color }]}>
-                          <View style={styles.iconContainer}>
-                            {photo.icon}
+              {/* Clock In */}
+              <View style={styles.timelineItem}>
+                <View style={styles.timelineIcon}>
+                  <LogIn size={20} color="#4CAF50" />
+                </View>
+                <View style={styles.timelineContent}>
+                  <Text style={styles.timelineTitle}>{t('attendance.clock_in')}</Text>
+                  <Text style={styles.timelineTime}>{formatTime(attendance.clockIn)}</Text>
+                  <Text style={styles.timelineLocation}>{attendance.location.address}</Text>
+                </View>
+              </View>
+
+              {/* Break Start */}
+              {breakStarted !== '-' && (
+                <View style={styles.timelineItem}>
+                  <View style={styles.timelineIcon}>
+                    <Coffee size={20} color="#FF9800" />
+                  </View>
+                  <View style={styles.timelineContent}>
+                    <Text style={styles.timelineTitle}>{t('attendance.break_started')}</Text>
+                    <Text style={styles.timelineTime}>{breakStarted}</Text>
+                  </View>
+                </View>
+              )}
+
+              {/* Break End */}
+              {breakEnded !== '-' && (
+                <View style={styles.timelineItem}>
+                  <View style={styles.timelineIcon}>
+                    <Play size={20} color="#E91E63" />
+                  </View>
+                  <View style={styles.timelineContent}>
+                    <Text style={styles.timelineTitle}>{t('attendance.break_ended')}</Text>
+                    <Text style={styles.timelineTime}>{breakEnded}</Text>
+                  </View>
+                </View>
+              )}
+
+              {/* Clock Out */}
+              {attendance.clockOut && (
+                <View style={styles.timelineItem}>
+                  <View style={styles.timelineIcon}>
+                    <LogOut size={20} color="#F44336" />
+                  </View>
+                  <View style={styles.timelineContent}>
+                    <Text style={styles.timelineTitle}>{t('attendance.clock_out')}</Text>
+                    <Text style={styles.timelineTime}>{formatTime(attendance.clockOut)}</Text>
+                  </View>
+                </View>
+              )}
+            </View>
+
+            {/* Enhanced Photos Section */}
+            {photoItems.length > 0 && (
+              <View style={styles.photosSection}>
+                <View style={styles.photosSectionHeader}>
+                  <Text style={styles.sectionTitle}>{t('attendance.verification_photos')}</Text>
+                  <View style={styles.photosCount}>
+                    <Camera size={16} color="#4A90E2" />
+                    <Text style={styles.photosCountText}>{photoItems.length} {t('attendance.photos')}</Text>
+                  </View>
+                </View>
+                
+                <ScrollView 
+                  horizontal 
+                  showsHorizontalScrollIndicator={false}
+                  style={styles.photosScrollView}
+                  contentContainerStyle={styles.photosScrollContent}
+                >
+                  {photoItems.map((photo) => (
+                    <TouchableOpacity
+                      key={photo.id}
+                      style={styles.photoItem}
+                      onPress={() => handlePhotoPress(photo)}
+                      activeOpacity={0.8}
+                    >
+                      <View style={styles.photoContainer}>
+                        {imageLoading[photo.id] && (
+                          <View style={styles.photoLoading}>
+                            <LoadingSpinner size="small" color="#4A90E2" />
                           </View>
-                          <Text style={styles.photoTypeText}>{photo.title}</Text>
-                        </View>
-                        <Text style={styles.photoTime}>
-                          {formatTime(photo.timestamp)}
-                        </Text>
+                        )}
                         
-                        <View style={styles.tapToViewIndicator}>
-                          <ZoomIn size={12} color="rgba(255, 255, 255, 0.8)" />
-                          <Text style={styles.tapToViewText}>{t('attendance.tap_to_view')}</Text>
+                        {imageErrors[photo.id] ? (
+                          <View style={styles.photoError}>
+                            <Camera size={24} color="#E0E0E0" />
+                            <Text style={styles.photoErrorText}>{t('attendance.failed_to_load')}</Text>
+                            <TouchableOpacity
+                              style={styles.retryButton}
+                              onPress={() => {
+                                setImageErrors(prev => ({ ...prev, [photo.id]: false }));
+                                setImageLoading(prev => ({ ...prev, [photo.id]: true }));
+                              }}
+                            >
+                              <Text style={styles.retryButtonText}>{t('common.retry')}</Text>
+                            </TouchableOpacity>
+                          </View>
+                        ) : (
+                          <Image
+                            source={{ uri: photo.url }}
+                            style={styles.photoImage}
+                            onLoadStart={() => handleImageLoadStart(photo.id)}
+                            onLoad={() => handleImageLoad(photo.id)}
+                            onError={() => handleImageError(photo.id)}
+                          />
+                        )}
+                        
+                        <View style={styles.photoOverlay}>
+                          <View style={[styles.photoTypeBadge, { backgroundColor: photo.color }]}>
+                            <View style={styles.iconContainer}>
+                              {photo.icon}
+                            </View>
+                            <Text style={styles.photoTypeText}>{photo.title}</Text>
+                          </View>
+                          <Text style={styles.photoTime}>
+                            {formatTime(photo.timestamp)}
+                          </Text>
+                          
+                          <View style={styles.tapToViewIndicator}>
+                            <ZoomIn size={12} color="rgba(255, 255, 255, 0.8)" />
+                            <Text style={styles.tapToViewText}>{t('attendance.tap_to_view')}</Text>
+                          </View>
                         </View>
                       </View>
-                    </View>
-                  </TouchableOpacity>
-                ))}
-              </ScrollView>
-            </View>
-          )}
+                    </TouchableOpacity>
+                  ))}
+                </ScrollView>
+              </View>
+            )}
 
-          {/* Location Information */}
-          <View style={styles.locationSection}>
-            <Text style={styles.sectionTitle}>{t('attendance.location_information')}</Text>
-            <View style={styles.locationCard}>
-              <MapPin size={20} color="#4A90E2" />
-              <View style={styles.locationInfo}>
-                <Text style={styles.locationAddress}>{attendance.location.address}</Text>
-                <Text style={styles.locationCoords}>
-                  {attendance.location.latitude.toFixed(6)}, {attendance.location.longitude.toFixed(6)}
-                </Text>
+            {/* Location Information */}
+            <View style={styles.locationSection}>
+              <Text style={styles.sectionTitle}>{t('attendance.location_information')}</Text>
+              <View style={styles.locationCard}>
+                <MapPin size={20} color="#4A90E2" />
+                <View style={styles.locationInfo}>
+                  <Text style={styles.locationAddress}>{attendance.location.address}</Text>
+                  <Text style={styles.locationCoords}>
+                    {attendance.location.latitude.toFixed(6)}, {attendance.location.longitude.toFixed(6)}
+                  </Text>
+                </View>
               </View>
             </View>
-          </View>
 
-          {/* Notes Section */}
-          {attendance.notes && (
-            <View style={styles.notesSection}>
-              <Text style={styles.sectionTitle}>{t('attendance.notes')}</Text>
-              <View style={styles.notesCard}>
-                <Text style={styles.notesText}>{attendance.notes}</Text>
+            {/* Notes Section */}
+            {attendance.notes && (
+              <View style={styles.notesSection}>
+                <Text style={styles.sectionTitle}>{t('attendance.notes')}</Text>
+                <View style={styles.notesCard}>
+                  <Text style={styles.notesText}>{attendance.notes}</Text>
+                </View>
               </View>
-            </View>
-          )}
-        </ScrollView>
+            )}
+          </ScrollView>
+        </View>
 
         {/* Render fullscreen photo overlay here */}
         {renderFullscreenPhoto()}
-      </DraggableModalContainer>
+      </View>
     </Modal>
   );
 }
 
 const styles = StyleSheet.create({
+  modalContainer: {
+    flex: 1,
+    justifyContent: 'flex-end',
+    backgroundColor: 'rgba(0, 0, 0, 0.5)',
+  },
+  modalContent: {
+    backgroundColor: 'white',
+    borderTopLeftRadius: 20,
+    borderTopRightRadius: 20,
+    maxHeight: '95%',
+    minHeight: '95%',
+    overflow: 'hidden', // Ensures fullscreen overlay is contained if not positioned absolutely
+  },
   modalHeader: {
     flexDirection: 'row',
     justifyContent: 'space-between',
@@ -752,10 +751,15 @@ const styles = StyleSheet.create({
   },
   // Styles for the fullscreen photo overlay VIEW
   fullscreenOverlay: {
-    flex: 1,
+    position: 'absolute',
+    top: 0,
+    left: 0,
+    right: 0,
+    bottom: 0,
     backgroundColor: 'rgba(0, 0, 0, 0.9)',
     justifyContent: 'center',
     alignItems: 'center',
+    zIndex: 100, // Ensure it's on top
   },
   fullscreenContent: {
     width: '90%',

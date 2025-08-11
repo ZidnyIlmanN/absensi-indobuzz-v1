@@ -63,17 +63,23 @@ export function SelfieCapture({
 
     try {
       setIsProcessing(true);
+      
+      // Use more aggressive compression settings for camera capture
       const photo = await cameraRef.current.takePictureAsync({
-        quality: 0.8,
+        quality: 0.6, // Reduced from 0.8 to 0.6 for better compression
         base64: false,
+        exif: false, // Skip EXIF data to reduce file size
+        skipProcessing: false, // Ensure proper processing
       });
       
-      if (photo) {
-        setCapturedImage(photo.uri);
+      if (photo?.uri) {
+        // Apply additional compression before setting the image
+        const compressedUri = await compressCameraImage(photo.uri);
+        setCapturedImage(compressedUri);
         
         // Auto-upload if enabled
         if (autoUpload) {
-          await handleUpload(photo.uri);
+          await handleUpload(compressedUri);
         }
       }
     } catch (error) {
@@ -81,6 +87,23 @@ export function SelfieCapture({
       Alert.alert('Error', 'Failed to capture photo. Please try again.');
     } finally {
       setIsProcessing(false);
+    }
+  };
+
+  const compressCameraImage = async (uri: string): Promise<string> => {
+    try {
+      // Apply additional compression for camera captures
+      const compressedUri = await imageService.compressImage(uri, {
+        quality: 0.7, // Further compress to 70% quality
+        maxWidth: 720, // Limit to 720p resolution
+        maxHeight: 720,
+        format: 'jpeg',
+      });
+
+      return compressedUri.uri || uri;
+    } catch (error) {
+      console.error('Error compressing camera image:', error);
+      return uri; // Return original if compression fails
     }
   };
 

@@ -7,7 +7,7 @@ import {
   Animated,
 } from 'react-native';
 import { Calendar, Clock, FileText, CircleCheck as CheckCircle, Circle as XCircle, CircleAlert as AlertCircle, ChevronRight } from 'lucide-react-native';
-import { LeaveRequest } from '@/services/leaveRequest';
+import { LeaveRequest } from '@/services/leaveRequests';
 import { useI18n } from '@/hooks/useI18n';
 
 interface LeaveRequestCardProps {
