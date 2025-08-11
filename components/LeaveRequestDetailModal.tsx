@@ -46,6 +46,7 @@ export function LeaveRequestDetailModal({
   const { t, formatLeaveDate, formatLeaveDateShort, formatSubmissionDate } = useI18n();
   const { user } = useAppContext();
   const [selectedAttachment, setSelectedAttachment] = useState<string | null>(null);
+  const [imageLoading, setImageLoading] = useState<Record<string, boolean>>({});
 
   if (!leaveRequest && !isLoading) return null;
 
@@ -843,4 +844,72 @@ const styles = StyleSheet.create({
     color: '#999',
     textAlign: 'center',
   },
+  attachmentItem: {
+    width: 80,
+    height: 80,
+    borderRadius: 8,
+    overflow: 'hidden',
+  },
+  imageAttachment: {
+    width: '100%',
+    height: '100%',
+    borderRadius: 8,
+    overflow: 'hidden',
+    backgroundColor: '#F8F9FA',
+    position: 'relative',
+  },
+  imageLoading: {
+    position: 'absolute',
+    top: 0,
+    left: 0,
+    right: 0,
+    bottom: 0,
+    justifyContent: 'center',
+    alignItems: 'center',
+    backgroundColor: 'rgba(255, 255, 255, 0.8)',
+    zIndex: 1,
+  },
+  attachmentImage: {
+    width: '100%',
+    height: '100%',
+    borderRadius: 8,
+  },
+  imageOverlay: {
+    position: 'absolute',
+    top: 4,
+    right: 4,
+    backgroundColor: 'rgba(0, 0, 0, 0.5)',
+    borderRadius: 12,
+    padding: 4,
+  },
+  documentAttachment: {
+    width: 80,
+    height: 80,
+    borderRadius: 8,
+    backgroundColor: '#F8F9FA',
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  documentName: {
+    fontSize: 10,
+    color: '#666',
+    marginTop: 4,
+    textAlign: 'center',
+  },
+  attachmentActions: {
+    position: 'absolute',
+    bottom: 4,
+    right: 4,
+    flexDirection: 'row',
+    gap: 4,
+  },
+  attachmentAction: {
+    backgroundColor: 'rgba(255, 255, 255, 0.9)',
+    borderRadius: 12,
+    padding: 4,
+  },
 });
+
+function setShowAttachmentModal(arg0: boolean) {
+  throw new Error('Function not implemented.');
+}
