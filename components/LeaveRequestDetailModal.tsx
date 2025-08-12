@@ -16,6 +16,7 @@ import { LoadingSpinner } from './LoadingSpinner';
 import { useI18n } from '@/hooks/useI18n';
 import { useAppContext } from '@/context/AppContext';
 import { AttachmentPreview } from './AttachmentPreview';
+import { LeavePeriodDisplay } from './LeavePeriodDisplay';
 
 const { width } = Dimensions.get('window');
 
@@ -359,28 +360,13 @@ export function LeaveRequestDetailModal({
                   </View>
                 </View>
 
-                <View style={styles.dateRangeCard}>
-                  <View style={styles.dateRangeHeader}>
-                    <Calendar size={16} color="#666" />
-                    <Text style={styles.dateRangeTitle}>{t('leave_request.leave_period')}</Text>
-                  </View>
-                  
-                  <View style={styles.dateRangeContent}>
-                    <View style={styles.dateItem}>
-                      <Text style={styles.dateLabel}>{t('leave_request.start_date')}</Text>
-                      <Text style={styles.dateValue}>{formatLeaveDate(leaveRequest.startDate)}</Text>
-                    </View>
-                    
-                    <View style={styles.dateArrow}>
-                      <ChevronRight size={16} color="#E0E0E0" />
-                    </View>
-                    
-                    <View style={styles.dateItem}>
-                      <Text style={styles.dateLabel}>{t('leave_request.end_date')}</Text>
-                      <Text style={styles.dateValue}>{formatLeaveDate(leaveRequest.endDate)}</Text>
-                    </View>
-                  </View>
-                </View>
+                {/* Enhanced Leave Period Display */}
+                <LeavePeriodDisplay
+                  startDate={leaveRequest.startDate}
+                  endDate={leaveRequest.endDate}
+                  leaveType={leaveRequest.leaveType}
+                  showDuration={true}
+                />
               </View>
 
               {/* Reason/Description */}
@@ -637,45 +623,6 @@ const styles = StyleSheet.create({
     fontSize: 12,
     fontWeight: '600',
     color: 'white',
-  },
-  dateRangeCard: {
-    backgroundColor: '#F8F9FA',
-    borderRadius: 12,
-    padding: 16,
-  },
-  dateRangeHeader: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    marginBottom: 12,
-  },
-  dateRangeTitle: {
-    fontSize: 14,
-    fontWeight: '600',
-    color: '#666',
-    marginLeft: 8,
-  },
-  dateRangeContent: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-  },
-  dateItem: {
-    flex: 1,
-    alignItems: 'center',
-  },
-  dateLabel: {
-    fontSize: 12,
-    color: '#999',
-    marginBottom: 4,
-  },
-  dateValue: {
-    fontSize: 14,
-    fontWeight: '500',
-    color: '#1A1A1A',
-    textAlign: 'center',
-  },
-  dateArrow: {
-    marginHorizontal: 16,
   },
   descriptionCard: {
     backgroundColor: '#F8F9FA',

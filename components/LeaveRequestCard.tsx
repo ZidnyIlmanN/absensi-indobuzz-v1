@@ -39,13 +39,12 @@ export function LeaveRequestCard({
   };
 
   const formatDateRange = (startDate: string, endDate: string) => {
-    const start = new Date(startDate);
-    const end = new Date(endDate);
-    
     if (startDate === endDate) {
+      // Single day leave - show only one date
       return formatLeaveDateShort(startDate);
     }
     
+    // Multi-day leave - show date range
     return `${formatLeaveDateShort(startDate)} - ${formatLeaveDateShort(endDate)}`;
   };
 
@@ -130,17 +129,27 @@ export function LeaveRequestCard({
           <View style={styles.requestMeta}>
             <View style={[
               styles.typeBadge,
-              { backgroundColor: getLeaveTypeColor(request.leaveType) }
+              { 
+                backgroundColor: request.startDate === request.endDate 
+                  ? '#4A90E2' // Single day color
+                  : getLeaveTypeColor(request.leaveType) // Multi-day color
+              }
             ]}>
               <Text style={styles.typeBadgeText}>
-                {getLeaveTypeLabel(request.leaveType)}
+                {request.startDate === request.endDate 
+                  ? t('leave_request.single_day')
+                  : getLeaveTypeLabel(request.leaveType)
+                }
               </Text>
             </View>
             
             <View style={styles.durationInfo}>
               <Clock size={14} color="#666" />
               <Text style={styles.durationText}>
-                {calculateDuration()} {calculateDuration() === 1 ? t('leave_request.day') : t('leave_request.days')}
+                {request.startDate === request.endDate 
+                  ? t('leave_request.single_day')
+                  : `${calculateDuration()} ${calculateDuration() === 1 ? t('leave_request.day') : t('leave_request.days')}`
+                }
               </Text>
             </View>
           </View>
