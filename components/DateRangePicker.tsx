@@ -8,7 +8,7 @@ import {
   Dimensions,
 } from 'react-native';
 import { Calendar, DateData } from 'react-native-calendars';
-import { Calendar as CalendarIcon, X, Check } from 'lucide-react-native';
+import { Calendar as CalendarIcon, X, Check, ToggleLeft, ToggleRight } from 'lucide-react-native';
 import { useI18n } from '@/hooks/useI18n';
 
 const { width } = Dimensions.get('window');
@@ -26,6 +26,8 @@ interface DateRangePickerProps {
   maxDate?: string;
   placeholder?: string;
   disabled?: boolean;
+  allowSingleDay?: boolean; // New prop to enable single-day mode
+  defaultMode?: 'single' | 'range'; // Default selection mode
 }
 
 export function DateRangePicker({
@@ -36,16 +38,18 @@ export function DateRangePicker({
   maxDate,
   placeholder = 'Select date range',
   disabled = false,
+  allowSingleDay = true,
+  defaultMode = 'range',
 }: DateRangePickerProps) {
   const { t, formatLeaveDateShort, getDateFormat } = useI18n();
   const [showCalendar, setShowCalendar] = useState(false);
   const [tempStartDate, setTempStartDate] = useState<string | null>(startDate);
   const [tempEndDate, setTempEndDate] = useState<string | null>(endDate);
-  const [selectionMode, setSelectionMode] = useState<'start' | 'end'>('start');
+  const [selectionMode, setSelectionMode] = useState<'single' | 'range'>(defaultMode);
+  const [isSelectingEnd, setIsSelectingEnd] = useState(false);
 
   const formatDisplayDate = (dateString: string | null) => {
     if (!dateString) return null;
-    
     return formatLeaveDateShort(dateString);
   };
 
@@ -70,6 +74,11 @@ export function DateRangePicker({
     }
 
     if (startDate && endDate) {
+      // Check if it's a single day (start and end are the same)
+      if (startDate === endDate) {
+        return formatDisplayDate(startDate);
+      }
+      
       const days = calculateDaysDifference(startDate, endDate);
       return `${formatDisplayDate(startDate)} - ${formatDisplayDate(endDate)} (${days} ${days === 1 ? t('leave_request.day') : t('leave_request.days')})`;
     }
@@ -80,83 +89,131 @@ export function DateRangePicker({
   const handleDateSelect = (day: DateData) => {
     const selectedDate = day.dateString;
 
-    if (selectionMode === 'start') {
+    if (selectionMode === 'single') {
+      // Single-day mode: set both start and end to the same date
       setTempStartDate(selectedDate);
-      
-      // If end date is before start date, clear it
-      if (tempEndDate && selectedDate > tempEndDate) {
-        setTempEndDate(null);
-      }
-      
-      // Switch to end date selection
-      setSelectionMode('end');
+      setTempEndDate(selectedDate);
+      setIsSelectingEnd(false);
     } else {
-      // End date selection
-      if (tempStartDate && selectedDate >= tempStartDate) {
-        setTempEndDate(selectedDate);
+      // Range mode: handle start/end date selection
+      if (!tempStartDate || isSelectingEnd) {
+        if (!tempStartDate) {
+          // First selection - set start date
+          setTempStartDate(selectedDate);
+          setTempEndDate(null);
+          setIsSelectingEnd(true);
+        } else {
+          // Second selection - set end date
+          if (selectedDate >= tempStartDate) {
+            setTempEndDate(selectedDate);
+            setIsSelectingEnd(false);
+          } else {
+            // If selected date is before start date, make it the new start date
+            setTempStartDate(selectedDate);
+            setTempEndDate(null);
+            setIsSelectingEnd(true);
+          }
+        }
       } else {
-        // If selected date is before start date, make it the new start date
+        // Reset and start new selection
         setTempStartDate(selectedDate);
         setTempEndDate(null);
-        setSelectionMode('end');
+        setIsSelectingEnd(true);
       }
     }
+  };
+
+  const handleModeToggle = () => {
+    const newMode = selectionMode === 'single' ? 'range' : 'single';
+    setSelectionMode(newMode);
+    
+    // If switching to single mode and we have a range, keep only start date
+    if (newMode === 'single' && tempStartDate && tempEndDate && tempStartDate !== tempEndDate) {
+      setTempEndDate(tempStartDate);
+    }
+    
+    setIsSelectingEnd(false);
   };
 
   const handleConfirm = () => {
     onDateRangeChange(tempStartDate, tempEndDate);
     setShowCalendar(false);
+    setIsSelectingEnd(false);
   };
 
   const handleCancel = () => {
     setTempStartDate(startDate);
     setTempEndDate(endDate);
-    setSelectionMode('start');
+    setIsSelectingEnd(false);
     setShowCalendar(false);
   };
 
   const handleClear = () => {
     setTempStartDate(null);
     setTempEndDate(null);
-    setSelectionMode('start');
+    setIsSelectingEnd(false);
   };
 
   const getMarkedDates = () => {
     const marked: any = {};
 
     if (tempStartDate) {
-      marked[tempStartDate] = {
-        startingDay: true,
-        color: '#4A90E2',
-        textColor: 'white',
-      };
+      if (selectionMode === 'single' || tempStartDate === tempEndDate) {
+        // Single day selection - highlight as a complete selection
+        marked[tempStartDate] = {
+          selected: true,
+          selectedColor: '#4A90E2',
+          selectedTextColor: 'white',
+        };
+      } else {
+        // Range selection
+        marked[tempStartDate] = {
+          startingDay: true,
+          color: '#4A90E2',
+          textColor: 'white',
+        };
+      }
     }
 
-    if (tempEndDate && tempStartDate !== tempEndDate) {
+    if (tempEndDate && tempStartDate !== tempEndDate && selectionMode === 'range') {
       marked[tempEndDate] = {
         endingDay: true,
         color: '#4A90E2',
         textColor: 'white',
       };
-    }
 
-    // Mark dates in between
-    if (tempStartDate && tempEndDate && tempStartDate !== tempEndDate) {
-      const start = new Date(tempStartDate);
-      const end = new Date(tempEndDate);
-      
-      for (let d = new Date(start); d < end; d.setDate(d.getDate() + 1)) {
-        const dateString = d.toISOString().split('T')[0];
-        if (dateString !== tempStartDate && dateString !== tempEndDate) {
-          marked[dateString] = {
-            color: '#E3F2FD',
-            textColor: '#4A90E2',
-          };
+      // Mark dates in between for range selection
+      if (tempStartDate && tempEndDate && tempStartDate !== tempEndDate) {
+        const start = new Date(tempStartDate);
+        const end = new Date(tempEndDate);
+        
+        for (let d = new Date(start); d < end; d.setDate(d.getDate() + 1)) {
+          const dateString = d.toISOString().split('T')[0];
+          if (dateString !== tempStartDate && dateString !== tempEndDate) {
+            marked[dateString] = {
+              color: '#E3F2FD',
+              textColor: '#4A90E2',
+            };
+          }
         }
       }
     }
 
     return marked;
+  };
+
+  const getInstructionText = () => {
+    if (selectionMode === 'single') {
+      return t('leave_request.select_single_day');
+    } else {
+      if (!tempStartDate) {
+        return t('leave_request.select_start_date');
+      } else if (isSelectingEnd) {
+        return t('leave_request.select_end_date');
+      } else {
+        return t('leave_request.tap_to_change_selection');
+      }
+    }
   };
 
   const today = new Date().toISOString().split('T')[0];
@@ -197,20 +254,57 @@ export function DateRangePicker({
               </TouchableOpacity>
             </View>
 
+            {/* Mode Toggle */}
+            {allowSingleDay && (
+              <View style={styles.modeToggleContainer}>
+                <Text style={styles.modeToggleLabel}>{t('leave_request.selection_mode')}</Text>
+                <View style={styles.modeToggle}>
+                  <TouchableOpacity
+                    style={[
+                      styles.modeOption,
+                      selectionMode === 'single' && styles.activeModeOption
+                    ]}
+                    onPress={() => selectionMode !== 'single' && handleModeToggle()}
+                  >
+                    <Text style={[
+                      styles.modeOptionText,
+                      selectionMode === 'single' && styles.activeModeOptionText
+                    ]}>
+                      {t('leave_request.single_day')}
+                    </Text>
+                  </TouchableOpacity>
+                  
+                  <TouchableOpacity
+                    style={[
+                      styles.modeOption,
+                      selectionMode === 'range' && styles.activeModeOption
+                    ]}
+                    onPress={() => selectionMode !== 'range' && handleModeToggle()}
+                  >
+                    <Text style={[
+                      styles.modeOptionText,
+                      selectionMode === 'range' && styles.activeModeOptionText
+                    ]}>
+                      {t('leave_request.date_range')}
+                    </Text>
+                  </TouchableOpacity>
+                </View>
+              </View>
+            )}
+
             {/* Instructions */}
             <View style={styles.instructionsContainer}>
               <Text style={styles.instructionsText}>
-                {t('leave_request.date_format_hint', { format: getDateFormat() })} • {' '}
-                {selectionMode === 'start' 
-                  ? t('leave_request.select_start_date')
-                  : t('leave_request.select_end_date')
-                }
+                {t('leave_request.date_format_hint', { format: getDateFormat() })} • {getInstructionText()}
               </Text>
               
               {tempStartDate && tempEndDate && (
                 <View style={styles.durationContainer}>
                   <Text style={styles.durationText}>
-                    {t('leave_request.duration')}: {calculateDaysDifference(tempStartDate, tempEndDate)} {calculateDaysDifference(tempStartDate, tempEndDate) === 1 ? t('leave_request.day') : t('leave_request.days')}
+                    {selectionMode === 'single' 
+                      ? t('leave_request.single_day_selected')
+                      : `${t('leave_request.duration')}: ${calculateDaysDifference(tempStartDate, tempEndDate)} ${calculateDaysDifference(tempStartDate, tempEndDate) === 1 ? t('leave_request.day') : t('leave_request.days')}`
+                    }
                   </Text>
                 </View>
               )}
@@ -247,12 +341,36 @@ export function DateRangePicker({
               minDate={defaultMinDate}
               maxDate={maxDate}
               onDayPress={handleDateSelect}
-              markingType="period"
+              markingType={selectionMode === 'single' ? 'simple' : 'period'}
               markedDates={getMarkedDates()}
               enableSwipeMonths={true}
               hideExtraDays={true}
               firstDay={1} // Monday as first day
             />
+
+            {/* Selection Summary */}
+            {(tempStartDate || tempEndDate) && (
+              <View style={styles.selectionSummary}>
+                <Text style={styles.selectionSummaryTitle}>
+                  {t('leave_request.selected_period')}
+                </Text>
+                <Text style={styles.selectionSummaryText}>
+                  {tempStartDate && tempEndDate && tempStartDate === tempEndDate
+                    ? `${t('leave_request.single_day')}: ${formatDisplayDate(tempStartDate)}`
+                    : tempStartDate && tempEndDate
+                      ? `${formatDisplayDate(tempStartDate)} - ${formatDisplayDate(tempEndDate)}`
+                      : tempStartDate
+                        ? `${t('leave_request.start')}: ${formatDisplayDate(tempStartDate)}`
+                        : ''
+                  }
+                </Text>
+                {tempStartDate && tempEndDate && (
+                  <Text style={styles.selectionDuration}>
+                    {calculateDaysDifference(tempStartDate, tempEndDate)} {calculateDaysDifference(tempStartDate, tempEndDate) === 1 ? t('leave_request.day') : t('leave_request.days')}
+                  </Text>
+                )}
+              </View>
+            )}
 
             {/* Action Buttons */}
             <View style={styles.actionButtons}>
@@ -273,10 +391,10 @@ export function DateRangePicker({
               <TouchableOpacity
                 style={[
                   styles.confirmButton,
-                  (!tempStartDate || !tempEndDate) && styles.disabledButton
+                  (!tempStartDate || (selectionMode === 'range' && isSelectingEnd && !tempEndDate)) && styles.disabledButton
                 ]}
                 onPress={handleConfirm}
-                disabled={!tempStartDate || !tempEndDate}
+                disabled={!tempStartDate || (selectionMode === 'range' && isSelectingEnd && !tempEndDate)}
               >
                 <Check size={16} color="white" />
                 <Text style={styles.confirmButtonText}>{t('common.confirm')}</Text>
@@ -346,6 +464,42 @@ const styles = StyleSheet.create({
     fontWeight: 'bold',
     color: '#1A1A1A',
   },
+  modeToggleContainer: {
+    marginBottom: 16,
+  },
+  modeToggleLabel: {
+    fontSize: 14,
+    fontWeight: '600',
+    color: '#666',
+    marginBottom: 8,
+  },
+  modeToggle: {
+    flexDirection: 'row',
+    backgroundColor: '#F8F9FA',
+    borderRadius: 8,
+    padding: 4,
+    borderWidth: 1,
+    borderColor: '#E0E0E0',
+  },
+  modeOption: {
+    flex: 1,
+    paddingVertical: 8,
+    paddingHorizontal: 12,
+    borderRadius: 6,
+    alignItems: 'center',
+  },
+  activeModeOption: {
+    backgroundColor: '#4A90E2',
+  },
+  modeOptionText: {
+    fontSize: 14,
+    fontWeight: '500',
+    color: '#666',
+  },
+  activeModeOptionText: {
+    color: 'white',
+    fontWeight: '600',
+  },
   instructionsContainer: {
     marginBottom: 16,
     padding: 12,
@@ -373,6 +527,31 @@ const styles = StyleSheet.create({
     shadowOffset: { width: 0, height: 1 },
     shadowOpacity: 0.1,
     shadowRadius: 3,
+  },
+  selectionSummary: {
+    backgroundColor: '#F8F9FA',
+    borderRadius: 8,
+    padding: 12,
+    marginTop: 16,
+    borderLeftWidth: 4,
+    borderLeftColor: '#4A90E2',
+  },
+  selectionSummaryTitle: {
+    fontSize: 12,
+    fontWeight: '600',
+    color: '#4A90E2',
+    marginBottom: 4,
+    textTransform: 'uppercase',
+  },
+  selectionSummaryText: {
+    fontSize: 16,
+    fontWeight: '500',
+    color: '#1A1A1A',
+    marginBottom: 4,
+  },
+  selectionDuration: {
+    fontSize: 14,
+    color: '#666',
   },
   actionButtons: {
     flexDirection: 'row',

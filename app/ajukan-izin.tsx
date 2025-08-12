@@ -26,6 +26,7 @@ import { useTranslation } from 'react-i18next';
 import { imageService } from '@/services/imageService';
 import * as DocumentPicker from 'expo-document-picker';
 import { DateRangePicker } from '@/components/DateRangePicker';
+import { LeavePeriodDisplay } from '@/components/LeavePeriodDisplay';
 
 interface FormData {
   leaveType: 'full_day' | 'half_day';
@@ -568,10 +569,23 @@ export default function AjukanIzinScreen() {
                 onDateRangeChange={handleDateRangeChange}
                 placeholder={t('leave_request.select_date_range')}
                 minDate={new Date().toISOString().split('T')[0]}
+                allowSingleDay={true}
+                defaultMode="range"
               />
               
+              {/* Enhanced Leave Period Display */}
+              {(formData.startDate || formData.endDate) && (
+                <LeavePeriodDisplay
+                  startDate={formData.startDate}
+                  endDate={formData.endDate}
+                  leaveType={formData.leaveType}
+                  showDuration={true}
+                  style={styles.leavePeriodDisplay}
+                />
+              )}
+              
               {/* Duration Display */}
-              {formData.startDate && formData.endDate && (
+              {formData.startDate && formData.endDate && formData.startDate !== formData.endDate && (
                 <View style={styles.durationDisplay}>
                   <Text style={styles.durationLabel}>{t('leave_request.total_duration')}:</Text>
                   <Text style={styles.durationValue}>
@@ -995,5 +1009,8 @@ const styles = StyleSheet.create({
     fontSize: 16,
     color: 'white',
     fontWeight: '600',
+  },
+  leavePeriodDisplay: {
+    marginBottom: 16,
   },
 });
