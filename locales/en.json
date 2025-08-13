@@ -896,7 +896,8 @@
     "reviewed_on": "Reviewed On",
     "request_not_found": "Request Not Found",
     "request_not_available": "The requested leave request is not available",
-    "documents": "Documents"
+    "documents": "Documents",
+    "type": "Type"
   },
   "check_in": {
     "check_in": "Check In",

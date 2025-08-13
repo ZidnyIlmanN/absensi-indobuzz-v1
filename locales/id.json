@@ -894,7 +894,8 @@
     "reviewed_on": "Ditinjau Pada",
     "request_not_found": "Permintaan Tidak Ditemukan",
     "request_not_available": "Permintaan izin yang diminta tidak tersedia",
-    "documents": "Dokumen"
+    "documents": "Dokumen",
+    "type": "Jenis"
   },
   "check_in": {
     "check_in": "Masuk",
