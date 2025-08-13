@@ -2,6 +2,7 @@ import { supabase, handleSupabaseError } from '@/lib/supabase';
 import { imageService } from './imageService';
 
 export interface LeaveRequest {
+  selectedDates: any;
   id: string;
   userId: string;
   leaveType: 'full_day' | 'half_day';
@@ -299,6 +300,8 @@ export const leaveRequestsService = {
       id: data.id,
       userId: data.user_id,
       leaveType: data.leave_type,
+      startDate: data.start_date,
+      endDate: data.end_date,
       selectedDates: selectedDates,
       description: data.description,
       attachments: data.attachments ? JSON.parse(data.attachments) : [],
