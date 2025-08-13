@@ -566,16 +566,6 @@ export default function AjukanIzinScreen() {
                   style={styles.datesSummary}
                 />
               )}
-              
-              {/* Duration Display */}
-              {formData.selectedDates.length > 1 && (
-                <View style={styles.durationDisplay}>
-                  <Text style={styles.durationLabel}>{t('leave_request.total_duration')}:</Text>
-                  <Text style={styles.durationValue}>
-                    {calculateTotalDuration()} {calculateTotalDuration() === 1 ? t('leave_request.day') : t('leave_request.days')}
-                  </Text>
-                </View>
-              )}
 
               {/* Description */}
               <Text style={styles.inputLabel}>{t('leave_request.description_reason')}</Text>
