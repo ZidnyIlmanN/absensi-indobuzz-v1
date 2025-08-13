@@ -814,7 +814,7 @@ const styles = StyleSheet.create({
     fontWeight: '600',
     color: '#1A1A1A',
     marginBottom: 8,
-    marginTop: 16,
+    marginTop: 4,
   },
   leaveTypeContainer: {
     flexDirection: 'row',
@@ -967,6 +967,7 @@ const styles = StyleSheet.create({
     borderRadius: 8,
     padding: 12,
     marginTop: 8,
+    marginBottom: 16,
   },
   infoText: {
     fontSize: 12,
