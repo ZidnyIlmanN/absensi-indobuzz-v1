@@ -469,7 +469,8 @@
     "personal_matter": "Personal Matter",
     "personal_appointment": "Personal appointment",
     "day": "day",
-    "days": "days"
+    "days": "days",
+    "months": "months"
   },
   "reimbursement": {
     "reimbursement": "Reimbursement",
@@ -805,7 +806,6 @@
     "start": "Start",
     "end": "End",
     "incomplete": "Incomplete",
-    "select_end_date": "Please select an end date",
     "single_day_selected": "Single day selected",
     "no_date_selected": "No date selected",
     "leave_period": "Leave Period",
@@ -871,7 +871,6 @@
     "leave_request_details": "Leave Request Details",
     "employee_information": "Employee Information",
     "leave_information": "Leave Information",
-    "leave_period": "Leave Period",
     "reason_description": "Reason/Description",
     "attachment_preview": "Attachment Preview",
     "approval_workflow": "Approval Workflow",

@@ -468,7 +468,8 @@
     "personal_matter": "Urusan Pribadi",
     "personal_appointment": "Janji pribadi",
     "day": "hari",
-    "days": "hari"
+    "days": "hari",
+    "months": "bulan"
   },
   "reimbursement": {
     "reimbursement": "Reimburse",
@@ -800,7 +801,6 @@
     "start": "Mulai",
     "end": "Selesai",
     "incomplete": "Belum Lengkap",
-    "select_end_date": "Silakan pilih tanggal selesai",
     "single_day_selected": "Satu hari terpilih",
     "no_date_selected": "Tidak ada tanggal dipilih",
     "leave_period": "Periode Izin",
@@ -869,7 +869,6 @@
     "leave_request_details": "Detail Pengajuan Izin",
     "employee_information": "Informasi Karyawan",
     "leave_information": "Informasi Izin",
-    "leave_period": "Periode Izin",
     "reason_description": "Alasan/Keterangan",
     "attachment_preview": "Pratinjau Lampiran",
     "approval_workflow": "Alur Persetujuan",
