@@ -50,9 +50,21 @@ BEGIN
 END;
 $$ LANGUAGE plpgsql IMMUTABLE;
 
--- Update the duration_days column to work with both formats
-DROP FUNCTION IF EXISTS calculate_leave_duration(date, date);
+-- First, drop the computed column that depends on the old function
+DO $$
+BEGIN
+  IF EXISTS (
+    SELECT 1 FROM information_schema.columns
+    WHERE table_name = 'leave_requests' AND column_name = 'duration_days'
+  ) THEN
+    ALTER TABLE leave_requests DROP COLUMN duration_days;
+  END IF;
+END $$;
 
+-- Now it's safe to drop the old function
+DROP FUNCTION IF EXISTS calculate_leave_duration(date, date) CASCADE;
+
+-- Create the new enhanced function
 CREATE OR REPLACE FUNCTION calculate_leave_duration_enhanced(start_date date, end_date date, selected_dates jsonb, leave_type text)
 RETURNS integer AS $$
 BEGIN
@@ -78,22 +90,18 @@ BEGIN
 END;
 $$ LANGUAGE plpgsql IMMUTABLE;
 
--- Update the computed column to use the new function
+-- Add the new computed column
 DO $$
 BEGIN
-  -- Drop the existing computed column
-  IF EXISTS (
+  IF NOT EXISTS (
     SELECT 1 FROM information_schema.columns
     WHERE table_name = 'leave_requests' AND column_name = 'duration_days'
   ) THEN
-    ALTER TABLE leave_requests DROP COLUMN duration_days;
+    ALTER TABLE leave_requests 
+    ADD COLUMN duration_days integer GENERATED ALWAYS AS (
+      calculate_leave_duration_enhanced(start_date, end_date, selected_dates, leave_type)
+    ) STORED;
   END IF;
-  
-  -- Add the new computed column
-  ALTER TABLE leave_requests 
-  ADD COLUMN duration_days integer GENERATED ALWAYS AS (
-    calculate_leave_duration_enhanced(start_date, end_date, selected_dates, leave_type)
-  ) STORED;
 END $$;
 
 -- Add validation function for selected_dates
