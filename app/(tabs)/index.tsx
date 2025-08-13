@@ -19,7 +19,6 @@ import { useTranslation } from 'react-i18next';
 import { useI18n, useLocalizedDate } from '@/hooks/useI18n';
 import { AttendanceCard } from '@/components/AttendanceCard';
 import { AttendanceStatusCard } from '@/components/AttendanceStatusCard';
-import { QuickActionCard } from '@/components/QuickActionCard';
 import { StatsCard } from '@/components/StatsCard';
 import { WeatherDisplay } from '@/components/WeatherDisplay';
 import { LoadingSpinner } from '@/components/LoadingSpinner';
@@ -166,7 +165,7 @@ export default function HomeScreen() {
 
     },
     {
-      title: 'Ajukan Izin',
+      title: t('home.request_permission'),
       icon: <Calendar size={24} color="#FF6B6B" />,
 
     },

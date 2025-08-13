@@ -373,15 +373,7 @@ export default function EmployeeScreen() {
 
         {/* Stats */}
         <View style={styles.statsContainer}>
-          <View style={styles.statCard}>
-            <View style={styles.statIcon}>
-              <Users size={15} color="#4A90E2" />
-            </View>
-            <View style={styles.statInfo}>
-              <Text style={styles.statValue}>{filteredEmployees.length}</Text>
-              <Text style={styles.statLabel}>{t('employee.showing')}</Text>
-            </View>
-          </View>
+
           
           <View style={styles.statCard}>
             <View style={styles.statIcon}>
