@@ -35,26 +35,32 @@ export function LeavePeriodDisplay({
     return Math.max(0, diffDays);
   };
 
+  interface PeriodInfo {
+ type: 'single' | 'range' | 'partial';
+    display: string;
+    duration: number;
+  }
+
   const formatPeriodDisplay = () => {
-    if (!startDate) return t('leave_request.no_date_selected');
+    if (!startDate) return null; // Return null if no start date
     
     // Single day leave (start and end dates are the same)
     if (startDate === endDate) {
-      return {
+      return { // Cast to PeriodInfo
         type: 'single',
         display: formatLeaveDate(startDate),
         duration: 1,
-      };
+      } as PeriodInfo;
     }
     
     // Multi-day leave
     if (endDate) {
       const duration = calculateDuration();
-      return {
+      return { // Cast to PeriodInfo
         type: 'range',
         display: `${formatLeaveDateShort(startDate)} - ${formatLeaveDateShort(endDate)}`,
         duration,
-      };
+      } as PeriodInfo;
     }
     
     // Only start date selected
@@ -62,10 +68,10 @@ export function LeavePeriodDisplay({
       type: 'partial',
       display: formatLeaveDate(startDate),
       duration: 1,
-    };
+    } as PeriodInfo;
   };
 
-  const periodInfo = formatPeriodDisplay();
+  const periodInfo: PeriodInfo | null = formatPeriodDisplay();
 
   if (!startDate) {
     return (
@@ -87,7 +93,7 @@ export function LeavePeriodDisplay({
 
       <View style={styles.content}>
         {/* Period Display */}
-        <View style={styles.periodContainer}>
+        {periodInfo && <View style={styles.periodContainer}>
           {periodInfo.type === 'single' ? (
             // Single day display
             <View style={styles.singleDayContainer}>
@@ -127,34 +133,9 @@ export function LeavePeriodDisplay({
               <Text style={styles.partialText}>{periodInfo.display}</Text>
               <Text style={styles.partialHint}>{t('leave_request.select_end_date')}</Text>
             </View>
-          )}
+          )}</View>} 
         </View>
-
-        {/* Duration and Type Info */}
-        {showDuration && periodInfo.duration > 0 && (
-          <View style={styles.durationInfo}>
-            <View style={styles.durationItem}>
-              <Clock size={16} color="#FF9800" />
-              <Text style={styles.durationLabel}>{t('leave_request.total_duration')}</Text>
-              <Text style={styles.durationValue}>
-                {periodInfo.duration} {periodInfo.duration === 1 ? t('leave_request.day') : t('leave_request.days')}
-              </Text>
-            </View>
-            
-            <View style={styles.typeInfo}>
-              <View style={[
-                styles.typeBadge,
-                { backgroundColor: leaveType === 'full_day' ? '#4A90E2' : '#FF9800' }
-              ]}>
-                <Text style={styles.typeBadgeText}>
-                  {leaveType === 'full_day' ? t('leave_request.full_day') : t('leave_request.half_day')}
-                </Text>
-              </View>
-            </View>
-          </View>
-        )}
       </View>
-    </View>
   );
 }
 
@@ -166,10 +147,6 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     borderColor: '#E0E0E0',
     elevation: 2,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 1 },
-    shadowOpacity: 0.1,
-    shadowRadius: 3,
   },
   emptyContainer: {
     flexDirection: 'row',
@@ -213,16 +190,12 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   singleDayBadge: {
-    backgroundColor: '#4A90E2',
-    paddingHorizontal: 12,
-    paddingVertical: 4,
-    borderRadius: 12,
     marginBottom: 8,
   },
   singleDayBadgeText: {
     fontSize: 12,
     fontWeight: '600',
-    color: 'white',
+    color: '#999',
   },
   singleDayText: {
     fontSize: 18,
@@ -234,16 +207,12 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   dateRangeBadge: {
-    backgroundColor: '#FF9800',
-    paddingHorizontal: 12,
-    paddingVertical: 4,
-    borderRadius: 12,
     marginBottom: 12,
   },
   dateRangeBadgeText: {
-    fontSize: 12,
+    fontSize: 14,
     fontWeight: '600',
-    color: 'white',
+    color: '#000000ff',
   },
   dateRangeContent: {
     flexDirection: 'row',

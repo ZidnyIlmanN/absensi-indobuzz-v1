@@ -341,7 +341,7 @@ export function DateRangePicker({
               minDate={defaultMinDate}
               maxDate={maxDate}
               onDayPress={handleDateSelect}
-              markingType={selectionMode === 'single' ? 'simple' : 'period'}
+              markingType={selectionMode === 'single' ? 'simple' : 'period' as any}
               markedDates={getMarkedDates()}
               enableSwipeMonths={true}
               hideExtraDays={true}
@@ -364,11 +364,7 @@ export function DateRangePicker({
                         : ''
                   }
                 </Text>
-                {tempStartDate && tempEndDate && (
-                  <Text style={styles.selectionDuration}>
-                    {calculateDaysDifference(tempStartDate, tempEndDate)} {calculateDaysDifference(tempStartDate, tempEndDate) === 1 ? t('leave_request.day') : t('leave_request.days')}
-                  </Text>
-                )}
+
               </View>
             )}
 
@@ -533,8 +529,7 @@ const styles = StyleSheet.create({
     borderRadius: 8,
     padding: 12,
     marginTop: 16,
-    borderLeftWidth: 4,
-    borderLeftColor: '#4A90E2',
+
   },
   selectionSummaryTitle: {
     fontSize: 12,

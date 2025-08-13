@@ -530,6 +530,7 @@ const styles = StyleSheet.create({
     fontSize: 18,
     fontWeight: '600',
     color: '#1A1A1A',
+    marginTop: 8,
     marginBottom: 12,
   },
   employeeCard: {
@@ -628,8 +629,7 @@ const styles = StyleSheet.create({
     backgroundColor: '#F8F9FA',
     borderRadius: 12,
     padding: 16,
-    borderLeftWidth: 4,
-    borderLeftColor: '#4A90E2',
+
   },
   descriptionText: {
     fontSize: 16,
