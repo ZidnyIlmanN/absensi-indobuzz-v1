@@ -39,22 +39,27 @@ export function LeaveRequestCard({
   };
 
   const formatDateRange = (startDate: string, endDate: string) => {
-    if (startDate === endDate) {
+    // Handle multiple dates display
+    if (request.selectedDates.length === 1) {
       // Single day leave - show only one date
-      return formatLeaveDateShort(startDate);
+      return formatLeaveDateShort(request.selectedDates[0]);
+    } else if (request.selectedDates.length === 2) {
+      // Two dates - show both
+      return `${formatLeaveDateShort(request.selectedDates[0])}, ${formatLeaveDateShort(request.selectedDates[1])}`;
+    } else if (request.selectedDates.length > 2) {
+      // Multiple dates - show first, last, and count
+      const sortedDates = [...request.selectedDates].sort();
+      return `${formatLeaveDateShort(sortedDates[0])}, ${formatLeaveDateShort(sortedDates[sortedDates.length - 1])} +${request.selectedDates.length - 2} more`;
+    } else {
+      return 'No dates selected';
     }
-    
-    // Multi-day leave - show date range
-    return `${formatLeaveDateShort(startDate)} - ${formatLeaveDateShort(endDate)}`;
   };
 
   const calculateDuration = () => {
-    const start = new Date(request.startDate);
-    const end = new Date(request.endDate);
-    const diffTime = end.getTime() - start.getTime();
-    const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24)) + 1;
-    
-    return Math.max(0, diffDays);
+    if (request.leaveType === 'half_day') {
+      return request.selectedDates.length * 0.5;
+    }
+    return request.selectedDates.length;
   };
 
   const getStatusColor = (status: string) => {
@@ -105,6 +110,7 @@ export function LeaveRequestCard({
           <View style={styles.dateInfo}>
             <Calendar size={16} color="#666" />
             <Text style={styles.dateText}>{formatDateRange(request.startDate, request.endDate)}</Text>
+            <Text style={styles.dateText}>{formatDateRange('', '')}</Text>
           </View>
           
           <View style={styles.headerRight}>
@@ -130,15 +136,17 @@ export function LeaveRequestCard({
             <View style={[
               styles.typeBadge,
               { 
-                backgroundColor: request.startDate === request.endDate 
+                backgroundColor: request.selectedDates.length === 1
                   ? '#4A90E2' // Single day color
                   : getLeaveTypeColor(request.leaveType) // Multi-day color
               }
             ]}>
               <Text style={styles.typeBadgeText}>
-                {request.startDate === request.endDate 
+                {request.selectedDates.length === 1
                   ? t('leave_request.single_day')
-                  : getLeaveTypeLabel(request.leaveType)
+                  : request.selectedDates.length > 1 && isConsecutiveDates(request.selectedDates)
+                    ? getLeaveTypeLabel(request.leaveType)
+                    : t('leave_request.multiple_dates')
                 }
               </Text>
             </View>
@@ -146,7 +154,7 @@ export function LeaveRequestCard({
             <View style={styles.durationInfo}>
               <Clock size={14} color="#666" />
               <Text style={styles.durationText}>
-                {request.startDate === request.endDate 
+                {request.selectedDates.length === 1
                   ? t('leave_request.single_day')
                   : `${calculateDuration()} ${calculateDuration() === 1 ? t('leave_request.day') : t('leave_request.days')}`
                 }
@@ -189,6 +197,25 @@ export function LeaveRequestCard({
       </TouchableOpacity>
     </Animated.View>
   );
+
+  // Helper function to check if dates are consecutive
+  function isConsecutiveDates(dates: string[]): boolean {
+    if (dates.length <= 1) return true;
+    
+    const sortedDates = [...dates].sort();
+    for (let i = 1; i < sortedDates.length; i++) {
+      const prevDate = new Date(sortedDates[i - 1]);
+      const currentDate = new Date(sortedDates[i]);
+      const diffTime = currentDate.getTime() - prevDate.getTime();
+      const diffDays = diffTime / (1000 * 60 * 60 * 24);
+      
+      if (diffDays !== 1) {
+        return false;
+      }
+    }
+    
+    return true;
+  }
 }
 
 const styles = StyleSheet.create({

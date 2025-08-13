@@ -19,8 +19,7 @@ export interface LeaveRequest {
 export interface CreateLeaveRequestData {
   userId: string;
   leaveType: 'full_day' | 'half_day';
-  startDate: string;
-  endDate: string;
+  selectedDates: string[];
   description: string;
   attachmentUris?: string[];
 }
@@ -63,8 +62,9 @@ export const leaveRequestsService = {
         .insert({
           user_id: data.userId,
           leave_type: data.leaveType,
-          start_date: data.startDate,
-          end_date: data.endDate,
+          start_date: data.selectedDates[0], // First date for compatibility
+          end_date: data.selectedDates[data.selectedDates.length - 1], // Last date for compatibility
+          selected_dates: JSON.stringify(data.selectedDates), // Store all selected dates
           description: data.description,
           attachments: JSON.stringify(uploadedAttachments),
         })
@@ -266,12 +266,40 @@ export const leaveRequestsService = {
 
   // Helper function to map database record to LeaveRequest
   mapLeaveRequestRecord(data: any): LeaveRequest {
+    // Handle both old format (start_date/end_date) and new format (selected_dates)
+    let selectedDates: string[] = [];
+    
+    if (data.selected_dates) {
+      try {
+        selectedDates = JSON.parse(data.selected_dates);
+      } catch (error) {
+        console.error('Error parsing selected_dates:', error);
+        // Fallback to start_date/end_date
+        selectedDates = [data.start_date];
+        if (data.end_date && data.end_date !== data.start_date) {
+          selectedDates.push(data.end_date);
+        }
+      }
+    } else {
+      // Legacy format - convert start_date/end_date to selectedDates
+      selectedDates = [data.start_date];
+      if (data.end_date && data.end_date !== data.start_date) {
+        // Generate range for legacy records
+        const start = new Date(data.start_date);
+        const end = new Date(data.end_date);
+        selectedDates = [];
+        
+        for (let d = new Date(start); d <= end; d.setDate(d.getDate() + 1)) {
+          selectedDates.push(d.toISOString().split('T')[0]);
+        }
+      }
+    }
+
     return {
       id: data.id,
       userId: data.user_id,
       leaveType: data.leave_type,
-      startDate: data.start_date,
-      endDate: data.end_date,
+      selectedDates: selectedDates,
       description: data.description,
       attachments: data.attachments ? JSON.parse(data.attachments) : [],
       status: data.status,

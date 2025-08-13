@@ -70,8 +70,7 @@ export interface LeaveRequest {
   id: string;
   userId: string;
   leaveType: 'full_day' | 'half_day';
-  startDate: string;
-  endDate: string;
+  selectedDates: string[];
   description: string;
   attachments: string[];
   status: 'pending' | 'approved' | 'rejected';

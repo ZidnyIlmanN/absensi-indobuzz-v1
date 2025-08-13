@@ -27,11 +27,13 @@ import { imageService } from '@/services/imageService';
 import * as DocumentPicker from 'expo-document-picker';
 import { DateRangePicker } from '@/components/DateRangePicker';
 import { LeavePeriodDisplay } from '@/components/LeavePeriodDisplay';
+import { MultiDatePicker, DateSelectionMode } from '@/components/MultiDatePicker';
+import { MultipleDateSummary } from '@/components/MultipleDateSummary';
 
 interface FormData {
   leaveType: 'full_day' | 'half_day';
-  startDate: string;
-  endDate: string;
+  selectedDates: string[];
+  dateSelectionMode: DateSelectionMode;
   description: string;
   attachments: string[];
 }
@@ -52,8 +54,8 @@ export default function AjukanIzinScreen() {
 
   const [formData, setFormData] = useState<FormData>({
     leaveType: 'full_day',
-    startDate: '',
-    endDate: '',
+    selectedDates: [],
+    dateSelectionMode: 'single',
     description: '',
     attachments: [],
   });
@@ -88,8 +90,8 @@ export default function AjukanIzinScreen() {
   };
 
   const validateForm = (): boolean => {
-    if (!formData.startDate || !formData.endDate) {
-      Alert.alert(t('common.error'), t('leave_request.validation.select_date_range'));
+    if (formData.selectedDates.length === 0) {
+      Alert.alert(t('common.error'), t('leave_request.validation.select_dates'));
       return false;
     }
 
@@ -103,20 +105,17 @@ export default function AjukanIzinScreen() {
       return false;
     }
 
-    // Check if date is in the future
-    const startDate = new Date(formData.startDate);
+    // Check if all dates are in the future
     const today = new Date();
     today.setHours(0, 0, 0, 0);
 
-    if (startDate < today) {
-      Alert.alert(t('common.error'), t('leave_request.validation.future_date'));
-      return false;
-    }
+    const hasInvalidDates = formData.selectedDates.some(dateString => {
+      const date = new Date(dateString);
+      return date < today;
+    });
 
-    // Validate end date is not before start date
-    const endDate = new Date(formData.endDate);
-    if (endDate < startDate) {
-      Alert.alert(t('common.error'), t('leave_request.validation.end_date_after_start'));
+    if (hasInvalidDates) {
+      Alert.alert(t('common.error'), t('leave_request.validation.future_date'));
       return false;
     }
 
@@ -137,8 +136,7 @@ export default function AjukanIzinScreen() {
       const { request, error } = await leaveRequestsService.createLeaveRequest({
         userId: user.id,
         leaveType: formData.leaveType,
-        startDate: formData.startDate,
-        endDate: formData.endDate,
+        selectedDates: formData.selectedDates,
         description: formData.description.trim(),
         attachmentUris: formData.attachments,
       });
@@ -167,18 +165,32 @@ export default function AjukanIzinScreen() {
   const resetForm = () => {
     setFormData({
       leaveType: 'full_day',
-      startDate: '',
-      endDate: '',
+      selectedDates: [],
+      dateSelectionMode: 'single',
       description: '',
       attachments: [],
     });
   };
 
-  const handleDateRangeChange = (startDate: string | null, endDate: string | null) => {
+  const handleDatesChange = (dates: string[]) => {
     setFormData(prev => ({
       ...prev,
-      startDate: startDate || '',
-      endDate: endDate || '',
+      selectedDates: dates,
+    }));
+  };
+
+  const handleModeChange = (mode: DateSelectionMode) => {
+    setFormData(prev => ({
+      ...prev,
+      dateSelectionMode: mode,
+      selectedDates: [], // Clear dates when changing mode
+    }));
+  };
+
+  const handleRemoveDate = (dateToRemove: string) => {
+    setFormData(prev => ({
+      ...prev,
+      selectedDates: prev.selectedDates.filter(date => date !== dateToRemove),
     }));
   };
 
@@ -342,40 +354,11 @@ export default function AjukanIzinScreen() {
     );
   };
 
-  const calculateLeaveDuration = () => {
-    if (!formData.startDate || !formData.endDate) return 0;
-    
-    const start = new Date(formData.startDate);
-    const end = new Date(formData.endDate);
-    const diffTime = end.getTime() - start.getTime();
-    const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24)) + 1;
-    
-    return Math.max(0, diffDays);
-  };
-
-  const formatDateRange = (startDate: string, endDate: string) => {
-    const start = new Date(startDate);
-    const end = new Date(endDate);
-    
-    if (startDate === endDate) {
-      return start.toLocaleDateString('en-US', {
-        weekday: 'long',
-        year: 'numeric',
-        month: 'long',
-        day: 'numeric',
-      });
+  const calculateTotalDuration = () => {
+    if (formData.leaveType === 'half_day') {
+      return formData.selectedDates.length * 0.5;
     }
-    
-    return `${start.toLocaleDateString('en-US', {
-      weekday: 'short',
-      month: 'short',
-      day: 'numeric',
-    })} - ${end.toLocaleDateString('en-US', {
-      weekday: 'short',
-      month: 'short',
-      day: 'numeric',
-      year: 'numeric',
-    })}`;
+    return formData.selectedDates.length;
   };
 
   const getStatusColor = (status: string) => {
@@ -562,34 +545,34 @@ export default function AjukanIzinScreen() {
               </View>
 
               {/* Date Selection */}
-              <Text style={styles.inputLabel}>{t('leave_request.leave_date_range')}</Text>
-              <DateRangePicker
-                startDate={formData.startDate}
-                endDate={formData.endDate}
-                onDateRangeChange={handleDateRangeChange}
-                placeholder={t('leave_request.select_date_range')}
+              <Text style={styles.inputLabel}>{t('leave_request.leave_dates')}</Text>
+              <MultiDatePicker
+                selectedDates={formData.selectedDates}
+                onDatesChange={handleDatesChange}
+                mode={formData.dateSelectionMode}
+                onModeChange={handleModeChange}
+                placeholder={t('leave_request.select_dates')}
                 minDate={new Date().toISOString().split('T')[0]}
-                allowSingleDay={true}
-                defaultMode="range"
+                maxSelections={30}
               />
               
-              {/* Enhanced Leave Period Display */}
-              {(formData.startDate || formData.endDate) && (
-                <LeavePeriodDisplay
-                  startDate={formData.startDate}
-                  endDate={formData.endDate}
+              {/* Multiple Dates Summary */}
+              {formData.selectedDates.length > 0 && (
+                <MultipleDateSummary
+                  selectedDates={formData.selectedDates}
                   leaveType={formData.leaveType}
-                  showDuration={true}
-                  style={styles.leavePeriodDisplay}
+                  onRemoveDate={handleRemoveDate}
+                  showRemoveButtons={true}
+                  style={styles.datesSummary}
                 />
               )}
               
               {/* Duration Display */}
-              {formData.startDate && formData.endDate && formData.startDate !== formData.endDate && (
+              {formData.selectedDates.length > 1 && (
                 <View style={styles.durationDisplay}>
                   <Text style={styles.durationLabel}>{t('leave_request.total_duration')}:</Text>
                   <Text style={styles.durationValue}>
-                    {calculateLeaveDuration()} {calculateLeaveDuration() === 1 ? t('leave_request.day') : t('leave_request.days')}
+                    {calculateTotalDuration()} {calculateTotalDuration() === 1 ? t('leave_request.day') : t('leave_request.days')}
                   </Text>
                 </View>
               )}
@@ -1011,7 +994,7 @@ const styles = StyleSheet.create({
     color: 'white',
     fontWeight: '600',
   },
-  leavePeriodDisplay: {
+  datesSummary: {
     marginBottom: 16,
   },
 });
