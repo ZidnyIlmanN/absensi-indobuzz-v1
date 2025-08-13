@@ -404,9 +404,9 @@ export function MultiDatePicker({
               <Text style={styles.modeSelectorLabel}>{t('leave_request.selection_mode')}</Text>
               <View style={styles.modeOptions}>
                 {[
-                  { key: 'single', label: t('leave_request.single_day'), icon: '📅' },
-                  { key: 'range', label: t('leave_request.date_range'), icon: '📆' },
-                  { key: 'multiple', label: t('leave_request.multiple_dates'), icon: '🗓️' },
+                  { key: 'single', label: t('leave_request.single_day') },
+                  { key: 'range', label: t('leave_request.date_range') },
+                  { key: 'multiple', label: t('leave_request.multiple_dates') },
                 ].map((option) => (
                   <TouchableOpacity
                     key={option.key}
@@ -416,7 +416,6 @@ export function MultiDatePicker({
                     ]}
                     onPress={() => handleModeChange(option.key as DateSelectionMode)}
                   >
-                    <Text style={styles.modeOptionEmoji}>{option.icon}</Text>
                     <Text style={[
                       styles.modeOptionText,
                       selectionMode === option.key && styles.activeModeOptionText
@@ -472,7 +471,7 @@ export function MultiDatePicker({
               minDate={defaultMinDate}
               maxDate={maxDate}
               onDayPress={handleDateSelect}
-              markingType={selectionMode === 'range' ? 'period' : 'simple'}
+              markingType={selectionMode === 'range' ? 'period' : 'simple' as any}
               markedDates={getMarkedDates()}
               enableSwipeMonths={true}
               hideExtraDays={true}
@@ -494,7 +493,7 @@ export function MultiDatePicker({
                       // Add all Fridays in current month
                       const year = parseInt(currentMonth.split('-')[0]);
                       const month = parseInt(currentMonth.split('-')[1]) - 1;
-                      const fridays = [];
+                      const fridays: string[] = [];
                       
                       for (let day = 1; day <= 31; day++) {
                         const date = new Date(year, month, day);
@@ -520,7 +519,7 @@ export function MultiDatePicker({
                       // Add all Mondays in current month
                       const year = parseInt(currentMonth.split('-')[0]);
                       const month = parseInt(currentMonth.split('-')[1]) - 1;
-                      const mondays = [];
+                      const mondays: string[] = [];
                       
                       for (let day = 1; day <= 31; day++) {
                         const date = new Date(year, month, day);
@@ -711,10 +710,7 @@ const styles = StyleSheet.create({
   activeModeOption: {
     backgroundColor: '#4A90E2',
   },
-  modeOptionEmoji: {
-    fontSize: 16,
-    marginRight: 6,
-  },
+
   modeOptionText: {
     fontSize: 12,
     fontWeight: '500',

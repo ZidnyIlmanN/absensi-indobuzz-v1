@@ -110,23 +110,7 @@ export function MultipleDateSummary({
         </View>
       </View>
 
-      {/* Duration Summary */}
-      <View style={styles.durationSummary}>
-        <View style={styles.durationItem}>
-          <Clock size={16} color="#FF9800" />
-          <Text style={styles.durationLabel}>{t('leave_request.total_duration')}:</Text>
-          <Text style={styles.durationValue}>{formatDuration(calculateTotalDays())}</Text>
-        </View>
-        
-        <View style={styles.typeIndicator}>
-          <Text style={[
-            styles.typeText,
-            { color: leaveType === 'full_day' ? '#4A90E2' : '#FF9800' }
-          ]}>
-            {leaveType === 'full_day' ? t('leave_request.full_day') : t('leave_request.half_day')}
-          </Text>
-        </View>
-      </View>
+
 
       {/* Grouped Dates Display */}
       <ScrollView 
