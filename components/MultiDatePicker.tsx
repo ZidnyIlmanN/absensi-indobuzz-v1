@@ -183,7 +183,25 @@ export function MultiDatePicker({
   };
 
   const handleConfirm = () => {
-    onDatesChange(tempSelectedDates);
+    // Validate dates before confirming
+    if (tempSelectedDates.length === 0) {
+      Alert.alert(
+        t('common.error'),
+        t('leave_request.validation.select_dates')
+      );
+      return;
+    }
+    
+    // Sort dates to ensure consistent ordering
+    const sortedDates = [...tempSelectedDates].sort();
+    console.log('MultiDatePicker confirming dates:', {
+      original: tempSelectedDates,
+      sorted: sortedDates,
+      mode: selectionMode,
+      count: sortedDates.length
+    });
+    
+    onDatesChange(sortedDates);
     setShowCalendar(false);
   };
 

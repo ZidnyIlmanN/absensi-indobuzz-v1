@@ -39,27 +39,33 @@ export function LeaveRequestCard({
   };
 
   const formatDateRange = (startDate: string, endDate: string) => {
-    // Handle multiple dates display
-    if (request.selectedDates.length === 1) {
+    // Enhanced multiple dates display logic
+    const dateCount = request.selectedDates.length;
+    
+    if (dateCount === 1) {
       // Single day leave - show only one date
       return formatLeaveDateShort(request.selectedDates[0]);
-    } else if (request.selectedDates.length === 2) {
+    } else if (dateCount === 2) {
       // Two dates - show both
       return `${formatLeaveDateShort(request.selectedDates[0])}, ${formatLeaveDateShort(request.selectedDates[1])}`;
-    } else if (request.selectedDates.length > 2) {
-      // Multiple dates - show first, last, and count
-      const sortedDates = [...request.selectedDates].sort();
-      return `${formatLeaveDateShort(sortedDates[0])}, ${formatLeaveDateShort(sortedDates[sortedDates.length - 1])} +${request.selectedDates.length - 2} more`;
+    } else if (dateCount <= 5) {
+      // Few dates - show all
+      return request.selectedDates.map(date => formatLeaveDateShort(date)).join(', ');
     } else {
-      return 'No dates selected';
+      // Many dates - show first, last, and count
+      const sortedDates = [...request.selectedDates].sort();
+      return `${formatLeaveDateShort(sortedDates[0])}, ${formatLeaveDateShort(sortedDates[sortedDates.length - 1])} +${dateCount - 2} more`;
     }
   };
 
   const calculateDuration = () => {
+    // Calculate duration based on actual selected dates count
+    const actualDays = request.selectedDates.length;
+    
     if (request.leaveType === 'half_day') {
-      return request.selectedDates.length * 0.5;
+      return actualDays * 0.5;
     }
-    return request.selectedDates.length;
+    return actualDays;
   };
 
   const getStatusColor = (status: string) => {

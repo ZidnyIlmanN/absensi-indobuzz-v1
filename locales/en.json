@@ -881,6 +881,8 @@
       "provide_description": "Please provide a description for your leave request",
       "description_min_length": "Description must be at least 10 characters long",
       "future_date": "Leave date must be today or in the future",
+      "invalid_dates": "Invalid dates detected: {{dates}}",
+      "too_many_dates": "You can select maximum 30 dates per request",
       "end_date_after_start": "End date must be on or after start date",
       "user_not_authenticated": "User not authenticated",
       "submit_failed": "Failed to submit leave request"

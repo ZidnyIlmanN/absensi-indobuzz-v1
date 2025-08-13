@@ -95,6 +95,25 @@ export default function AjukanIzinScreen() {
       return false;
     }
 
+    // Validate individual dates
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+    
+    const invalidDates = formData.selectedDates.filter(dateString => {
+      const date = new Date(dateString);
+      return isNaN(date.getTime()) || date < today;
+    });
+    
+    if (invalidDates.length > 0) {
+      Alert.alert(
+        t('common.error'), 
+        t('leave_request.validation.invalid_dates', { 
+          dates: invalidDates.join(', ') 
+        })
+      );
+      return false;
+    }
+
     if (!formData.description.trim()) {
       Alert.alert(t('common.error'), t('leave_request.validation.provide_description'));
       return false;
@@ -105,17 +124,12 @@ export default function AjukanIzinScreen() {
       return false;
     }
 
-    // Check if all dates are in the future
-    const today = new Date();
-    today.setHours(0, 0, 0, 0);
-
-    const hasInvalidDates = formData.selectedDates.some(dateString => {
-      const date = new Date(dateString);
-      return date < today;
-    });
-
-    if (hasInvalidDates) {
-      Alert.alert(t('common.error'), t('leave_request.validation.future_date'));
+    // Validate maximum dates (prevent abuse)
+    if (formData.selectedDates.length > 30) {
+      Alert.alert(
+        t('common.error'), 
+        t('leave_request.validation.too_many_dates')
+      );
       return false;
     }
 
@@ -130,6 +144,15 @@ export default function AjukanIzinScreen() {
 
     if (!validateForm()) return;
 
+    // Log submission data for debugging
+    console.log('Submitting leave request:', {
+      userId: user.id,
+      leaveType: formData.leaveType,
+      selectedDates: formData.selectedDates,
+      dateCount: formData.selectedDates.length,
+      description: formData.description.substring(0, 50) + '...',
+      attachmentCount: formData.attachments.length
+    });
     setIsSubmitting(true);
 
     try {
@@ -173,6 +196,12 @@ export default function AjukanIzinScreen() {
   };
 
   const handleDatesChange = (dates: string[]) => {
+    console.log('Dates changed in form:', {
+      newDates: dates,
+      count: dates.length,
+      mode: formData.dateSelectionMode
+    });
+    
     setFormData(prev => ({
       ...prev,
       selectedDates: dates,

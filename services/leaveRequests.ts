@@ -1,5 +1,6 @@
 import { supabase, handleSupabaseError } from '@/lib/supabase';
 import { imageService } from './imageService';
+import { validateDateArray, calculateLeaveDuration, debugDateSelection } from '@/utils/dateUtils';
 
 export interface LeaveRequest {
   selectedDates: any;
@@ -37,6 +38,36 @@ export const leaveRequestsService = {
   async createLeaveRequest(data: CreateLeaveRequestData): Promise<{ request: LeaveRequest | null; error: string | null }> {
     try {
       console.log('Creating leave request:', data);
+      
+      // Enhanced date validation
+      const dateValidation = validateDateArray(data.selectedDates);
+      if (!dateValidation.isValid) {
+        console.error('Date validation failed:', dateValidation.errors);
+        return { 
+          request: null, 
+          error: `Invalid dates: ${dateValidation.errors.join(', ')}` 
+        };
+      }
+      
+      // Use only valid dates
+      const validDates = dateValidation.validDates.sort();
+      const sortedDates = validDates;
+      const startDate = sortedDates[0];
+      const endDate = sortedDates[sortedDates.length - 1];
+      
+      // Calculate expected duration for verification
+      const expectedDuration = calculateLeaveDuration(validDates, data.leaveType);
+      
+      console.log('Date processing:', {
+        originalDates: data.selectedDates,
+        validDates,
+        sortedDates,
+        startDate,
+        endDate,
+        totalDates: validDates.length,
+        expectedDuration,
+        leaveType: data.leaveType
+      });
 
       // Upload attachments first if provided
       let uploadedAttachments: string[] = [];
@@ -63,9 +94,9 @@ export const leaveRequestsService = {
         .insert({
           user_id: data.userId,
           leave_type: data.leaveType,
-          start_date: data.selectedDates[0], // First date for compatibility
-          end_date: data.selectedDates[data.selectedDates.length - 1], // Last date for compatibility
-          selected_dates: JSON.stringify(data.selectedDates), // Store all selected dates
+          start_date: startDate,
+          end_date: endDate,
+          selected_dates: data.selectedDates, // Store as proper JSONB array
           description: data.description,
           attachments: JSON.stringify(uploadedAttachments),
         })
@@ -267,25 +298,50 @@ export const leaveRequestsService = {
 
   // Helper function to map database record to LeaveRequest
   mapLeaveRequestRecord(data: any): LeaveRequest {
-    // Handle both old format (start_date/end_date) and new format (selected_dates)
+    // Enhanced handling for multiple date formats
     let selectedDates: string[] = [];
     
-    if (data.selected_dates) {
+    // Priority 1: Use selected_dates if it's a proper array
+    if (data.selected_dates && Array.isArray(data.selected_dates)) {
+      selectedDates = data.selected_dates;
+      console.log('Using selected_dates array:', selectedDates);
+    } else if (data.selected_dates && typeof data.selected_dates === 'string') {
+      // Handle string JSON format
       try {
         selectedDates = JSON.parse(data.selected_dates);
+        console.log('Parsed selected_dates from JSON string:', selectedDates);
       } catch (error) {
-        console.error('Error parsing selected_dates:', error);
-        // Fallback to start_date/end_date
-        selectedDates = [data.start_date];
-        if (data.end_date && data.end_date !== data.start_date) {
-          selectedDates.push(data.end_date);
+        console.error('Error parsing selected_dates JSON:', error);
+        selectedDates = [];
+      }
+    }
+    
+    // Priority 2: Fallback to start_date/end_date only if no selected_dates
+    if (selectedDates.length === 0 && data.start_date) {
+      console.log('Falling back to start_date/end_date format');
+      selectedDates = [data.start_date];
+      
+      // Only generate range if it's actually a range (different dates)
+      if (data.end_date && data.end_date !== data.start_date) {
+        // For legacy records, check if this should be a range or individual dates
+        // If duration_days matches the date range, it's likely a true range
+        const daysDiff = Math.ceil((new Date(data.end_date).getTime() - new Date(data.start_date).getTime()) / (1000 * 60 * 60 * 24)) + 1;
+        
+        if (data.duration_days && data.duration_days === daysDiff) {
+          // This appears to be a legitimate date range, generate all dates
+          selectedDates = this.generateDateRange(data.start_date, data.end_date);
+        } else {
+          // This might be individual dates stored incorrectly, just use start and end
+          selectedDates = [data.start_date, data.end_date];
         }
       }
-    } else {
-      // Legacy format - convert start_date/end_date to selectedDates
-      selectedDates = [data.start_date];
-      if (data.end_date && data.end_date !== data.start_date) {
-        // Generate range for legacy records
+    }
+    
+    // Ensure we have valid dates
+    if (selectedDates.length === 0) {
+      console.warn('No valid dates found for leave request:', data.id);
+      selectedDates = data.start_date ? [data.start_date] : [];
+    }
         const start = new Date(data.start_date);
         const end = new Date(data.end_date);
         selectedDates = [];
@@ -304,13 +360,47 @@ export const leaveRequestsService = {
       endDate: data.end_date,
       selectedDates: selectedDates,
       description: data.description,
-      attachments: data.attachments ? JSON.parse(data.attachments) : [],
+      attachments: this.parseAttachments(data.attachments),
       status: data.status,
       submittedAt: new Date(data.submitted_at),
       reviewedAt: data.reviewed_at ? new Date(data.reviewed_at) : undefined,
       reviewedBy: data.reviewed_by,
       reviewNotes: data.review_notes,
     };
+  },
+
+  // Helper function to generate date range
+  generateDateRange(startDate: string, endDate: string): string[] {
+    const dates: string[] = [];
+    const start = new Date(startDate);
+    const end = new Date(endDate);
+    
+    for (let d = new Date(start); d <= end; d.setDate(d.getDate() + 1)) {
+      dates.push(d.toISOString().split('T')[0]);
+    }
+    
+    return dates;
+  },
+
+  // Helper function to safely parse attachments
+  parseAttachments(attachments: any): string[] {
+    if (!attachments) return [];
+    
+    if (Array.isArray(attachments)) {
+      return attachments;
+    }
+    
+    if (typeof attachments === 'string') {
+      try {
+        const parsed = JSON.parse(attachments);
+        return Array.isArray(parsed) ? parsed : [];
+      } catch (error) {
+        console.error('Error parsing attachments:', error);
+        return [];
+      }
+    }
+    
+    return [];
   },
 
   // Helper function to get file extension

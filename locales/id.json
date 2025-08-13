@@ -876,6 +876,8 @@
       "provide_description": "Silakan berikan keterangan untuk pengajuan izin Anda",
       "description_min_length": "Keterangan harus minimal 10 karakter",
       "future_date": "Tanggal izin harus hari ini atau di masa depan",
+      "invalid_dates": "Tanggal tidak valid terdeteksi: {{dates}}",
+      "too_many_dates": "Anda dapat memilih maksimal 30 tanggal per permintaan",
       "end_date_after_start": "Tanggal selesai harus sama atau setelah tanggal mulai",
       "user_not_authenticated": "Pengguna tidak terautentikasi",
       "submit_failed": "Gagal mengajukan permintaan izin"

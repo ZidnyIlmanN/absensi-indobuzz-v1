@@ -74,10 +74,13 @@ export function MultipleDateSummary({
   }, [selectedDates]);
 
   const calculateTotalDays = () => {
+    // Ensure we're calculating based on actual selected dates, not date range
+    const actualDays = selectedDates.length;
+    
     if (leaveType === 'half_day') {
-      return selectedDates.length * 0.5;
+      return actualDays * 0.5;
     }
-    return selectedDates.length;
+    return actualDays;
   };
 
   const formatDuration = (days: number) => {
@@ -157,7 +160,9 @@ export function MultipleDateSummary({
         
         <View style={styles.statItem}>
           <Text style={styles.statLabel}>{t('leave_request.duration')}</Text>
-          <Text style={styles.statValue}>{formatDuration(calculateTotalDays())}</Text>
+          <Text style={[styles.statValue, { color: '#4CAF50' }]}>
+            {formatDuration(calculateTotalDays())}
+          </Text>
         </View>
         
         <View style={styles.statDivider} />
