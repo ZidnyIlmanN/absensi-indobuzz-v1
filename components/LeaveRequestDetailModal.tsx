@@ -16,7 +16,7 @@ import { LoadingSpinner } from './LoadingSpinner';
 import { useI18n } from '@/hooks/useI18n';
 import { useAppContext } from '@/context/AppContext';
 import { AttachmentPreview } from './AttachmentPreview';
-import { LeavePeriodDisplay } from './LeavePeriodDisplay';
+import { MultipleDateSummary } from './MultipleDateSummary';
 
 const { width } = Dimensions.get('window');
 
@@ -54,12 +54,10 @@ export function LeaveRequestDetailModal({
   const calculateDuration = () => {
     if (!leaveRequest) return 0;
     
-    const start = new Date(leaveRequest.startDate);
-    const end = new Date(leaveRequest.endDate);
-    const diffTime = end.getTime() - start.getTime();
-    const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24)) + 1;
-    
-    return Math.max(0, diffDays);
+    if (leaveRequest.leaveType === 'half_day') {
+      return leaveRequest.selectedDates.length * 0.5;
+    }
+    return leaveRequest.selectedDates.length;
   };
 
   const getStatusColor = (status: string) => {
@@ -361,11 +359,10 @@ export function LeaveRequestDetailModal({
                 </View>
 
                 {/* Enhanced Leave Period Display */}
-                <LeavePeriodDisplay
-                  startDate={leaveRequest.startDate}
-                  endDate={leaveRequest.endDate}
+                <MultipleDateSummary
+                  selectedDates={leaveRequest.selectedDates}
                   leaveType={leaveRequest.leaveType}
-                  showDuration={true}
+                  showRemoveButtons={false}
                 />
               </View>
 
