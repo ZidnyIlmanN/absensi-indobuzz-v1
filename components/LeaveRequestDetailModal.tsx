@@ -94,7 +94,7 @@ export function LeaveRequestDetailModal({
     return type === 'full_day' ? '#4A90E2' : '#FF9800';
   };
 
-  // Mock approval workflow - in real app, this would come from backend
+  // Simplified approval workflow - HR Department only
   const getApprovalWorkflow = (): ApprovalStep[] => {
     if (!leaveRequest) return [];
 
@@ -102,29 +102,15 @@ export function LeaveRequestDetailModal({
       {
         id: '1',
         step: 1,
-        title: 'Direct Supervisor',
+        title: 'HR Department',
         status: leaveRequest.status === 'rejected' ? 'rejected' : 
                 leaveRequest.status === 'approved' ? 'approved' : 'pending',
-        approver: 'John Manager',
-        approverRole: 'Team Lead',
+        approver: 'HR Manager',
+        approverRole: undefined,
         timestamp: leaveRequest.reviewedAt,
         comments: leaveRequest.reviewNotes,
       },
     ];
-
-    // Add HR step for longer leaves
-    const duration = calculateDuration();
-    if (duration > 3) {
-      steps.push({
-        id: '2',
-        step: 2,
-        title: 'HR Department',
-        status: leaveRequest.status === 'approved' ? 'approved' : 'pending',
-        approver: leaveRequest.status === 'approved' ? 'Sarah HR' : undefined,
-        approverRole: 'HR Manager',
-        timestamp: leaveRequest.status === 'approved' ? leaveRequest.reviewedAt : undefined,
-      });
-    }
 
     return steps;
   };
@@ -238,7 +224,7 @@ export function LeaveRequestDetailModal({
               
               {step.approver && (
                 <Text style={styles.stepApprover}>
-                  {step.approver} • {step.approverRole}
+                  {step.approver} 
                 </Text>
               )}
               
