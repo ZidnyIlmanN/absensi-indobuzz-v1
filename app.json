@@ -36,7 +36,12 @@
       "expo-font",
       "expo-web-browser",
       "expo-location",
-      "react-native-maps"
+      [
+        "react-native-maps",
+        {
+          "enableGoogleMaps": false
+        }
+      ]
     ],
     "experiments": {
       "typedRoutes": true

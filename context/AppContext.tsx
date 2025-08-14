@@ -79,21 +79,25 @@ export const AppProvider = ({ children }: { children: ReactNode }) => {
   useEffect(() => {
     let timeoutId: any = null;
     
-    if (auth.isAuthenticated) {
-      sessionMonitor.startMonitoring({
-        onSessionExpired: () => {
-          console.log('Session expired, redirecting to login');
-          auth.signOut();
-        },
-        onSessionRefreshed: () => {
-          console.log('Session refreshed successfully');
-        },
-        onSessionError: (error) => {
-          console.error('Session error:', error);
-        },
-      });
-    } else {
-      sessionMonitor.stopMonitoring();
+    try {
+      if (auth.isAuthenticated) {
+        sessionMonitor.startMonitoring({
+          onSessionExpired: () => {
+            console.log('Session expired, redirecting to login');
+            auth.signOut();
+          },
+          onSessionRefreshed: () => {
+            console.log('Session refreshed successfully');
+          },
+          onSessionError: (error) => {
+            console.error('Session error:', error);
+          },
+        });
+      } else {
+        sessionMonitor.stopMonitoring();
+      }
+    } catch (sessionError) {
+      console.error('Session monitoring error:', sessionError);
     }
 
     // Add timeout to prevent indefinite session monitoring initialization
@@ -102,7 +106,11 @@ export const AppProvider = ({ children }: { children: ReactNode }) => {
     }, 5000); // 5 seconds timeout
 
     return () => {
-      sessionMonitor.stopMonitoring();
+      try {
+        sessionMonitor.stopMonitoring();
+      } catch (error) {
+        console.error('Error stopping session monitoring:', error);
+      }
       if (timeoutId) clearTimeout(timeoutId);
     };
   }, [auth.isAuthenticated]);

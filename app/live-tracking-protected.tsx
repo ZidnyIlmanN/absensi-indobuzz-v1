@@ -1,11 +1,14 @@
 import React from 'react';
 import { AuthGuard } from '@/components/AuthGuard';
 import LiveTrackingScreen from './live-tracking';
+import { ErrorBoundary } from '@/components/ErrorBoundary';
 
 export default function ProtectedLiveTrackingScreen() {
   return (
-    <AuthGuard>
-      <LiveTrackingScreen />
-    </AuthGuard>
+    <ErrorBoundary>
+      <AuthGuard>
+        <LiveTrackingScreen />
+      </AuthGuard>
+    </ErrorBoundary>
   );
 }

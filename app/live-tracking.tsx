@@ -34,6 +34,8 @@ import { LoadingSpinner } from '@/components/LoadingSpinner';
 import { useLiveTracking } from '@/hooks/useLiveTracking';
 import { Employee } from '@/types';
 import { LeafletMap } from '@/components/LeafletMap';
+import { MapErrorBoundary } from '@/components/MapErrorBoundary';
+import { MapFallback } from '@/components/MapFallback';
 
 const { width, height } = Dimensions.get('window');
 
@@ -228,27 +230,44 @@ export default function LiveTrackingScreen() {
 
       {/* Map View */}
       <View style={styles.mapContainer}>
-        {locationLoading && !mapReady ? (
-          <View style={styles.mapLoading}>
-            <LoadingSpinner text={t('live_tracking.loading_map')} />
-          </View>
-        ) : (
-          <LeafletMap
-            ref={mapRef}
-            center={[OFFICE_COORDINATES.latitude, OFFICE_COORDINATES.longitude]}
-            zoom={15}
-            markers={mapMarkers}
-            onMarkerClick={(marker) => {
-              if (marker.type === 'employee' && marker.employee) {
-                handleEmployeeFocus(marker.employee);
-              }
-            }}
-            onMapReady={() => setMapReady(true)}
-            showUserLocation={!!currentLocation}
-            userLocation={currentLocation ? [currentLocation.latitude, currentLocation.longitude] : undefined}
-            style={styles.map}
-          />
-        )}
+        <MapErrorBoundary
+          onError={(error, errorInfo) => {
+            console.error('Map error caught by boundary:', error, errorInfo);
+          }}
+          fallbackComponent={
+            <MapFallback
+              employees={employeeLocations}
+              officeLocations={officeLocations}
+              currentLocation={currentLocation}
+              onEmployeeFocus={handleEmployeeFocus}
+              onLocationFocus={handleLocationFocus}
+              onRefresh={handleRefresh}
+              isRefreshing={isRefreshing}
+            />
+          }
+        >
+          {locationLoading && !mapReady ? (
+            <View style={styles.mapLoading}>
+              <LoadingSpinner text={t('live_tracking.loading_map')} />
+            </View>
+          ) : (
+            <LeafletMap
+              ref={mapRef}
+              center={[OFFICE_COORDINATES.latitude, OFFICE_COORDINATES.longitude]}
+              zoom={15}
+              markers={mapMarkers}
+              onMarkerClick={(marker) => {
+                if (marker.type === 'employee' && marker.employee) {
+                  handleEmployeeFocus(marker.employee);
+                }
+              }}
+              onMapReady={() => setMapReady(true)}
+              showUserLocation={!!currentLocation}
+              userLocation={currentLocation ? [currentLocation.latitude, currentLocation.longitude] : undefined}
+              style={styles.map}
+            />
+          )}
+        </MapErrorBoundary>
 
         {/* Map Controls */}
         <View style={styles.mapControls}>

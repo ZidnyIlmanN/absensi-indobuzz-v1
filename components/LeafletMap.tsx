@@ -1,6 +1,6 @@
 import React, { forwardRef, useImperativeHandle, useRef, useEffect, useState } from 'react';
 import { View, StyleSheet, Platform } from 'react-native';
-import { WebView } from 'react-native-webview';
+import { WebView, WebViewMessageEvent } from 'react-native-webview';
 
 interface MapMarker {
   id: string;
@@ -46,7 +46,7 @@ export const LeafletMap = forwardRef<LeafletMapRef, LeafletMapProps>(({
 
   useImperativeHandle(ref, () => ({
     setView: (newCenter: [number, number], newZoom?: number) => {
-      if (isMapReady && webViewRef.current) {
+      if (isMapReady && webViewRef.current && Platform.OS !== 'web') {
         const message = JSON.stringify({
           type: 'setView',
           center: newCenter,
@@ -56,7 +56,7 @@ export const LeafletMap = forwardRef<LeafletMapRef, LeafletMapProps>(({
       }
     },
     fitBounds: (bounds: [number, number][], options?: { padding?: [number, number] }) => {
-      if (isMapReady && webViewRef.current) {
+      if (isMapReady && webViewRef.current && Platform.OS !== 'web') {
         const message = JSON.stringify({
           type: 'fitBounds',
           bounds,
@@ -66,7 +66,7 @@ export const LeafletMap = forwardRef<LeafletMapRef, LeafletMapProps>(({
       }
     },
     addMarker: (marker: MapMarker) => {
-      if (isMapReady && webViewRef.current) {
+      if (isMapReady && webViewRef.current && Platform.OS !== 'web') {
         const message = JSON.stringify({
           type: 'addMarker',
           marker,
@@ -75,7 +75,7 @@ export const LeafletMap = forwardRef<LeafletMapRef, LeafletMapProps>(({
       }
     },
     removeMarker: (markerId: string) => {
-      if (isMapReady && webViewRef.current) {
+      if (isMapReady && webViewRef.current && Platform.OS !== 'web') {
         const message = JSON.stringify({
           type: 'removeMarker',
           markerId,
@@ -84,7 +84,7 @@ export const LeafletMap = forwardRef<LeafletMapRef, LeafletMapProps>(({
       }
     },
     updateMarker: (markerId: string, updates: Partial<MapMarker>) => {
-      if (isMapReady && webViewRef.current) {
+      if (isMapReady && webViewRef.current && Platform.OS !== 'web') {
         const message = JSON.stringify({
           type: 'updateMarker',
           markerId,
@@ -97,7 +97,7 @@ export const LeafletMap = forwardRef<LeafletMapRef, LeafletMapProps>(({
 
   // Update markers when they change
   useEffect(() => {
-    if (isMapReady && webViewRef.current) {
+    if (isMapReady && webViewRef.current && Platform.OS !== 'web') {
       const message = JSON.stringify({
         type: 'updateMarkers',
         markers,
@@ -108,7 +108,7 @@ export const LeafletMap = forwardRef<LeafletMapRef, LeafletMapProps>(({
 
   // Update user location when it changes
   useEffect(() => {
-    if (isMapReady && webViewRef.current && showUserLocation && userLocation) {
+    if (isMapReady && webViewRef.current && showUserLocation && userLocation && Platform.OS !== 'web') {
       const message = JSON.stringify({
         type: 'updateUserLocation',
         location: userLocation,
@@ -117,7 +117,7 @@ export const LeafletMap = forwardRef<LeafletMapRef, LeafletMapProps>(({
     }
   }, [userLocation, showUserLocation, isMapReady]);
 
-  const handleMessage = (event: any) => {
+  const handleMessage = (event: WebViewMessageEvent) => {
     try {
       const data = JSON.parse(event.nativeEvent.data);
       
@@ -183,131 +183,154 @@ export const LeafletMap = forwardRef<LeafletMapRef, LeafletMapProps>(({
         let markersLayer;
         let userLocationMarker;
         
+        // Error handling wrapper
+        function safeExecute(fn, errorMessage) {
+          try {
+            return fn();
+          } catch (error) {
+            console.error(errorMessage, error);
+            if (window.ReactNativeWebView) {
+              window.ReactNativeWebView.postMessage(JSON.stringify({
+                type: 'error',
+                message: errorMessage,
+                error: error.message
+              }));
+            }
+            return null;
+          }
+        }
+        
         // Initialize map
         function initMap() {
-          map = L.map('map', {
-            zoomControl: true,
-            attributionControl: false,
-          }).setView([${center[0]}, ${center[1]}], ${zoom});
-          
-          // Add tile layer
-          L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
-            maxZoom: 19,
-            attribution: '© OpenStreetMap contributors'
-          }).addTo(map);
-          
-          // Create markers layer
-          markersLayer = L.layerGroup().addTo(map);
-          
-          // Notify React Native that map is ready
-          window.ReactNativeWebView.postMessage(JSON.stringify({
-            type: 'mapReady'
-          }));
+          safeExecute(() => {
+            map = L.map('map', {
+              zoomControl: true,
+              attributionControl: false,
+            }).setView([${center[0]}, ${center[1]}], ${zoom});
+            
+            // Add tile layer
+            L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+              maxZoom: 19,
+              attribution: '© OpenStreetMap contributors'
+            }).addTo(map);
+            
+            // Create markers layer
+            markersLayer = L.layerGroup().addTo(map);
+            
+            // Notify React Native that map is ready
+            if (window.ReactNativeWebView) {
+              window.ReactNativeWebView.postMessage(JSON.stringify({
+                type: 'mapReady'
+              }));
+            }
+          }, 'Failed to initialize map');
         }
         
         // Handle messages from React Native
         window.addEventListener('message', function(event) {
-          const data = JSON.parse(event.data);
-          
-          switch(data.type) {
-            case 'setView':
-              if (map) {
-                map.setView(data.center, data.zoom);
-              }
-              break;
-              
-            case 'fitBounds':
-              if (map && data.bounds && data.bounds.length > 0) {
-                const bounds = L.latLngBounds(data.bounds);
-                map.fitBounds(bounds, data.options || {});
-              }
-              break;
-              
-            case 'updateMarkers':
-              updateMarkers(data.markers);
-              break;
-              
-            case 'updateUserLocation':
-              updateUserLocation(data.location);
-              break;
-              
-            case 'addMarker':
-              addMarker(data.marker);
-              break;
-              
-            case 'removeMarker':
-              removeMarker(data.markerId);
-              break;
-              
-            case 'updateMarker':
-              updateMarker(data.markerId, data.updates);
-              break;
-          }
+          safeExecute(() => {
+            const data = JSON.parse(event.data);
+            
+            switch(data.type) {
+              case 'setView':
+                if (map) {
+                  map.setView(data.center, data.zoom);
+                }
+                break;
+                
+              case 'fitBounds':
+                if (map && data.bounds && data.bounds.length > 0) {
+                  const bounds = L.latLngBounds(data.bounds);
+                  map.fitBounds(bounds, data.options || {});
+                }
+                break;
+                
+              case 'updateMarkers':
+                updateMarkers(data.markers);
+                break;
+                
+              case 'updateUserLocation':
+                updateUserLocation(data.location);
+                break;
+                
+              case 'addMarker':
+                addMarker(data.marker);
+                break;
+                
+              case 'removeMarker':
+                removeMarker(data.markerId);
+                break;
+                
+              case 'updateMarker':
+                updateMarker(data.markerId, data.updates);
+                break;
+            }
+          }, 'Failed to handle message from React Native');
         });
         
         function updateMarkers(newMarkers) {
-          if (!markersLayer) return;
-          
-          // Clear existing markers
-          markersLayer.clearLayers();
-          
-          // Add new markers
-          newMarkers.forEach(marker => {
-            addMarkerToLayer(marker);
-          });
+          safeExecute(() => {
+            if (!markersLayer) return;
+            
+            // Clear existing markers
+            markersLayer.clearLayers();
+            
+            // Add new markers
+            newMarkers.forEach(marker => {
+              addMarkerToLayer(marker);
+            });
+          }, 'Failed to update markers');
         }
         
         function addMarkerToLayer(marker) {
-          if (!markersLayer) return;
-          
-          const markerIcon = L.divIcon({
-            className: 'custom-marker ' + (marker.type === 'office' ? 'office-marker' : 'employee-marker'),
-            html: '',
-            iconSize: marker.type === 'office' ? [20, 20] : [16, 16],
-            iconAnchor: marker.type === 'office' ? [10, 10] : [8, 8],
-          });
-          
-          // Set marker color
-          const markerElement = document.createElement('div');
-          markerElement.className = 'custom-marker ' + (marker.type === 'office' ? 'office-marker' : 'employee-marker');
-          markerElement.style.backgroundColor = marker.color;
-          
-          const customIcon = L.divIcon({
-            className: '',
-            html: markerElement.outerHTML,
-            iconSize: marker.type === 'office' ? [20, 20] : [16, 16],
-            iconAnchor: marker.type === 'office' ? [10, 10] : [8, 8],
-          });
-          
-          const leafletMarker = L.marker(marker.position, { icon: customIcon })
-            .bindPopup('<b>' + marker.title + '</b><br>' + (marker.description || ''))
-            .on('click', function() {
-              window.ReactNativeWebView.postMessage(JSON.stringify({
-                type: 'markerClick',
-                markerId: marker.id
-              }));
+          safeExecute(() => {
+            if (!markersLayer) return;
+            
+            const markerElement = document.createElement('div');
+            markerElement.className = 'custom-marker ' + (marker.type === 'office' ? 'office-marker' : 'employee-marker');
+            markerElement.style.backgroundColor = marker.color;
+            
+            const customIcon = L.divIcon({
+              className: '',
+              html: markerElement.outerHTML,
+              iconSize: marker.type === 'office' ? [20, 20] : [16, 16],
+              iconAnchor: marker.type === 'office' ? [10, 10] : [8, 8],
             });
-          
-          markersLayer.addLayer(leafletMarker);
+            
+            const leafletMarker = L.marker(marker.position, { icon: customIcon })
+              .bindPopup('<b>' + marker.title + '</b><br>' + (marker.description || ''))
+              .on('click', function() {
+                if (window.ReactNativeWebView) {
+                  window.ReactNativeWebView.postMessage(JSON.stringify({
+                    type: 'markerClick',
+                    markerId: marker.id
+                  }));
+                }
+              });
+            
+            markersLayer.addLayer(leafletMarker);
+          }, 'Failed to add marker to layer');
         }
         
         function updateUserLocation(location) {
-          if (!map) return;
-          
-          if (userLocationMarker) {
-            map.removeLayer(userLocationMarker);
-          }
-          
-          const userIcon = L.divIcon({
-            className: '',
-            html: '<div class="user-location"></div>',
-            iconSize: [12, 12],
-            iconAnchor: [6, 6],
-          });
-          
-          userLocationMarker = L.marker(location, { icon: userIcon })
-            .bindPopup('Your Location')
-            .addTo(map);
+          safeExecute(() => {
+            if (!map) return;
+            
+            if (userLocationMarker) {
+              map.removeLayer(userLocationMarker);
+            }
+            
+            const userIcon = L.divIcon({
+              className: '',
+              html: '<div class="user-location"></div>',
+              iconSize: [12, 12],
+              iconAnchor: [6, 6],
+            });
+            
+            userLocationMarker = L.marker(location, { icon: userIcon })
+              .bindPopup('Your Location')
+              .addTo(map);
+          }, 'Failed to update user location');
         }
         
         function addMarker(marker) {
@@ -324,12 +347,14 @@ export const LeafletMap = forwardRef<LeafletMapRef, LeafletMapProps>(({
           // This would require tracking markers by ID
         }
         
-        // Initialize when DOM is ready
-        document.addEventListener('DOMContentLoaded', initMap);
+        // Initialize when DOM is ready with error handling
+        document.addEventListener('DOMContentLoaded', function() {
+          safeExecute(initMap, 'Failed to initialize map on DOM ready');
+        });
         
-        // Fallback initialization
+        // Fallback initialization with error handling
         if (document.readyState === 'complete') {
-          initMap();
+          safeExecute(initMap, 'Failed to initialize map on fallback');
         }
       </script>
     </body>
@@ -337,12 +362,15 @@ export const LeafletMap = forwardRef<LeafletMapRef, LeafletMapProps>(({
   `;
 
   if (Platform.OS === 'web') {
-    // For web platform, render the HTML directly
+    // For web platform, return a simple placeholder
     return (
-      <div 
-        style={{ flex: 1, ...style }}
-        dangerouslySetInnerHTML={{ __html: htmlContent }}
-      />
+      <View style={[styles.container, style]}>
+        <View style={styles.webPlaceholder}>
+          <Text style={styles.webPlaceholderText}>
+            Map not available on web platform
+          </Text>
+        </View>
+      </View>
     );
   }
 
@@ -360,11 +388,17 @@ export const LeafletMap = forwardRef<LeafletMapRef, LeafletMapProps>(({
         scalesPageToFit={true}
         scrollEnabled={false}
         bounces={false}
+        onLoadStart={() => console.log('WebView loading started')}
+        onLoadEnd={() => console.log('WebView loading ended')}
         onError={(error) => {
           console.error('WebView error:', error);
         }}
         onHttpError={(error) => {
           console.error('WebView HTTP error:', error);
+        }}
+        onShouldStartLoadWithRequest={(request) => {
+          // Allow all requests for now
+          return true;
         }}
       />
     </View>
@@ -378,5 +412,16 @@ const styles = StyleSheet.create({
   webView: {
     flex: 1,
     backgroundColor: '#F8F9FA',
+  },
+  webPlaceholder: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+    backgroundColor: '#F8F9FA',
+  },
+  webPlaceholderText: {
+    fontSize: 16,
+    color: '#666',
+    textAlign: 'center',
   },
 });

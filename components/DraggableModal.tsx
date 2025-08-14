@@ -5,12 +5,13 @@ import {
   StyleSheet,
   Dimensions,
 } from 'react-native';
-import { PanGestureHandler, PanGestureHandlerGestureEvent } from 'react-native-gesture-handler';
+import { PanGestureHandler } from 'react-native-gesture-handler';
 import Animated, {
   useSharedValue,
   useAnimatedStyle,
   withSpring,
   runOnJS,
+  useAnimatedGestureHandler,
 } from 'react-native-reanimated';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
@@ -47,7 +48,55 @@ export function DraggableModal({
     translateY.value = withSpring(snapPositions[initialSnapPoint]);
   }, []);
 
-  const gestureHandler = (event: PanGestureHandlerGestureEvent) => {
+  const gestureHandler = useAnimatedGestureHandler({
+    onStart: (_, context: any) => {
+      context.startY = translateY.value;
+    },
+    onActive: (event, context: any) => {
+      translateY.value = context.startY + event.translationY;
+    },
+    onEnd: (event) => {
+      const velocity = event.velocityY;
+      const currentY = translateY.value;
+      
+      // Find the closest snap point
+      let closestSnapIndex = 0;
+      let minDistance = Math.abs(currentY - snapPositions[0]);
+      
+      snapPositions.forEach((snapY, index) => {
+        const distance = Math.abs(currentY - snapY);
+        if (distance < minDistance) {
+          minDistance = distance;
+          closestSnapIndex = index;
+        }
+      });
+
+      // Consider velocity for snap point selection
+      if (Math.abs(velocity) > 500) {
+        if (velocity > 0 && closestSnapIndex > 0) {
+          closestSnapIndex = Math.max(0, closestSnapIndex - 1);
+        } else if (velocity < 0 && closestSnapIndex < snapPositions.length - 1) {
+          closestSnapIndex = Math.min(snapPositions.length - 1, closestSnapIndex + 1);
+        }
+      }
+
+      translateY.value = withSpring(snapPositions[closestSnapIndex], {
+        damping: 20,
+        stiffness: 300,
+      });
+
+      // Notify parent of snap point change
+      if (currentSnapIndex.current !== closestSnapIndex) {
+        currentSnapIndex.current = closestSnapIndex;
+        if (onSnapPointChange) {
+          runOnJS(onSnapPointChange)(closestSnapIndex);
+        }
+      }
+    },
+  });
+
+  // Legacy gesture handler for fallback
+  const legacyGestureHandler = (event: any) => {
     'worklet';
     const { translationY, velocityY, state } = event.nativeEvent;
     

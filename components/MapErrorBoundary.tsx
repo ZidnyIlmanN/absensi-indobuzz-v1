@@ -5,29 +5,33 @@ import { MapPin, RefreshCw, TriangleAlert as AlertTriangle } from 'lucide-react-
 interface Props {
   children: ReactNode;
   fallbackComponent?: ReactNode;
+  onError?: (error: Error, errorInfo: any) => void;
 }
 
 interface State {
   hasError: boolean;
   error?: Error;
+  errorInfo?: any;
 }
 
 export class MapErrorBoundary extends Component<Props, State> {
   constructor(props: Props) {
     super(props);
-    this.state = { hasError: false };
+    this.state = { hasError: false, error: undefined, errorInfo: undefined };
   }
 
   static getDerivedStateFromError(error: Error): State {
-    return { hasError: true, error };
+    return { hasError: true, error, errorInfo: undefined };
   }
 
   componentDidCatch(error: Error, errorInfo: any) {
     console.error('Map Error Boundary caught an error:', error, errorInfo);
+    this.setState({ errorInfo });
+    this.props.onError?.(error, errorInfo);
   }
 
   handleRetry = () => {
-    this.setState({ hasError: false, error: undefined });
+    this.setState({ hasError: false, error: undefined, errorInfo: undefined });
   };
 
   render() {
@@ -42,8 +46,13 @@ export class MapErrorBoundary extends Component<Props, State> {
             <AlertTriangle size={48} color="#F44336" />
             <Text style={styles.errorTitle}>Map Loading Error</Text>
             <Text style={styles.errorMessage}>
-              The map failed to load. This might be due to network issues or browser compatibility.
+              The map failed to load. This might be due to network issues, WebView compatibility, or Leaflet.js loading problems.
             </Text>
+            {this.state.error && (
+              <Text style={styles.errorDetails}>
+                Error: {this.state.error.message}
+              </Text>
+            )}
             <TouchableOpacity style={styles.retryButton} onPress={this.handleRetry}>
               <RefreshCw size={20} color="white" />
               <Text style={styles.retryText}>Try Again</Text>
@@ -83,6 +92,13 @@ const styles = StyleSheet.create({
     textAlign: 'center',
     lineHeight: 20,
     marginBottom: 24,
+  },
+  errorDetails: {
+    fontSize: 12,
+    color: '#F44336',
+    textAlign: 'center',
+    marginBottom: 16,
+    fontFamily: 'monospace',
   },
   retryButton: {
     flexDirection: 'row',

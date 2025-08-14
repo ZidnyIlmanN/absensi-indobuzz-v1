@@ -6,6 +6,7 @@ import { AppProvider, useAppContext } from '../context/AppContext';
 import SplashScreen from './splash'; // Impor splash screen Anda
 import { customTransition } from '../constants/Transitions'
 import { useFrameworkReady } from '@/hooks/useFrameworkReady';
+import { ErrorBoundary } from '@/components/ErrorBoundary';
 
 function RootLayoutNav() {
   const { isAuthenticated, isLoading } = useAppContext();
@@ -71,20 +72,30 @@ function RootLayoutNav() {
       return;
     }
 
-    if (isAuthenticated && !inTabsGroup && !isLiveAttendanceProtected && !isLiveTrackingRoute && !isClockInRoute && !isShiftScheduleRoute && !isAttendanceHistoryRoute && !isClockOutRoute && !isStartBreakRoute && !isEndBreakRoute && !isTimeOffRoute && !isReimburseRoute && !isSettingsRoute && !isNotificationsRoute && !isPrivacyRoute && !isHelpRoute && segments[0] !== 'edit-profile' && !isAllFeaturesRoute && !isSakitRoute) {
-      // Pengguna sudah login tapi tidak berada di grup (tabs) atau edit-profile,
-      // arahkan ke halaman utama.
-      console.log('Routing check - redirecting to /(tabs)');
-      setHasRedirected(true);
-      router.replace('/(tabs)');
-    } else if (!isAuthenticated && !inAuthGroup) {
-      // Pengguna belum login dan tidak berada di grup (auth),
-      // arahkan ke halaman login.
-      console.log('Routing check - redirecting to /(auth)/login');
-      setHasRedirected(true);
-      router.replace('/(auth)/login');
-    } else {
-      console.log('Routing check - no redirect needed');
+    try {
+      if (isAuthenticated && !inTabsGroup && !isLiveAttendanceProtected && !isLiveTrackingRoute && !isClockInRoute && !isShiftScheduleRoute && !isAttendanceHistoryRoute && !isClockOutRoute && !isStartBreakRoute && !isEndBreakRoute && !isTimeOffRoute && !isReimburseRoute && !isSettingsRoute && !isNotificationsRoute && !isPrivacyRoute && !isHelpRoute && segments[0] !== 'edit-profile' && !isAllFeaturesRoute && !isSakitRoute) {
+        // Pengguna sudah login tapi tidak berada di grup (tabs) atau edit-profile,
+        // arahkan ke halaman utama.
+        console.log('Routing check - redirecting to /(tabs)');
+        setHasRedirected(true);
+        router.replace('/(tabs)');
+      } else if (!isAuthenticated && !inAuthGroup) {
+        // Pengguna belum login dan tidak berada di grup (auth),
+        // arahkan ke halaman login.
+        console.log('Routing check - redirecting to /(auth)/login');
+        setHasRedirected(true);
+        router.replace('/(auth)/login');
+      } else {
+        console.log('Routing check - no redirect needed');
+      }
+    } catch (routingError) {
+      console.error('Routing error:', routingError);
+      // Fallback to home if routing fails
+      if (isAuthenticated) {
+        router.replace('/(tabs)');
+      } else {
+        router.replace('/(auth)/login');
+      }
     }
   }, [isAuthenticated, isLoading, segments, hasRedirected]);
 
@@ -95,22 +106,26 @@ function RootLayoutNav() {
 
   // Tampilkan halaman yang sesuai setelah loading selesai
   return (
-    <Stack
-      screenOptions={{
-        headerShown: false,
-        animation: 'slide_from_right',
-      }}
-    />
+    <ErrorBoundary>
+      <Stack
+        screenOptions={{
+          headerShown: false,
+          animation: 'slide_from_right',
+        }}
+      />
+    </ErrorBoundary>
   );
 }
 
 export default function RootLayout() {
   useFrameworkReady();
   return (
-    <I18nextProvider i18n={i18n}>
-      <AppProvider>
-        <RootLayoutNav />
-      </AppProvider>
-    </I18nextProvider>
+    <ErrorBoundary>
+      <I18nextProvider i18n={i18n}>
+        <AppProvider>
+          <RootLayoutNav />
+        </AppProvider>
+      </I18nextProvider>
+    </ErrorBoundary>
   );
 }
