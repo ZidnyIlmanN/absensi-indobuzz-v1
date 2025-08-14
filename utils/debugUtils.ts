@@ -2,6 +2,8 @@
  * Debug utilities for troubleshooting navigation and map issues
  */
 
+import WebView from "react-native-webview";
+
 export interface NavigationDebugInfo {
   currentRoute: string;
   segments: string[];
