@@ -30,7 +30,6 @@ function RootLayoutNav() {
     const isClockInRoute = segments[0] === 'clock-in';
     const isAllFeaturesRoute = segments[0] === 'lihat-semua';
 
-    const isLiveTrackingRoute = segments[0] === 'live-tracking';
     const isSakitRoute = segments[0] === 'sakit';
     const isShiftScheduleRoute = segments[0] === 'shift-schedule';
     const isAttendanceHistoryRoute = segments[0] === 'attendance-history';
@@ -47,7 +46,7 @@ function RootLayoutNav() {
     console.log('Routing check - route flags:', {
       inTabsGroup,
       inAuthGroup,
-      isLiveTrackingRoute,
+      isLiveAttendanceProtected,
       isClockInRoute,
       isShiftScheduleRoute,
       isAttendanceHistoryRoute,
@@ -70,7 +69,7 @@ function RootLayoutNav() {
       return;
     }
 
-    if (isAuthenticated && !inTabsGroup && !isLiveTrackingRoute && !isClockInRoute && !isShiftScheduleRoute && !isAttendanceHistoryRoute && !isClockOutRoute && !isStartBreakRoute && !isEndBreakRoute && !isTimeOffRoute && !isReimburseRoute && !isSettingsRoute && !isNotificationsRoute && !isPrivacyRoute && !isHelpRoute && segments[0] !== 'edit-profile' && !isAllFeaturesRoute && !isSakitRoute) {
+    if (isAuthenticated && !inTabsGroup && !isLiveAttendanceProtected && !isClockInRoute && !isShiftScheduleRoute && !isAttendanceHistoryRoute && !isClockOutRoute && !isStartBreakRoute && !isEndBreakRoute && !isTimeOffRoute && !isReimburseRoute && !isSettingsRoute && !isNotificationsRoute && !isPrivacyRoute && !isHelpRoute && segments[0] !== 'edit-profile' && !isAllFeaturesRoute && !isSakitRoute) {
       // Pengguna sudah login tapi tidak berada di grup (tabs) atau edit-profile,
       // arahkan ke halaman utama.
       console.log('Routing check - redirecting to /(tabs)');
