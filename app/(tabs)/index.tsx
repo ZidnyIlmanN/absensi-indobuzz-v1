@@ -26,6 +26,7 @@ import { LoadingSpinner } from '@/components/LoadingSpinner';
 import { ErrorBoundary } from '@/components/ErrorBoundary';
 import { useAppContext } from '@/context/AppContext';
 import { LanguageSelector } from '@/components/LanguageSelector';
+import { LiveTrackingCard } from '@/components/LiveTrackingCard';
 
 const { width } = Dimensions.get('window');
 
@@ -166,6 +167,10 @@ export default function HomeScreen() {
 
     },
     {
+      title: t('home.live_tracking'),
+      icon: <MapPin size={24} color="#2196F3" />,
+    },
+    {
       title: t('home.request_permission'),
       icon: <Calendar size={24} color="#FF6B6B" />,
 
@@ -291,14 +296,22 @@ export default function HomeScreen() {
                 ? 'break'
                 : currentAttendance?.status || 'off'} />
 
+          {/* Live Tracking Card */}
+          <LiveTrackingCard />
+
           {/* Quick Actions */}
           <View style={styles.section}>
             <Text style={styles.sectionTitle}>{t('home.quick_actions')}</Text>
-            <View style={styles.quickActionsGrid}>
+            <ScrollView 
+              horizontal 
+              showsHorizontalScrollIndicator={false}
+              style={styles.quickActionsScrollView}
+              contentContainerStyle={styles.quickActionsContainer}
+            >
               {quickActions.map((action, index) => (
                 <TouchableOpacity
                   key={`action-${index}`}
-                  style={[styles.quickActionWrapper, { backgroundColor: 'transparent' }]}
+                  style={styles.quickActionWrapper}
                   onPress={() => {
                     switch (index) {
                       case 0:
@@ -308,12 +321,15 @@ export default function HomeScreen() {
                         router.push('/live-attendance-protected');
                         break;
                       case 2:
-                        router.push('/ajukan-izin');
+                        router.push('/live-tracking');
                         break;
                       case 3:
-                        router.push('/sakit');
+                        router.push('/ajukan-izin');
                         break;
                       case 4:
+                        router.push('/sakit');
+                        break;
+                      case 5:
                         router.push('/reimburse');
                         break;
                       default:
@@ -328,7 +344,7 @@ export default function HomeScreen() {
                   <Text style={styles.quickActionTitle}>{action.title}</Text>
                 </TouchableOpacity>
               ))}
-            </View>
+            </ScrollView>
           </View>
 
           {/* Today's Stats */}
@@ -604,11 +620,18 @@ const styles = StyleSheet.create({
     justifyContent: 'space-between',
     marginTop: 16,
   },
+  quickActionsScrollView: {
+    marginTop: 16,
+  },
+  quickActionsContainer: {
+    paddingHorizontal: 4,
+    gap: 12,
+  },
   quickActionWrapper: {
-    flex: 1,
-    marginHorizontal: 6,
+    width: 80,
     borderRadius: 16,
     alignItems: 'center',
+    backgroundColor: 'transparent',
   },
   quickActionIcon: {
     marginBottom: 8,
