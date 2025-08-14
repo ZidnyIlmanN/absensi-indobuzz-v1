@@ -120,14 +120,14 @@ export const leaveRequestsService = {
       // Create leave request record
       const { data: leaveRequest, error } = await supabase
         .from('leave_requests')
-        .insert({
+        .insert({ 
           user_id: data.userId,
           leave_type: data.leaveType,
-          start_date: startDate,
-          end_date: endDate,
-          selected_dates: JSON.stringify(sortedDates),
+          start_date: startDate, // Min date of selected dates
+          end_date: endDate,     // Max date of selected dates
+          selected_dates: sortedDates, // Send as array for JSONB format
           description: data.description.trim(),
-          attachments: JSON.stringify(uploadedAttachments),
+          attachments: uploadedAttachments, // Send as array for JSONB format
           status: 'pending',
         })
         .select()
@@ -567,29 +567,39 @@ export const leaveRequestsService = {
    * Helper function to map database record to LeaveRequest
    */
   mapLeaveRequestRecord(data: any): LeaveRequest {
-    // Parse selected_dates from JSON string
+    // Handle selected_dates - now stored as JSONB array
     let selectedDates: string[] = [];
-    try {
-      if (data.selected_dates) {
-        selectedDates = JSON.parse(data.selected_dates);
-      } else {
-        // Fallback to generating range from start_date and end_date
-        selectedDates = this.generateDateRange(data.start_date, data.end_date);
+    if (data.selected_dates) {
+      if (Array.isArray(data.selected_dates)) {
+        selectedDates = data.selected_dates;
+      } else if (typeof data.selected_dates === 'string') {
+        // Fallback for legacy string format
+        try {
+          selectedDates = JSON.parse(data.selected_dates);
+        } catch (error) {
+          console.error('Error parsing selected_dates:', error);
+          selectedDates = this.generateDateRange(data.start_date, data.end_date);
+        }
       }
-    } catch (error) {
-      console.error('Error parsing selected_dates:', error);
+    } else {
+      // Fallback to generating range from start_date and end_date
       selectedDates = this.generateDateRange(data.start_date, data.end_date);
     }
 
-    // Parse attachments from JSON string
+    // Handle attachments - now stored as JSONB array
     let attachments: string[] = [];
-    try {
-      if (data.attachments) {
-        attachments = JSON.parse(data.attachments);
+    if (data.attachments) {
+      if (Array.isArray(data.attachments)) {
+        attachments = data.attachments;
+      } else if (typeof data.attachments === 'string') {
+        // Fallback for legacy string format
+        try {
+          attachments = JSON.parse(data.attachments);
+        } catch (error) {
+          console.error('Error parsing attachments:', error);
+          attachments = [];
+        }
       }
-    } catch (error) {
-      console.error('Error parsing attachments:', error);
-      attachments = [];
     }
 
     return {
@@ -609,6 +619,7 @@ export const leaveRequestsService = {
       durationDays: data.duration_days || selectedDates.length,
     };
   },
+
 
   /**
    * Helper function to generate date range

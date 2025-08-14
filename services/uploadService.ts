@@ -237,7 +237,7 @@ export class UploadService {
     imageUri: string,
     options: UploadOptions = {}
   ): Promise<UploadResult> {
-    return this.uploadImage(userId, imageUri, 'leave_attachments', {
+    return this.uploadImage(userId, imageUri, 'leave-attachments', {
       maxWidth: 1920,
       maxHeight: 1080,
       quality: 0.8,
