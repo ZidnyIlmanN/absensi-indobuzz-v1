@@ -38,7 +38,8 @@
     "call": "Telepon",
     "email": "Email",
     "location": "Lokasi",
-    "phone": "Telepon"
+    "phone": "Telepon",
+    "processing": "Memproses..."
   },
   "auth": {
     "welcome_back": "Selamat Datang Kembali",
@@ -897,7 +898,10 @@
     "request_not_found": "Permintaan Tidak Ditemukan",
     "request_not_available": "Permintaan izin yang diminta tidak tersedia",
     "documents": "Dokumen",
-    "type": "Jenis"
+    "type": "Jenis",
+    "submitting_request": "Mengajukan Permintaan...",
+    "uploading_attachments": "Mengupload Lampiran...",
+    "processing_request": "Memproses Permintaan..."
   },
   "check_in": {
     "check_in": "Masuk",

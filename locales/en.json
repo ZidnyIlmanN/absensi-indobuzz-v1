@@ -60,7 +60,9 @@
     "passwords_not_match": "Passwords do not match",
     "invalid_email": "Please enter a valid email address",
     "password_too_short": "Password must be at least 6 characters long",
-    "account_created": "Account created successfully! Please sign in with your new account."
+    "account_created": "Account created successfully! Please sign in with your new account.",
+    "processing": "Processing...",
+    "loading": "Loading..."
   },
   "navigation": {
     "home": "Home",
@@ -899,7 +901,10 @@
     "request_not_found": "Request Not Found",
     "request_not_available": "The requested leave request is not available",
     "documents": "Documents",
-    "type": "Type"
+    "type": "Type",
+    "submitting_request": "Submitting request...",
+    "uploading_attachments": "Uploading attachments...",
+    "processing_request": "Processing request..."
   },
   "check_in": {
     "check_in": "Check In",
