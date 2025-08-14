@@ -26,6 +26,7 @@ import { LoadingSpinner } from '@/components/LoadingSpinner';
 import { ErrorBoundary } from '@/components/ErrorBoundary';
 import { useAppContext } from '@/context/AppContext';
 import { LanguageSelector } from '@/components/LanguageSelector';
+import { LiveTrackingCard } from '@/components/LiveTrackingCard';
 
 const { width } = Dimensions.get('window');
 
@@ -161,7 +162,7 @@ export default function HomeScreen() {
       icon: <Grid size={24} color="#4A90E2" />,
     },
     {
-      title: t('home.live_attendance'),
+      title: t('home.live_tracking'),
       icon: <TrendingUp size={24} color="#4A90E2" />,
 
     },
@@ -291,6 +292,9 @@ export default function HomeScreen() {
                 ? 'break'
                 : currentAttendance?.status || 'off'} />
 
+          {/* Live Tracking Card - Only show when working */}
+          <LiveTrackingCard />
+
           {/* Quick Actions */}
           <View style={styles.section}>
             <Text style={styles.sectionTitle}>{t('home.quick_actions')}</Text>
@@ -305,7 +309,7 @@ export default function HomeScreen() {
                         router.push('/lihat-semua');
                         break;
                       case 1:
-                        router.push('/live-attendance-protected');
+                        router.push('/live-tracking');
                         break;
                       case 2:
                         router.push('/ajukan-izin');
