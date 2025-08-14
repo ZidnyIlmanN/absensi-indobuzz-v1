@@ -44,6 +44,7 @@ export default function AjukanIzinScreen() {
   const { user } = useAppContext();
   const [showModal, setShowModal] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [loadingMessage, setLoadingMessage] = useState('');
   const [isLoading, setIsLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
   const [leaveRequests, setLeaveRequests] = useState<LeaveRequest[]>([]);
@@ -153,9 +154,20 @@ export default function AjukanIzinScreen() {
       description: formData.description.substring(0, 50) + '...',
       attachmentCount: formData.attachments.length
     });
+
     setIsSubmitting(true);
+    setLoadingMessage(t('leave_request.submitting_request'));
 
     try {
+      // Step 1: Upload attachments if any
+      if (formData.attachments.length > 0) {
+        setLoadingMessage(t('leave_request.uploading_attachments'));
+        // Simulate upload progress
+        await new Promise(resolve => setTimeout(resolve, 1000));
+      }
+
+      // Step 2: Create leave request
+      setLoadingMessage(t('leave_request.processing_request'));
       const { request, error } = await leaveRequestsService.createLeaveRequest({
         userId: user.id,
         leaveType: formData.leaveType,
@@ -169,6 +181,8 @@ export default function AjukanIzinScreen() {
         return;
       }
 
+      // Step 3: Success handling
+      setLoadingMessage('');
       Alert.alert(
         t('common.success'),
         t('leave_request.leave_request_submitted'),
@@ -179,9 +193,11 @@ export default function AjukanIzinScreen() {
         }}]
       );
     } catch (error) {
+      setLoadingMessage('');
       Alert.alert(t('common.error'), t('leave_request.validation.submit_failed'));
     } finally {
       setIsSubmitting(false);
+      setLoadingMessage('');
     }
   };
 
@@ -446,12 +462,7 @@ export default function AjukanIzinScreen() {
             <ArrowLeft size={24} color="white" />
           </TouchableOpacity>
           <Text style={styles.headerTitle}>{t('leave_request.ajukan_izin')}</Text>
-          <TouchableOpacity
-            style={styles.addButton}
-            onPress={() => setShowModal(true)}
-          >
-            <Plus size={24} color="white" />
-          </TouchableOpacity>
+          <View style={{ width: 40 }} />
         </View>
       </LinearGradient>
 
@@ -486,6 +497,15 @@ export default function AjukanIzinScreen() {
             <Text style={styles.statLabel}>{t('leave_request.approved')}</Text>
           </View>
         </View>
+
+        {/* Menu Button */}
+        <TouchableOpacity
+          style={styles.menuButton}
+          onPress={() => setShowModal(true)}
+        >
+          <Plus size={20} color="#FFFFFF" />
+          <Text style={styles.menuButtonText}>{t('leave_request.create_request')}</Text>
+        </TouchableOpacity>
 
         {/* Leave Requests List */}
         <View style={styles.section}>
@@ -658,13 +678,16 @@ export default function AjukanIzinScreen() {
 
             <View style={styles.modalFooter}>
               <TouchableOpacity
-                style={styles.cancelButton}
+                style={[styles.cancelButton, isSubmitting && styles.disabledButton]}
                 onPress={() => {
                   setShowModal(false);
                   resetForm();
                 }}
+                disabled={isSubmitting}
               >
-                <Text style={styles.cancelButtonText}>{t('common.cancel')}</Text>
+                <Text style={[styles.cancelButtonText, isSubmitting && styles.disabledButtonText]}>
+                  {t('common.cancel')}
+                </Text>
               </TouchableOpacity>
               
               <TouchableOpacity
@@ -672,13 +695,21 @@ export default function AjukanIzinScreen() {
                 onPress={handleSubmit}
                 disabled={isSubmitting}
               >
-                {isSubmitting ? (
-                  <LoadingSpinner size="small" color="white" />
-                ) : (
-                  <Text style={styles.submitButtonText}>{t('leave_request.submit_leave_request')}</Text>
-                )}
+                <Text style={[styles.submitButtonText, isSubmitting && styles.disabledButtonText]}>
+                  {isSubmitting ? t('common.processing') : t('leave_request.submit_leave_request')}
+                </Text>
               </TouchableOpacity>
             </View>
+
+            {/* Loading Overlay */}
+            {isSubmitting && (
+              <View style={styles.loadingOverlay}>
+                <LoadingSpinner 
+                  text={loadingMessage || t('common.loading')} 
+                  overlay={true}
+                />
+              </View>
+            )}
           </View>
         </View>
       </Modal>
@@ -809,7 +840,7 @@ const styles = StyleSheet.create({
   modalBody: {
     paddingHorizontal: 20,
     paddingVertical: 20,
-    maxHeight: 500,
+    maxHeight: 900,
   },
   inputLabel: {
     fontSize: 16,
@@ -1015,5 +1046,37 @@ const styles = StyleSheet.create({
   },
   datesSummary: {
     marginBottom: 16,
+  },
+  loadingOverlay: {
+    position: 'absolute',
+    top: 0,
+    left: 0,
+    right: 0,
+    bottom: 0,
+    backgroundColor: 'rgba(255, 255, 255, 0.9)',
+    justifyContent: 'center',
+    alignItems: 'center',
+    zIndex: 1001,
+    borderTopLeftRadius: 20,
+    borderTopRightRadius: 20,
+  },
+  disabledButtonText: {
+    color: '#FFFFFF',
+  },
+  menuButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: '#4A90E2',
+    borderRadius: 12,
+    padding: 16,
+    marginBottom: 24,
+    elevation: 2,
+  },
+  menuButtonText: {
+    fontSize: 16,
+    color: 'white',
+    marginLeft: 8,
+    fontWeight: '600',
   },
 });
