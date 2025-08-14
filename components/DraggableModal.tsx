@@ -5,11 +5,10 @@ import {
   StyleSheet,
   Dimensions,
 } from 'react-native';
-import { PanGestureHandler, State } from 'react-native-gesture-handler';
+import { PanGestureHandler, PanGestureHandlerGestureEvent } from 'react-native-gesture-handler';
 import Animated, {
   useSharedValue,
   useAnimatedStyle,
-  useAnimatedGestureHandler,
   withSpring,
   runOnJS,
 } from 'react-native-reanimated';
@@ -48,15 +47,14 @@ export function DraggableModal({
     translateY.value = withSpring(snapPositions[initialSnapPoint]);
   }, []);
 
-  const gestureHandler = useAnimatedGestureHandler({
-    onStart: (_, context) => {
-      context.startY = translateY.value;
-    },
-    onActive: (event, context) => {
-      translateY.value = context.startY + event.translationY;
-    },
-    onEnd: (event) => {
-      const velocity = event.velocityY;
+  const gestureHandler = (event: PanGestureHandlerGestureEvent) => {
+    'worklet';
+    const { translationY, velocityY, state } = event.nativeEvent;
+    
+    if (state === 2) { // ACTIVE state
+      translateY.value = translateY.value + translationY;
+    } else if (state === 5) { // END state
+      const velocity = velocityY;
       const currentY = translateY.value;
       
       // Find the closest snap point
@@ -92,8 +90,8 @@ export function DraggableModal({
           runOnJS(onSnapPointChange)(closestSnapIndex);
         }
       }
-    },
-  });
+    }
+  };
 
   const animatedStyle = useAnimatedStyle(() => {
     return {

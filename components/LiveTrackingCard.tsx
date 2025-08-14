@@ -56,7 +56,7 @@ export function LiveTrackingCard() {
   }
 
   const handlePress = () => {
-    router.push('/live-tracking');
+    router.push('/live-tracking-protected');
   };
 
   return (
