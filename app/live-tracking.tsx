@@ -6,12 +6,12 @@ import {
   Dimensions,
   TouchableOpacity,
   Alert,
+  Platform,
 } from 'react-native';
 import { StatusBar } from 'expo-status-bar';
 import { LinearGradient } from 'expo-linear-gradient';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { router } from 'expo-router';
-import MapView, { Marker, PROVIDER_GOOGLE } from 'react-native-maps';
 import {
   ArrowLeft,
   MapPin,
@@ -33,13 +33,14 @@ import { LiveTrackingStats } from '@/components/LiveTrackingStats';
 import { LoadingSpinner } from '@/components/LoadingSpinner';
 import { useLiveTracking } from '@/hooks/useLiveTracking';
 import { Employee } from '@/types';
+import { LeafletMap } from '@/components/LeafletMap';
 
 const { width, height } = Dimensions.get('window');
 
 export default function LiveTrackingScreen() {
   const insets = useSafeAreaInsets();
   const { t } = useTranslation();
-  const mapRef = useRef<MapView>(null);
+  const mapRef = useRef<any>(null);
   const {
     employees: trackingEmployees,
     officeLocations,
@@ -60,7 +61,7 @@ export default function LiveTrackingScreen() {
     refreshLocation,
   } = useLocationTracking({
     enableRealTimeTracking: true,
-    trackingInterval: 10000, // Update every 10 seconds
+    trackingInterval: 10000,
   });
 
   const [activeTab, setActiveTab] = useState<'employees' | 'locations'>('employees');
@@ -94,12 +95,10 @@ export default function LiveTrackingScreen() {
 
     const { latitude, longitude } = employee.currentAttendance.location;
     
-    mapRef.current.animateToRegion({
-      latitude,
-      longitude,
-      latitudeDelta: 0.005,
-      longitudeDelta: 0.005,
-    }, 1000);
+    // Focus on employee location using Leaflet map
+    if (mapRef.current && mapRef.current.setView) {
+      mapRef.current.setView([latitude, longitude], 16);
+    }
 
     Alert.alert(
       t('live_tracking.employee_location'),
@@ -111,12 +110,10 @@ export default function LiveTrackingScreen() {
   const handleLocationFocus = (location: any) => {
     if (!mapRef.current) return;
 
-    mapRef.current.animateToRegion({
-      latitude: location.coordinates.latitude,
-      longitude: location.coordinates.longitude,
-      latitudeDelta: 0.01,
-      longitudeDelta: 0.01,
-    }, 1000);
+    // Focus on office location using Leaflet map
+    if (mapRef.current && mapRef.current.setView) {
+      mapRef.current.setView([location.coordinates.latitude, location.coordinates.longitude], 15);
+    }
 
     Alert.alert(
       t('live_tracking.office_location'),
@@ -126,7 +123,6 @@ export default function LiveTrackingScreen() {
   };
 
   const handleSnapPointChange = (index: number) => {
-    // Handle modal snap point changes if needed
     console.log('Modal snap point changed to:', index);
   };
 
@@ -145,6 +141,32 @@ export default function LiveTrackingScreen() {
         return '#4A90E2';
     }
   };
+
+  // Prepare markers for the map
+  const mapMarkers = [
+    // Office locations
+    ...officeLocations.map(office => ({
+      id: `office-${office.id}`,
+      position: [office.coordinates.latitude, office.coordinates.longitude] as [number, number],
+      title: office.name,
+      description: office.address,
+      color: '#2196F3',
+      type: 'office' as const,
+    })),
+    // Employee locations
+    ...employeeLocations.map(employee => ({
+      id: `employee-${employee.id}`,
+      position: [
+        employee.liveLocation!.location.latitude,
+        employee.liveLocation!.location.longitude
+      ] as [number, number],
+      title: employee.name,
+      description: `${employee.position} • ${employee.status}`,
+      color: getMarkerColor(employee.status),
+      type: 'employee' as const,
+      employee,
+    })),
+  ];
 
   return (
     <View style={styles.container}>
@@ -211,45 +233,21 @@ export default function LiveTrackingScreen() {
             <LoadingSpinner text={t('live_tracking.loading_map')} />
           </View>
         ) : (
-          <MapView
+          <LeafletMap
             ref={mapRef}
-            style={styles.map}
-            provider={PROVIDER_GOOGLE}
-            initialRegion={{
-              latitude: OFFICE_COORDINATES.latitude,
-              longitude: OFFICE_COORDINATES.longitude,
-              latitudeDelta: 0.01,
-              longitudeDelta: 0.01,
+            center={[OFFICE_COORDINATES.latitude, OFFICE_COORDINATES.longitude]}
+            zoom={15}
+            markers={mapMarkers}
+            onMarkerClick={(marker) => {
+              if (marker.type === 'employee' && marker.employee) {
+                handleEmployeeFocus(marker.employee);
+              }
             }}
             onMapReady={() => setMapReady(true)}
-            showsUserLocation={true}
-            showsMyLocationButton={false}
-            showsCompass={true}
-            showsScale={true}
-          >
-            {/* Office Location Marker */}
-            {officeLocations.map((office) => (
-              <Marker
-                key={office.id}
-                coordinate={office.coordinates}
-                title={office.name}
-                description={office.address}
-                pinColor="#2196F3"
-              />
-            ))}
-
-            {/* Employee Location Markers */}
-            {employeeLocations.map((employee) => (
-              <Marker
-                key={employee.id}
-                coordinate={employee.liveLocation!.location}
-                title={employee.name}
-                description={`${employee.position} • ${employee.status}`}
-                pinColor={getMarkerColor(employee.status)}
-                onPress={() => handleEmployeeFocus(employee)}
-              />
-            ))}
-          </MapView>
+            showUserLocation={!!currentLocation}
+            userLocation={currentLocation ? [currentLocation.latitude, currentLocation.longitude] : undefined}
+            style={styles.map}
+          />
         )}
 
         {/* Map Controls */}
@@ -258,12 +256,7 @@ export default function LiveTrackingScreen() {
             style={styles.mapControlButton}
             onPress={() => {
               if (currentLocation && mapRef.current) {
-                mapRef.current.animateToRegion({
-                  latitude: currentLocation.latitude,
-                  longitude: currentLocation.longitude,
-                  latitudeDelta: 0.005,
-                  longitudeDelta: 0.005,
-                }, 1000);
+                mapRef.current.setView([currentLocation.latitude, currentLocation.longitude], 16);
               }
             }}
           >
@@ -274,12 +267,7 @@ export default function LiveTrackingScreen() {
             style={styles.mapControlButton}
             onPress={() => {
               if (mapRef.current) {
-                mapRef.current.animateToRegion({
-                  latitude: OFFICE_COORDINATES.latitude,
-                  longitude: OFFICE_COORDINATES.longitude,
-                  latitudeDelta: 0.01,
-                  longitudeDelta: 0.01,
-                }, 1000);
+                mapRef.current.setView([OFFICE_COORDINATES.latitude, OFFICE_COORDINATES.longitude], 15);
               }
             }}
           >
@@ -290,11 +278,15 @@ export default function LiveTrackingScreen() {
             style={styles.mapControlButton}
             onPress={() => {
               if (mapRef.current && employeeLocations.length > 0) {
-                const coordinates = employeeLocations.map(emp => emp.location);
-                mapRef.current.fitToCoordinates(coordinates, {
-                  edgePadding: { top: 50, right: 50, bottom: 50, left: 50 },
-                  animated: true,
-                });
+                // Fit bounds to show all employee locations
+                const bounds = employeeLocations.map(emp => [
+                  emp.liveLocation!.location.latitude,
+                  emp.liveLocation!.location.longitude
+                ] as [number, number]);
+                
+                if (mapRef.current.fitBounds) {
+                  mapRef.current.fitBounds(bounds, { padding: [50, 50] });
+                }
               }
             }}
           >
