@@ -7,7 +7,7 @@ import {
   TouchableOpacity,
 } from 'react-native';
 import { router } from 'expo-router';
-import { Grid2x2 as Grid, TrendingUp, Calendar, Clock, DollarSign, Users, FileText, Settings, CircleHelp as HelpCircle, Bell, ArrowLeft, Camera } from 'lucide-react-native';
+import { Grid2x2 as Grid, TrendingUp, Calendar, Clock, DollarSign, Users, FileText, Settings, CircleHelp as HelpCircle, Bell, ArrowLeft, Camera, Heart } from 'lucide-react-native';
 import { Cloud } from 'lucide-react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useTranslation } from 'react-i18next';
@@ -19,6 +19,7 @@ export default function LihatSemuaScreen() {
   const features = [
     { title: t('all_features.live_attendance'), icon: <TrendingUp size={24} color="#4A90E2" />, route: '/live-attendance-protected' as any },
     { title: t('all_features.request_permission'),  icon: <Calendar size={24} color="#FF6B6B" />, route: '/ajukan-izin' as any },
+    { title: t('all_features.sick_leave'), icon: <Heart size={24} color="#F44336" />, route: '/sakit' as any },
     { title: t('all_features.reimburse'), icon: <Clock size={24} color="#4CAF50" />, route: '/reimburse' as any },
     { title: t('all_features.attendance_history'), icon: <FileText size={24} color="#9C27B0" />, route: '/attendance-history' as any },
     { title: t('all_features.shift_schedule'), icon: <Clock size={24} color="#FF9800" />, route: '/shift-schedule' as any },

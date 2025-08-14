@@ -15,6 +15,7 @@ import { StatusBar } from 'expo-status-bar';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { router } from 'expo-router';
 import { Clock, MapPin, Calendar, TrendingUp, LogIn, LogOut, Camera, Wifi, WifiOff, Grid2x2 as Grid, Sun, Sunset, Moon } from 'lucide-react-native';
+import { Heart } from 'lucide-react-native';
 import { useTranslation } from 'react-i18next';
 import { useI18n, useLocalizedDate } from '@/hooks/useI18n';
 import { AttendanceCard } from '@/components/AttendanceCard';
@@ -170,9 +171,13 @@ export default function HomeScreen() {
 
     },
     {
+      title: t('home.sick_leave'),
+      icon: <Heart size={24} color="#F44336" />,
+
+    },
+    {
       title: t('home.reimburse'),
       icon: <Clock size={24} color="#4CAF50" />,
-
     },
   ];
 
@@ -306,6 +311,9 @@ export default function HomeScreen() {
                         router.push('/ajukan-izin');
                         break;
                       case 3:
+                        router.push('/sakit');
+                        break;
+                      case 4:
                         router.push('/reimburse');
                         break;
                       default:
