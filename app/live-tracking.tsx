@@ -344,7 +344,7 @@ export default function LiveTrackingScreen() {
           ) : (
             <OfficeLocationList
               onLocationFocus={handleLocationFocus}
-              currentLocation={currentLocation}
+              currentLocation={currentLocation?.latitude && currentLocation?.longitude ? currentLocation : undefined}
             />
           )}
         </View>

@@ -18,7 +18,7 @@ export default function LihatSemuaScreen() {
 
   const features = [
     { title: t('all_features.live_attendance'), icon: <TrendingUp size={24} color="#4A90E2" />, route: '/live-attendance-protected' as any },
-    { title: t('all_features.live_tracking'), icon: <MapPin size={24} color="#2196F3" />, route: '/live-tracking' as any },
+    { title: t('all_features.live_tracking'), icon: <MapPin size={24} color="#2196F3" />, route: '/live-tracking-protected' as any },
     { title: t('all_features.request_permission'),  icon: <Calendar size={24} color="#FF6B6B" />, route: '/ajukan-izin' as any },
     { title: t('all_features.sick_leave'), icon: <Heart size={24} color="#F44336" />, route: '/sakit' as any },
     { title: t('all_features.reimburse'), icon: <Clock size={24} color="#4CAF50" />, route: '/reimburse' as any },
