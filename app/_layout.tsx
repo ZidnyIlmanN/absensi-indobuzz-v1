@@ -72,6 +72,7 @@ function RootLayoutNav() {
     }
 
     if (isAuthenticated && !inTabsGroup && !isLiveAttendanceProtected && !isClockInRoute && !isShiftScheduleRoute && !isAttendanceHistoryRoute && !isClockOutRoute && !isStartBreakRoute && !isEndBreakRoute && !isTimeOffRoute && !isReimburseRoute && !isSettingsRoute && !isNotificationsRoute && !isPrivacyRoute && !isHelpRoute && segments[0] !== 'edit-profile' && !isAllFeaturesRoute && !isSakitRoute) {
+    }
     if (isAuthenticated && !inTabsGroup && !isLiveAttendanceProtected && !isLiveTrackingRoute && !isClockInRoute && !isShiftScheduleRoute && !isAttendanceHistoryRoute && !isClockOutRoute && !isStartBreakRoute && !isEndBreakRoute && !isTimeOffRoute && !isReimburseRoute && !isSettingsRoute && !isNotificationsRoute && !isPrivacyRoute && !isHelpRoute && segments[0] !== 'edit-profile' && !isAllFeaturesRoute && !isSakitRoute) {
       // Pengguna sudah login tapi tidak berada di grup (tabs) atau edit-profile,
       // arahkan ke halaman utama.
