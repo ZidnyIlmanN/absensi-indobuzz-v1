@@ -1,7 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import { View, Text, StyleSheet, TouchableOpacity, Modal, ScrollView } from 'react-native';
 import { useSegments, useRouter } from 'expo-router';
-import { Bug, X, RefreshCw, CheckCircle, AlertTriangle } from 'lucide-react-native';
+import { Bug, X, RefreshCw, CircleCheck as CheckCircle, TriangleAlert as AlertTriangle } from 'lucide-react-native';
 import { useAppContext } from '@/context/AppContext';
 import { debugNavigation, testRouteAccessibility } from '@/utils/debugUtils';
 

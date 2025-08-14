@@ -1,6 +1,6 @@
 import React, { Component, ReactNode } from 'react';
 import { View, Text, StyleSheet, TouchableOpacity } from 'react-native';
-import { MapPin, RefreshCw, AlertTriangle } from 'lucide-react-native';
+import { MapPin, RefreshCw, TriangleAlert as AlertTriangle } from 'lucide-react-native';
 
 interface Props {
   children: ReactNode;

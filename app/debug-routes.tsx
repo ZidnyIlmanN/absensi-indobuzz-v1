@@ -10,7 +10,7 @@ import { StatusBar } from 'expo-status-bar';
 import { LinearGradient } from 'expo-linear-gradient';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { router } from 'expo-router';
-import { ArrowLeft, Bug, Play, CheckCircle, AlertTriangle } from 'lucide-react-native';
+import { ArrowLeft, Bug, Play, CircleCheck as CheckCircle, TriangleAlert as AlertTriangle } from 'lucide-react-native';
 import { RouteDebugger } from '@/components/RouteDebugger';
 
 export default function DebugRoutesScreen() {
