@@ -78,22 +78,13 @@ export function SickLeaveDetailModal({
       {
         id: '1',
         step: 1,
-        title: 'Direct Supervisor',
+        title: 'HR Department',
         status: sickLeaveRequest.status === 'rejected' ? 'rejected' : 
                 sickLeaveRequest.status === 'approved' ? 'approved' : 'pending',
-        approver: 'John Manager',
-        approverRole: 'Team Lead',
+        approver: 'HR Manager',
+        approverRole: undefined,
         timestamp: sickLeaveRequest.reviewedAt,
         comments: sickLeaveRequest.reviewNotes,
-      },
-      {
-        id: '2',
-        step: 2,
-        title: 'HR Department',
-        status: sickLeaveRequest.status === 'approved' ? 'approved' : 'pending',
-        approver: sickLeaveRequest.status === 'approved' ? 'Sarah HR' : undefined,
-        approverRole: 'HR Manager',
-        timestamp: sickLeaveRequest.status === 'approved' ? sickLeaveRequest.reviewedAt : undefined,
       },
     ];
 
@@ -140,7 +131,7 @@ export function SickLeaveDetailModal({
               
               {step.approver && (
                 <Text style={styles.stepApprover}>
-                  {step.approver} • {step.approverRole}
+                  {step.approver}
                 </Text>
               )}
               
