@@ -114,7 +114,6 @@ export function MultipleDateSummary({
       </View>
 
 
-
       {/* Grouped Dates Display */}
       <ScrollView 
         style={styles.datesScrollView}
@@ -149,34 +148,7 @@ export function MultipleDateSummary({
         ))}
       </ScrollView>
 
-      {/* Summary Stats */}
-      <View style={styles.summaryStats}>
-        <View style={styles.statItem}>
-          <Text style={styles.statLabel}>{t('leave_request.total_dates')}</Text>
-          <Text style={styles.statValue}>{selectedDates.length}</Text>
-        </View>
-        
-        <View style={styles.statDivider} />
-        
-        <View style={styles.statItem}>
-          <Text style={styles.statLabel}>{t('leave_request.duration')}</Text>
-          <Text style={[styles.statValue, { color: '#4CAF50' }]}>
-            {formatDuration(calculateTotalDays())}
-          </Text>
-        </View>
-        
-        <View style={styles.statDivider} />
-        
-        <View style={styles.statItem}>
-          <Text style={styles.statLabel}>{t('leave_request.type')}</Text>
-          <Text style={[
-            styles.statValue,
-            { color: leaveType === 'full_day' ? '#4A90E2' : '#FF9800' }
-          ]}>
-            {leaveType === 'full_day' ? t('leave_request.full_day') : t('leave_request.half_day')}
-          </Text>
-        </View>
-      </View>
+
     </View>
   );
 }
@@ -259,7 +231,7 @@ const styles = StyleSheet.create({
   },
   datesScrollView: {
     maxHeight: 200,
-    marginBottom: 12,
+    marginBottom: 2,
   },
   monthGroup: {
     marginBottom: 16,

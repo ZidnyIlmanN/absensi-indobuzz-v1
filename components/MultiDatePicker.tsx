@@ -240,11 +240,32 @@ export function MultiDatePicker({
           }
         });
       } else {
-        // Only start date selected
+        // Only start date selected - make it more prominent
         marked[rangeStart] = {
           selected: true,
           selectedColor: '#4A90E2',
           selectedTextColor: 'white',
+          startingDay: true,
+          color: '#4A90E2',
+          textColor: 'white',
+        };
+        
+        // Add visual indication that this is the start of range
+        marked[rangeStart] = {
+          ...marked[rangeStart],
+          customStyles: {
+            container: {
+              backgroundColor: '#4A90E2',
+              borderTopLeftRadius: 16,
+              borderBottomLeftRadius: 16,
+              borderTopRightRadius: 4,
+              borderBottomRightRadius: 4,
+            },
+            text: {
+              color: 'white',
+              fontWeight: 'bold',
+            },
+          },
         };
       }
     } else {
@@ -500,66 +521,6 @@ export function MultiDatePicker({
             {/* Selected Dates Preview */}
             {renderSelectedDatesPreview()}
 
-            {/* Quick Actions for Multiple Mode */}
-            {selectionMode === 'multiple' && (
-              <View style={styles.quickActions}>
-                <Text style={styles.quickActionsTitle}>{t('leave_request.quick_actions')}</Text>
-                <View style={styles.quickActionButtons}>
-                  <TouchableOpacity
-                    style={styles.quickActionButton}
-                    onPress={() => {
-                      // Add all Fridays in current month
-                      const year = parseInt(currentMonth.split('-')[0]);
-                      const month = parseInt(currentMonth.split('-')[1]) - 1;
-                      const fridays: string[] = [];
-                      
-                      for (let day = 1; day <= 31; day++) {
-                        const date = new Date(year, month, day);
-                        if (date.getMonth() === month && date.getDay() === 5) {
-                          const dateString = date.toISOString().split('T')[0];
-                          if (dateString >= defaultMinDate && !tempSelectedDates.includes(dateString)) {
-                            fridays.push(dateString);
-                          }
-                        }
-                      }
-                      
-                      if (fridays.length > 0) {
-                        setTempSelectedDates(prev => [...prev, ...fridays].sort());
-                      }
-                    }}
-                  >
-                    <Text style={styles.quickActionText}>{t('leave_request.add_all_fridays')}</Text>
-                  </TouchableOpacity>
-                  
-                  <TouchableOpacity
-                    style={styles.quickActionButton}
-                    onPress={() => {
-                      // Add all Mondays in current month
-                      const year = parseInt(currentMonth.split('-')[0]);
-                      const month = parseInt(currentMonth.split('-')[1]) - 1;
-                      const mondays: string[] = [];
-                      
-                      for (let day = 1; day <= 31; day++) {
-                        const date = new Date(year, month, day);
-                        if (date.getMonth() === month && date.getDay() === 1) {
-                          const dateString = date.toISOString().split('T')[0];
-                          if (dateString >= defaultMinDate && !tempSelectedDates.includes(dateString)) {
-                            mondays.push(dateString);
-                          }
-                        }
-                      }
-                      
-                      if (mondays.length > 0) {
-                        setTempSelectedDates(prev => [...prev, ...mondays].sort());
-                      }
-                    }}
-                  >
-                    <Text style={styles.quickActionText}>{t('leave_request.add_all_mondays')}</Text>
-                  </TouchableOpacity>
-                </View>
-              </View>
-            )}
-
             {/* Action Buttons */}
             <View style={styles.actionButtons}>
               <TouchableOpacity
@@ -587,7 +548,7 @@ export function MultiDatePicker({
               >
                 <Check size={16} color="white" />
                 <Text style={styles.confirmButtonText}>
-                  {t('common.confirm')} ({tempSelectedDates.length})
+                  {t('common.confirm')}
                 </Text>
               </TouchableOpacity>
             </View>
@@ -769,7 +730,7 @@ const styles = StyleSheet.create({
     borderRadius: 12,
     padding: 12,
     marginBottom: 16,
-    maxHeight: 120,
+    maxHeight: 200,
   },
   previewHeader: {
     flexDirection: 'row',
@@ -797,14 +758,16 @@ const styles = StyleSheet.create({
     fontWeight: '500',
   },
   datesScrollView: {
-    maxHeight: 80,
+    maxHeight: 200,
   },
   datesContainer: {
     flexDirection: 'row',
     gap: 12,
+    
   },
   monthGroup: {
     alignItems: 'center',
+    
   },
   monthLabel: {
     fontSize: 10,
@@ -817,6 +780,7 @@ const styles = StyleSheet.create({
     flexWrap: 'wrap',
     gap: 4,
     maxWidth: 100,
+
   },
   selectedDateChip: {
     backgroundColor: '#4A90E2',

@@ -116,7 +116,6 @@ export function LeaveRequestCard({
           <View style={styles.dateInfo}>
             <Calendar size={16} color="#666" />
             <Text style={styles.dateText}>{formatDateRange(request.startDate, request.endDate)}</Text>
-            <Text style={styles.dateText}>{formatDateRange('', '')}</Text>
           </View>
           
           <View style={styles.headerRight}>
