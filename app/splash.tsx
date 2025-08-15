@@ -13,30 +13,29 @@ export default function SplashScreen() {
 
   useEffect(() => {
     // Run animation once on mount
-    try {
-      Animated.parallel([
-        Animated.timing(fadeAnim, {
-          toValue: 1,
-          duration: 1000,
-          useNativeDriver: true,
-        }),
-        Animated.timing(scaleAnim, {
-          toValue: 1,
-          duration: 800,
-          useNativeDriver: true,
-        }),
-      ]).start();
-    } catch (error) {
-      console.error('Animation error in splash screen:', error);
-    }
+    Animated.parallel([
+      Animated.timing(fadeAnim, {
+        toValue: 1,
+        duration: 1000,
+        useNativeDriver: true,
+      }),
+      Animated.timing(scaleAnim, {
+        toValue: 1,
+        duration: 800,
+        useNativeDriver: true,
+      }),
+    ]).start();
   }, []);
 
   // Add timeout to prevent indefinite loading
   useEffect(() => {
     if (isLoading) {
       const timeout = setTimeout(() => {
-        console.warn('App loading timeout - taking longer than expected');
-        // Don't show alert immediately, just log for debugging
+        Alert.alert(
+          'Loading Taking Too Long',
+          'The app is taking longer than expected to load. Please try restarting the app.',
+          [{ text: 'OK' }]
+        );
       }, 15000); // 15 seconds timeout
 
       return () => clearTimeout(timeout);

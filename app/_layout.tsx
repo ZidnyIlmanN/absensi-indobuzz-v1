@@ -7,6 +7,7 @@ import SplashScreen from './splash'; // Impor splash screen Anda
 import { customTransition } from '../constants/Transitions'
 import { useFrameworkReady } from '@/hooks/useFrameworkReady';
 import { ErrorBoundary } from '@/components/ErrorBoundary';
+import { GestureHandlerRootView } from 'react-native-gesture-handler';
 
 function RootLayoutNav() {
   const { isAuthenticated, isLoading } = useAppContext();
@@ -120,12 +121,14 @@ function RootLayoutNav() {
 export default function RootLayout() {
   useFrameworkReady();
   return (
-    <ErrorBoundary>
-      <I18nextProvider i18n={i18n}>
-        <AppProvider>
-          <RootLayoutNav />
-        </AppProvider>
-      </I18nextProvider>
-    </ErrorBoundary>
+    <GestureHandlerRootView style={{ flex: 1 }}>
+      <ErrorBoundary>
+        <I18nextProvider i18n={i18n}>
+          <AppProvider>
+            <RootLayoutNav />
+          </AppProvider>
+        </I18nextProvider>
+      </ErrorBoundary>
+    </GestureHandlerRootView>
   );
 }

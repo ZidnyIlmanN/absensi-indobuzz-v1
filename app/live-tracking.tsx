@@ -21,6 +21,7 @@ import {
   RefreshCw,
   Settings,
   Maximize,
+  Clock,
 } from 'lucide-react-native';
 import { useTranslation } from 'react-i18next';
 import { useEmployees } from '@/hooks/useEmployees';
@@ -29,7 +30,6 @@ import { OFFICE_COORDINATES } from '@/utils/location';
 import { DraggableModal } from '@/components/DraggableModal';
 import { LiveEmployeeList } from '@/components/LiveEmployeeList';
 import { OfficeLocationList } from '@/components/OfficeLocationList';
-import { LiveTrackingStats } from '@/components/LiveTrackingStats';
 import { LoadingSpinner } from '@/components/LoadingSpinner';
 import { useLiveTracking } from '@/hooks/useLiveTracking';
 import { Employee } from '@/types';
@@ -174,57 +174,87 @@ export default function LiveTrackingScreen() {
     <View style={styles.container}>
       <StatusBar style="light" />
       
-      {/* Header */}
+      {/* Modern Professional Header */}
       <LinearGradient
-        colors={['#4A90E2', '#357ABD']}
-        style={[styles.header, { paddingTop: insets.top + 20 }]}
+        colors={['#4A90E2', 'rgba(74, 144, 226, 0)']}
+        locations={[0.6, 1]}
+        style={[styles.header, { paddingTop: insets.top }]}
       >
-        <View style={styles.headerContent}>
-          <TouchableOpacity
-            style={styles.backButton}
-            onPress={() => router.back()}
-          >
-            <ArrowLeft size={24} color="white" />
-          </TouchableOpacity>
-          
-          <View style={styles.headerCenter}>
-            <Text style={styles.headerTitle}>{t('live_tracking.live_tracking')}</Text>
+        <View style={styles.headerContainer}>
+          {/* Top Row - Navigation and Actions */}
+          <View style={styles.headerTopRow}>
+            <TouchableOpacity
+              style={styles.backButton}
+              onPress={() => router.back()}
+              activeOpacity={0.8}
+            >
+              <ArrowLeft size={20} color="white" />
+            </TouchableOpacity>
+            
+            <View style={styles.headerActions}>
+              <TouchableOpacity
+                style={[styles.actionButton, isRefreshing && styles.refreshingButton]}
+                onPress={handleRefresh}
+                disabled={isRefreshing}
+                activeOpacity={0.8}
+              >
+                <RefreshCw 
+                  size={18} 
+                  color="rgba(255, 255, 255, 0.9)" 
+                  style={[
+                    isRefreshing && styles.spinning,
+                    { transform: [{ rotate: isRefreshing ? '360deg' : '0deg' }] }
+                  ]}
+                />
+              </TouchableOpacity>
+            </View>
+          </View>
+
+          {/* Title Section */}
+          <View style={styles.titleSection}>
+            <Text style={styles.headerTitle}>Live Tracking</Text>
             <Text style={styles.headerSubtitle}>
-              {workingEmployees.length} {t('live_tracking.employees_active')}
+              Real-time employee monitoring & location tracking
             </Text>
           </View>
 
-          <View style={styles.headerActions}>
-            <TouchableOpacity
-              style={styles.headerButton}
-              onPress={handleRefresh}
-              disabled={isRefreshing}
-            >
-              <RefreshCw 
-                size={20} 
-                color="white" 
-                style={isRefreshing ? styles.spinning : undefined}
-              />
-            </TouchableOpacity>
-            
-            <TouchableOpacity style={styles.headerButton}>
-              <Settings size={20} color="white" />
-            </TouchableOpacity>
-          </View>
-        </View>
+          {/* Stats Row */}
+          <View style={styles.statsRow}>
+            <View style={styles.statItem}>
+              <View style={styles.statIconContainer}>
+                <Users size={16} color="white" />
+              </View>
+              <View style={styles.statContent}>
+                <Text style={styles.statNumber}>{workingEmployees.length}</Text>
+                <Text style={styles.statLabel}>Online</Text>
+              </View>
+            </View>
 
-        {/* Location Status */}
-        <View style={styles.locationStatus}>
-          <MapPin size={16} color="rgba(255, 255, 255, 0.8)" />
-          <Text style={styles.locationStatusText}>
-            {currentLocation 
-              ? t('live_tracking.tracking_active')
-              : t('live_tracking.location_unavailable')
-            }
-          </Text>
-          {currentLocation && (
-            <View style={styles.accuracyIndicator} />
-          )}
+            <View style={styles.statDivider} />
+
+            <View style={styles.statItem}>
+              <View style={styles.statIconContainer}>
+                <Clock size={16} color="white" />
+              </View>
+              <View style={styles.statContent}>
+                <Text style={styles.statNumber}>{stats.onBreakEmployees}</Text>
+                <Text style={styles.statLabel}>On Break</Text>
+              </View>
+            </View>
+
+            <View style={styles.statDivider} />
+
+            <View style={styles.statItem}>
+              <View style={styles.statIconContainer}>
+                <Building size={16} color="white" />
+              </View>
+              <View style={styles.statContent}>
+                <Text style={styles.statNumber}>{officeLocations.length}</Text>
+                <Text style={styles.statLabel}>Locations</Text>
+              </View>
+            </View>
+
+          </View>
         </View>
       </LinearGradient>
 
@@ -235,15 +265,15 @@ export default function LiveTrackingScreen() {
             console.error('Map error caught by boundary:', error, errorInfo);
           }}
           fallbackComponent={
-            <MapFallback
-              employees={employeeLocations}
-              officeLocations={officeLocations}
-              currentLocation={currentLocation}
-              onEmployeeFocus={handleEmployeeFocus}
-              onLocationFocus={handleLocationFocus}
-              onRefresh={handleRefresh}
-              isRefreshing={isRefreshing}
-            />
+          <MapFallback
+            employees={employeeLocations}
+            officeLocations={officeLocations}
+            currentLocation={currentLocation ?? undefined}
+            onEmployeeFocus={handleEmployeeFocus}
+            onLocationFocus={handleLocationFocus}
+            onRefresh={handleRefresh}
+            isRefreshing={isRefreshing}
+          />
           }
         >
           {locationLoading && !mapReady ? (
@@ -254,7 +284,7 @@ export default function LiveTrackingScreen() {
             <LeafletMap
               ref={mapRef}
               center={[OFFICE_COORDINATES.latitude, OFFICE_COORDINATES.longitude]}
-              zoom={15}
+              zoom={20}
               markers={mapMarkers}
               onMarkerClick={(marker) => {
                 if (marker.type === 'employee' && marker.employee) {
@@ -316,7 +346,7 @@ export default function LiveTrackingScreen() {
 
       {/* Draggable Bottom Modal */}
       <DraggableModal
-        snapPoints={[0.25, 0.5, 0.8]}
+        snapPoints={[0.25, 0.5, 0.65]}
         initialSnapPoint={0}
         onSnapPointChange={handleSnapPointChange}
       >
@@ -351,8 +381,6 @@ export default function LiveTrackingScreen() {
 
         {/* Tab Content */}
         <View style={styles.tabContent}>
-          {/* Stats Overview */}
-          <LiveTrackingStats stats={stats} />
           
           {activeTab === 'employees' ? (
             <LiveEmployeeList
@@ -375,13 +403,21 @@ export default function LiveTrackingScreen() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#F8F9FA',
+    backgroundColor: 'transparent',
   },
   header: {
-    paddingBottom: 20,
-    paddingHorizontal: 20,
+    paddingBottom: 24,
+    position: 'absolute',
+    top: 0,
+    left: 0,
+    right: 0,
+    zIndex: 1000,
   },
-  headerContent: {
+  headerContainer: {
+    paddingHorizontal: 20,
+    paddingTop: 12,
+  },
+  headerTopRow: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
@@ -390,62 +426,92 @@ const styles = StyleSheet.create({
   backButton: {
     width: 40,
     height: 40,
-    borderRadius: 20,
-    backgroundColor: 'rgba(255, 255, 255, 0.2)',
+    borderRadius: 12,
+    backgroundColor: 'rgba(255, 255, 255, 0.15)',
     justifyContent: 'center',
     alignItems: 'center',
-  },
-  headerCenter: {
-    flex: 1,
-    alignItems: 'center',
-  },
-  headerTitle: {
-    fontSize: 20,
-    fontWeight: 'bold',
-    color: 'white',
-    marginBottom: 2,
-  },
-  headerSubtitle: {
-    fontSize: 12,
-    color: 'rgba(255, 255, 255, 0.8)',
+    backdropFilter: 'blur(10px)',
   },
   headerActions: {
     flexDirection: 'row',
-    gap: 8,
+    gap: 12,
   },
-  headerButton: {
+  actionButton: {
     width: 40,
     height: 40,
-    borderRadius: 20,
-    backgroundColor: 'rgba(255, 255, 255, 0.2)',
+    borderRadius: 12,
+    backgroundColor: 'rgba(255, 255, 255, 0.15)',
     justifyContent: 'center',
     alignItems: 'center',
+    position: 'relative',
+    backdropFilter: 'blur(10px)',
+  },
+  refreshingButton: {
+    backgroundColor: 'rgba(255, 255, 255, 0.52)',
   },
   spinning: {
     transform: [{ rotate: '360deg' }],
   },
-  locationStatus: {
+  titleSection: {
+    alignItems: 'flex-start',
+    marginBottom: 12,
+  },
+  headerTitle: {
+    fontSize: 32,
+    fontWeight: '700',
+    color: 'white',
+    marginBottom: 2,
+    letterSpacing: -0.5,
+  },
+  headerSubtitle: {
+    fontSize: 15,
+    color: 'rgba(255, 255, 255, 0.75)',
+    fontWeight: '400',
+    lineHeight: 20,
+  },
+  statsRow: {
+    flexDirection: 'row',
+    backgroundColor: 'rgba(255, 255, 255, 0.26)',
+    borderRadius: 16,
+    padding: 12,
+    marginBottom: 12,
+    backdropFilter: 'blur(20px)',
+  },
+  statItem: {
+    flex: 1,
     flexDirection: 'row',
     alignItems: 'center',
+  },
+  statIconContainer: {
+    width: 32,
+    height: 32,
+    borderRadius: 8,
+    backgroundColor: 'rgba(255, 255, 255, 0.15)',
     justifyContent: 'center',
-    backgroundColor: 'rgba(255, 255, 255, 0.1)',
-    paddingHorizontal: 12,
-    paddingVertical: 6,
-    borderRadius: 16,
-    alignSelf: 'center',
+    alignItems: 'center',
+    marginRight: 12,
   },
-  locationStatusText: {
-    fontSize: 12,
-    color: 'rgba(255, 255, 255, 0.9)',
-    marginLeft: 6,
+  statContent: {
+    flex: 1,
+  },
+  statNumber: {
+    fontSize: 20,
+    fontWeight: '700',
+    color: 'white',
+    lineHeight: 24,
+  },
+  statLabel: {
+    fontSize: 10,
+    color: 'rgba(255, 255, 255, 0.7)',
     fontWeight: '500',
+    textTransform: 'uppercase',
+    letterSpacing: 0.5,
   },
-  accuracyIndicator: {
-    width: 6,
-    height: 6,
-    borderRadius: 3,
-    backgroundColor: '#4CAF50',
-    marginLeft: 8,
+  statDivider: {
+    width: 1,
+    height: 32,
+    backgroundColor: 'rgba(255, 255, 255, 0.15)',
+    marginHorizontal: 12,
   },
   mapContainer: {
     flex: 1,
@@ -462,7 +528,7 @@ const styles = StyleSheet.create({
   },
   mapControls: {
     position: 'absolute',
-    top: 20,
+    top: 250,
     right: 20,
     gap: 8,
   },
