@@ -29,8 +29,14 @@ export function LiveEmployeeList({
   const { t } = useTranslation();
   const { employees, isLoading, error, refreshEmployees } = useEmployees();
   
-  // Filter only employees who are currently working
-  const workingEmployees = employees.filter(emp => emp.status === 'online');
+  // Filter employees who have attendance records for today (working or on break)
+  const activeEmployees = employees.filter(emp => 
+    emp.status === 'online' || emp.status === 'break' || emp.currentAttendance
+  );
+  
+  console.log('LiveEmployeeList - Total employees:', employees.length);
+  console.log('LiveEmployeeList - Active employees:', activeEmployees.length);
+  console.log('LiveEmployeeList - Employee statuses:', employees.map(e => ({ name: e.name, status: e.status, hasAttendance: !!e.currentAttendance })));
 
   const handleEmployeePress = (employee: Employee) => {
     onEmployeeFocus?.(employee);
@@ -112,7 +118,7 @@ export function LiveEmployeeList({
         </View>
         <View style={styles.headerRight}>
           <View style={styles.countBadge}>
-            <Text style={styles.countBadgeText}>{workingEmployees.length}</Text>
+            <Text style={styles.countBadgeText}>{activeEmployees.length}</Text>
           </View>
         </View>
       </View>
@@ -124,14 +130,14 @@ export function LiveEmployeeList({
           <RefreshControl refreshing={refreshing} onRefresh={handleRefresh} />
         }
       >
-        {workingEmployees.length === 0 ? (
+        {activeEmployees.length === 0 ? (
           <EmptyState
             icon={<Users size={48} color="#E0E0E0" />}
             title={t('live_tracking.no_employees_working')}
             message={t('live_tracking.no_active_employees')}
           />
         ) : (
-          workingEmployees.map((employee) => (
+          activeEmployees.map((employee) => (
             <TouchableOpacity
               key={employee.id}
               style={styles.employeeCard}

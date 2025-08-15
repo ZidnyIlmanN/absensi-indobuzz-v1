@@ -71,7 +71,12 @@ export default function LiveTrackingScreen() {
   const [mapReady, setMapReady] = useState(false);
 
   // Filter working employees
-  const workingEmployees = trackingEmployees.filter(emp => emp.status === 'online');
+  const activeEmployees = trackingEmployees.filter(emp => 
+    emp.status === 'online' || emp.status === 'break'
+  );
+  
+  console.log('Live tracking screen - Total employees:', trackingEmployees.length);
+  console.log('Live tracking screen - Active employees:', activeEmployees.length);
 
   useEffect(() => {
     // Initial data load
@@ -129,7 +134,7 @@ export default function LiveTrackingScreen() {
   };
 
   // Use live location data from tracking service
-  const employeeLocations = workingEmployees.filter(emp => emp.liveLocation);
+  const employeeLocations = activeEmployees.filter(emp => emp.liveLocation);
 
   const getMarkerColor = (status: string) => {
     switch (status) {
@@ -205,7 +210,7 @@ export default function LiveTrackingScreen() {
                     isRefreshing && styles.spinning,
                     { transform: [{ rotate: isRefreshing ? '360deg' : '0deg' }] }
                   ]}
-                />
+              <Text style={styles.statNumber}>{activeEmployees.length}</Text>
               </TouchableOpacity>
             </View>
           </View>
@@ -361,7 +366,7 @@ export default function LiveTrackingScreen() {
               styles.tabText,
               activeTab === 'employees' && styles.activeTabText
             ]}>
-              {t('live_tracking.employees')} ({workingEmployees.length})
+              {t('live_tracking.employees')} ({activeEmployees.length})
             </Text>
           </TouchableOpacity>
           

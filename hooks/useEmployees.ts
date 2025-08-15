@@ -31,6 +31,7 @@ export function useEmployees() {
     setEmployeesState(prev => ({ ...prev, isLoading: true, error: null }));
 
     try {
+      console.log('Loading employees with current attendance status...');
       const { employees, error } = await employeesService.getAllEmployees({
         includeInactive: true,
         sortBy: employeesState.sortBy,
@@ -43,6 +44,8 @@ export function useEmployees() {
         return;
       }
 
+      console.log(`Loaded ${employees.length} employees:`, employees.map(e => ({ name: e.name, status: e.status })));
+      
       const activeCount = employees.filter(emp => emp.isActive).length;
       
       setEmployeesState(prev => ({

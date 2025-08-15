@@ -45,6 +45,7 @@ export function useLiveTracking(options: UseLiveTrackingOptions = {}) {
 
   const loadEmployeeLocations = useCallback(async () => {
     try {
+      console.log('Loading live employee locations...');
       const { employees, error } = await liveTrackingService.getLiveEmployeeLocations();
       
       if (error) {
@@ -52,6 +53,13 @@ export function useLiveTracking(options: UseLiveTrackingOptions = {}) {
         return;
       }
 
+      console.log(`Live tracking loaded ${employees.length} employees with locations`);
+      console.log('Employee statuses:', employees.map(e => ({ 
+        name: e.name, 
+        status: e.status, 
+        hasLiveLocation: !!e.liveLocation 
+      })));
+      
       setTrackingState(prev => ({
         ...prev,
         employees,

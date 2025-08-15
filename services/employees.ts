@@ -19,10 +19,23 @@ export const employeesService = {
       
       const today = new Date().toISOString().split('T')[0];
       
-      // Get profiles with proper sorting and optional limit
-      const { data: profiles, error: profilesError } = await supabase
+      // Get profiles with their current attendance status
+      const { data: profilesWithAttendance, error: profilesError } = await supabase
         .from('profiles')
-        .select('*')
+        .select(`
+          *,
+          attendance_records!left (
+            id,
+            status,
+            clock_in,
+            clock_out,
+            date,
+            location_lat,
+            location_lng,
+            location_address
+          )
+        `)
+        .eq('attendance_records.date', today)
         .order(sortBy, { ascending: sortOrder === 'asc' })
         .limit(limit);
 
@@ -30,24 +43,12 @@ export const employeesService = {
         return { employees: [], error: handleSupabaseError(profilesError) };
       }
 
-      // Get today's attendance records for the fetched users
-      const userIds = profiles.map(profile => profile.id);
-      const { data: attendanceRecords, error: attendanceError } = await supabase
-        .from('attendance_records')
-        .select('*')
-        .eq('date', today)
-        .in('user_id', userIds);
-
-      if (attendanceError) {
-        console.warn('Failed to fetch attendance records:', attendanceError);
-      }
-
       // Map profiles to employees with their attendance data
-      const employees = profiles.map((profile: any) => {
-        // Find today's attendance record for this user
-        const todayAttendance = attendanceRecords?.find((record: any) => 
-          record.user_id === profile.id
-        );
+      const employees = profilesWithAttendance.map((profile: any) => {
+        // Get the attendance record from the joined data
+        const todayAttendance = profile.attendance_records && profile.attendance_records.length > 0 
+          ? profile.attendance_records[0] 
+          : null;
         
         return this.mapEmployeeRecord(profile, todayAttendance);
       });
@@ -65,6 +66,7 @@ export const employeesService = {
     let status: Employee['status'] = 'offline';
     
     if (todayAttendance) {
+      console.log(`Mapping employee ${profile.name} with attendance status: ${todayAttendance.status}`);
       switch (todayAttendance.status) {
         case 'working':
           status = 'online';
@@ -78,6 +80,8 @@ export const employeesService = {
         default:
           status = 'offline';
       }
+    } else {
+      console.log(`Employee ${profile.name} has no attendance record for today`);
     }
 
     return {
