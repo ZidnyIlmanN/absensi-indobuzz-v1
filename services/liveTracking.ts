@@ -36,15 +36,14 @@ export const liveTrackingService = {
     try {
       const today = new Date().toISOString().split('T')[0];
 
-      // Get all employees with their current attendance (including completed status for visibility)
+      // Get all employees with their current attendance
       const { data, error } = await supabase
         .from('profiles')
         .select(`
           *,
-          attendance_records!left (
+          attendance_records!inner (
             id,
             clock_in,
-            clock_out,
             status,
             location_lat,
             location_lng,
@@ -52,65 +51,41 @@ export const liveTrackingService = {
           )
         `)
         .eq('attendance_records.date', today)
-        .order('attendance_records.clock_in', { ascending: false });
+        .in('attendance_records.status', ['working', 'break']);
 
       if (error) {
         return { employees: [], error: handleSupabaseError(error) };
       }
 
-      const employees = data
-        .filter((profile: any) => {
-          // Only include employees who have attendance records for today
-          return profile.attendance_records && profile.attendance_records.length > 0;
-        })
-        .map((profile: any) => {
-          const attendance = profile.attendance_records[0];
-          
-          // Determine status based on attendance
-          let employeeStatus: 'online' | 'break' | 'offline' = 'offline';
-          
-          switch (attendance.status) {
-            case 'working':
-              employeeStatus = 'online';
-              break;
-            case 'break':
-              employeeStatus = 'break';
-              break;
-            case 'completed':
-              employeeStatus = 'offline';
-              break;
-            default:
-              employeeStatus = 'offline';
-          }
+      const employees = data.map((profile: any) => {
+        const attendance = profile.attendance_records[0];
         
-          console.log(`Live tracking - Employee ${profile.name}: ${attendance.status} -> ${employeeStatus}`);
-          
-          return {
-            id: profile.id,
-            name: profile.name,
-            employeeId: profile.employee_id,
-            position: profile.position || '',
-            department: profile.department || '',
-            avatar: profile.avatar_url || '',
-            status: employeeStatus,
-            workHours: profile.work_schedule || '09:00-18:00',
-            location: profile.location || '',
-            phone: profile.phone || '',
-            email: profile.email,
-            joinDate: profile.join_date,
-            isActive: true,
-            liveLocation: {
-              employeeId: profile.id,
-              location: {
-                latitude: parseFloat(attendance.location_lat),
-                longitude: parseFloat(attendance.location_lng),
-                address: attendance.location_address,
-              },
-              timestamp: new Date(attendance.clock_in),
-              status: attendance.status,
+        return {
+          id: profile.id,
+          name: profile.name,
+          employeeId: profile.employee_id,
+          position: profile.position || '',
+          department: profile.department || '',
+          avatar: profile.avatar_url || '',
+          status: attendance.status === 'working' ? 'online' : 'break',
+          workHours: profile.work_schedule || '09:00-18:00',
+          location: profile.location || '',
+          phone: profile.phone || '',
+          email: profile.email,
+          joinDate: profile.join_date,
+          isActive: true,
+          liveLocation: {
+            employeeId: profile.id,
+            location: {
+              latitude: parseFloat(attendance.location_lat),
+              longitude: parseFloat(attendance.location_lng),
+              address: attendance.location_address,
             },
-          } as Employee & { liveLocation: LiveTrackingData };
-        });
+            timestamp: new Date(attendance.clock_in),
+            status: attendance.status,
+          },
+        } as Employee & { liveLocation: LiveTrackingData };
+      });
 
       return { employees, error: null };
     } catch (error) {

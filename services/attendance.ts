@@ -96,8 +96,6 @@ export const attendanceService = {
         selfieUrl: uploadedSelfieUrl,
       });
 
-      console.log(`Clock in successful for user ${data.userId}, status: working`);
-      
       return {
         attendance: this.mapAttendanceRecord(attendance),
         error: null,
@@ -217,10 +215,8 @@ export const attendanceService = {
 
       // Update attendance status based on activity type
       if (data.type === 'break_start') {
-        console.log(`Setting attendance status to 'break' for user ${data.userId}`);
         await this.updateAttendanceStatus(data.attendanceId, 'break');
       } else if (data.type === 'break_end') {
-        console.log(`Setting attendance status to 'working' for user ${data.userId}`);
         await this.updateAttendanceStatus(data.attendanceId, 'working');
         // Calculate break duration and update break_time
         const { data: breakStart } = await supabase
@@ -363,8 +359,6 @@ export const attendanceService = {
     status: AttendanceRecord['status']
   ): Promise<{ error: string | null }> {
     try {
-      console.log(`Updating attendance ${attendanceId} status to: ${status}`);
-      
       const { error } = await supabase
         .from('attendance_records')
         .update({
@@ -373,12 +367,6 @@ export const attendanceService = {
         })
         .eq('id', attendanceId);
 
-      if (!error) {
-        console.log(`Attendance status updated successfully to: ${status}`);
-      } else {
-        console.error('Failed to update attendance status:', error);
-      }
-      
       return { error: error ? handleSupabaseError(error) : null };
     } catch (error) {
       return { error: handleSupabaseError(error) };
