@@ -158,16 +158,16 @@ export function useLiveTracking(options: UseLiveTrackingOptions = {}) {
     if (enableRealTimeUpdates) {
       const unsubscribe = liveTrackingService.subscribeToLocationUpdates((data) => {
         setTrackingState(prev => {
-          const updatedEmployees = prev.employees.map(emp => {
+        const updatedEmployees = prev.employees.map(emp => {
             if (emp.id === data.employeeId) {
-              return {
+            return {
                 ...emp,
                 liveLocation: data,
-                status: data.status === 'working' ? 'online' : data.status === 'break' ? 'break' : 'offline',
-              };
+                status: data.status === 'working' ? 'online' : data.status === 'break' ? 'break' : 'offline' as 'break' | 'online' | 'offline',
+            };
             }
             return emp;
-          });
+        });
 
           return {
             ...prev,
