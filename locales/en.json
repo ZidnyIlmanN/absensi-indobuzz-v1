@@ -139,7 +139,11 @@
     "out": "Out",
     "break_started": "Break Started",
     "break_ended": "Break Ended",
-    "work_hours": "Work Hours"
+    "work_hours": "Work Hours",
+    "working": "Working",
+    "working_ellipsis": "Working...",
+    "break_ellipsis": "Break...",
+    "off_ellipsis": "Off..."
   },
   "employee": {
     "employee_directory": "Employee Directory",
@@ -183,7 +187,8 @@
     "failed_to_load": "Failed to load employee details",
     "no_employee_data": "The requested employee could not be found.",
     "employee_details": "Employee Details",
-    "tenure": "Tenure"
+    "tenure": "Tenure",
+    "of": "of"
   },
   "requests": {
     "requests": "Requests",
@@ -341,6 +346,7 @@
     "break_summary": "Break Summary",
     "break_duration": "Break Duration",
     "break_started": "Break Started",
+    "break_used": "Break Used",
     "end_break_resume": "End Break & Resume Work",
     "break_confirmation": "Break Confirmation",
     "verify_identity_start": "Verify your identity to start break",
@@ -782,6 +788,7 @@
     "live_attendance": "Live Attendance",
     "live_tracking": "Live Tracking",
     "request_permission": "Request Permission",
+    "sick_leave": "Sick",
     "reimburse": "Reimburse",
     "attendance_history": "Attendance History",
     "shift_schedule": "Shift Schedule",
@@ -807,7 +814,7 @@
     "office_location": "Office Location",
     "focusing_on_office": "Focusing on {{name}}",
     "live_attendance": "Live Attendance",
-    "office_locations": "Office Locations",
+    "office_locations": "Office",
     "employees": "Employees",
     "locations": "Locations",
     "no_employees_working": "No Employees Working",

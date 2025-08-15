@@ -137,7 +137,11 @@
     "in": "Masuk",
     "total_work_hours": "Total Jam Kerja",
     "completed": "Selesai",
-    "tap_to_view_details": "Ketuk untuk melihat detail"
+    "tap_to_view_details": "Ketuk untuk melihat detail",
+    "working": "Bekerja",
+    "working_ellipsis": "Bekerja...",
+    "break_ellipsis": "Istirahat...",
+    "off_ellipsis": "Libur..."
   },
   "employee": {
     "employee_directory": "Direktori Karyawan",
@@ -181,7 +185,8 @@
     "failed_to_load": "Gagal memuat detail karyawan",
     "no_employee_data": "Karyawan yang diminta tidak dapat ditemukan.",
     "employee_details": "Detail Karyawan",
-    "tenure": "Masa Jabatan"
+    "tenure": "Masa Jabatan",
+    "of": "dari"
   },
   "requests": {
     "requests": "Permintaan",
@@ -339,6 +344,7 @@
     "break_summary": "Ringkasan Istirahat",
     "break_duration": "Durasi Istirahat",
     "break_started": "Istirahat Dimulai",
+    "break_used": "Istirahat Terpakai",
     "end_break_resume": "Akhiri Istirahat & Lanjutkan Kerja",
     "break_confirmation": "Konfirmasi Istirahat",
     "verify_identity_start": "Verifikasi identitas Anda untuk memulai istirahat",
@@ -776,6 +782,7 @@
     "live_attendance": "Absensi Langsung",
     "live_tracking": "Pelacakan Langsung",
     "request_permission": "Ajukan Izin",
+    "sick_leave": "Sakit",
     "reimburse": "Reimburse",
     "attendance_history": "Riwayat Absensi",
     "shift_schedule": "Jadwal Shift",
@@ -801,7 +808,7 @@
     "office_location": "Lokasi Kantor",
     "focusing_on_office": "Fokus pada {{name}}",
     "live_attendance": "Absensi Langsung",
-    "office_locations": "Lokasi Kantor",
+    "office_locations": "Kantor",
     "employees": "Karyawan",
     "locations": "Lokasi",
     "no_employees_working": "Tidak Ada Karyawan Bekerja",
