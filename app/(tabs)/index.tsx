@@ -93,8 +93,8 @@ export default function HomeScreen() {
 
   const onRefresh = async () => {
     setRefreshing(true);
-    console.log('Refreshing home screen data...');
-    await refreshData();
+    // Simulate API call
+    await new Promise(resolve => setTimeout(resolve, 1000));
     setRefreshing(false);
   };
 

@@ -52,13 +52,11 @@ export default function EmployeeScreen() {
 
   const onRefresh = useCallback(async () => {
     setRefreshing(true);
-    console.log('Refreshing employee data...');
     await refreshEmployees();
     setRefreshing(false);
   }, [refreshEmployees]);
 
   const onSearch = useCallback(async (query: string) => {
-    console.log('Searching employees with query:', query);
     if (query.trim()) {
       await searchEmployees(query);
     } else {
@@ -119,16 +117,9 @@ export default function EmployeeScreen() {
   };
 
   // Calculate stats from filtered data
-  const onlineEmployees = filteredEmployees.filter(e => e.status === 'online').length;
+  const workingEmployees = filteredEmployees.filter(e => e.status === 'online').length;
   const onBreakEmployees = filteredEmployees.filter(e => e.status === 'break').length;
   const offlineEmployees = filteredEmployees.filter(e => e.status === 'offline').length;
-  
-  console.log('Employee tab stats:', { 
-    total: filteredEmployees.length, 
-    online: onlineEmployees, 
-    break: onBreakEmployees, 
-    offline: offlineEmployees 
-  });
 
 
   const SortModal = () => (
@@ -329,7 +320,7 @@ export default function EmployeeScreen() {
       >
         <Text style={styles.headerTitle}>{t('employee.employee_directory')}</Text>
         <Text style={styles.headerSubtitle}>
-          {filteredEmployees.length} {t('employee.of')} {totalCount} {t('employee.employees')} • {onlineEmployees} {t('employee.working')}
+          {filteredEmployees.length} {t('employee.of')} {totalCount} {t('employee.employees')} • {workingEmployees} {t('employee.working')}
         </Text>
       </LinearGradient>
 
@@ -389,7 +380,7 @@ export default function EmployeeScreen() {
               <Clock size={15} color="#4CAF50" />
             </View>
             <View style={styles.statInfo}>
-              <Text style={styles.statValue}>{onlineEmployees}</Text>
+              <Text style={styles.statValue}>{workingEmployees}</Text>
               <Text style={styles.statLabel}>{t('employee.working')}</Text>
             </View>
           </View>
