@@ -3,10 +3,8 @@ import {
   View,
   Text,
   StyleSheet,
-  ScrollView,
-  TouchableOpacity,
   Dimensions,
-  RefreshControl,
+  TouchableOpacity,
   Alert,
   Platform,
 } from 'react-native';
@@ -18,43 +16,35 @@ import {
   ArrowLeft,
   MapPin,
   Users,
+  Building,
   Navigation,
   RefreshCw,
-  Map as MapIcon,
-  List,
-  ToggleLeft,
-  ToggleRight,
-  Wifi,
-  WifiOff,
-  Activity,
-  Building,
+  Settings,
+  Maximize,
+  Clock,
 } from 'lucide-react-native';
 import { useTranslation } from 'react-i18next';
-import { useLiveTracking } from '@/hooks/useLiveTracking';
+import { useEmployees } from '@/hooks/useEmployees';
 import { useLocationTracking } from '@/hooks/useLocationTracking';
-import { LoadingSpinner } from '@/components/LoadingSpinner';
-import { EmptyState } from '@/components/EmptyState';
-import { LiveTrackingStats } from '@/components/LiveTrackingStats';
+import { OFFICE_COORDINATES } from '@/utils/location';
+import { DraggableModal } from '@/components/DraggableModal';
 import { LiveEmployeeList } from '@/components/LiveEmployeeList';
 import { OfficeLocationList } from '@/components/OfficeLocationList';
+import { LoadingSpinner } from '@/components/LoadingSpinner';
+import { useLiveTracking } from '@/hooks/useLiveTracking';
+import { Employee } from '@/types';
+import { LeafletMap } from '@/components/LeafletMap';
 import { MapErrorBoundary } from '@/components/MapErrorBoundary';
 import { MapFallback } from '@/components/MapFallback';
-import { LeafletMap, LeafletMapRef } from '@/components/LeafletMap';
-import { createEmployeeMarker, createOfficeMarker, calculateBounds } from '@/utils/mapUtils';
-import { Colors } from '@/constants/Colors';
 
 const { width, height } = Dimensions.get('window');
-
-type ViewMode = 'map' | 'list';
 
 export default function LiveTrackingScreen() {
   const insets = useSafeAreaInsets();
   const { t } = useTranslation();
-  const mapRef = useRef<LeafletMapRef>(null);
-  
-  // Hooks
+  const mapRef = useRef<any>(null);
   const {
-    employees,
+    employees: trackingEmployees,
     officeLocations,
     stats,
     isLoading,
@@ -62,374 +52,350 @@ export default function LiveTrackingScreen() {
     refreshData,
   } = useLiveTracking({
     autoRefresh: true,
-    refreshInterval: 30000, // 30 seconds
+    refreshInterval: 30000,
     enableRealTimeUpdates: true,
   });
-
+  
   const {
     currentLocation,
-    isWithinOfficeRange,
-    distanceFromOffice,
+    isLoading: locationLoading,
+    error: locationError,
     refreshLocation,
   } = useLocationTracking({
     enableRealTimeTracking: true,
-    trackingInterval: 10000, // 10 seconds
+    trackingInterval: 10000,
   });
 
-  // State
-  const [viewMode, setViewMode] = useState<ViewMode>('map');
-  const [refreshing, setRefreshing] = useState(false);
+  const [activeTab, setActiveTab] = useState<'employees' | 'locations'>('employees');
+  const [isRefreshing, setIsRefreshing] = useState(false);
   const [mapReady, setMapReady] = useState(false);
-  const [mapError, setMapError] = useState<string | null>(null);
-  const [focusedEmployee, setFocusedEmployee] = useState<string | null>(null);
-  const [showOfflineMessage, setShowOfflineMessage] = useState(false);
 
-  // Check network connectivity
-  const [isOnline, setIsOnline] = useState(true);
+  // Filter working employees
+  const workingEmployees = trackingEmployees.filter(emp => emp.status === 'online');
 
   useEffect(() => {
-    // Simulate network check
-    const checkNetwork = () => {
-      // In a real app, you'd use @react-native-community/netinfo
-      setIsOnline(true);
-    };
-    
-    checkNetwork();
-    const interval = setInterval(checkNetwork, 30000);
-    return () => clearInterval(interval);
+    // Initial data load
+    refreshData();
   }, []);
 
-  const onRefresh = async () => {
-    setRefreshing(true);
+  const handleRefresh = async () => {
+    setIsRefreshing(true);
     try {
       await Promise.all([
         refreshData(),
         refreshLocation(),
       ]);
     } catch (error) {
-      console.error('Refresh failed:', error);
-      Alert.alert('Refresh Failed', 'Unable to refresh data. Please try again.');
+      Alert.alert(t('common.error'), t('live_tracking.refresh_failed'));
     } finally {
-      setRefreshing(false);
+      setIsRefreshing(false);
     }
   };
 
-  const handleEmployeeFocus = (employee: any) => {
-    if (viewMode === 'map' && mapRef.current && employee.liveLocation) {
-      const position: [number, number] = [
-        employee.liveLocation.location.latitude,
-        employee.liveLocation.location.longitude,
-      ];
-      
-      mapRef.current.setView(position, 16);
-      setFocusedEmployee(employee.id);
-      
-      // Show focus message
-      Alert.alert(
-        t('live_tracking.employee_location'),
-        t('live_tracking.focusing_on_employee', { name: employee.name })
-      );
-    }
-  };
+  const handleEmployeeFocus = (employee: Employee) => {
+    if (!mapRef.current || !employee.currentAttendance?.location) return;
 
-  const handleOfficeFocus = (office: any) => {
-    if (viewMode === 'map' && mapRef.current) {
-      const position: [number, number] = [
-        office.coordinates.latitude,
-        office.coordinates.longitude,
-      ];
-      
-      mapRef.current.setView(position, 15);
-      
-      Alert.alert(
-        t('live_tracking.office_location'),
-        t('live_tracking.focusing_on_office', { name: office.name })
-      );
-    }
-  };
-
-  const handleMapReady = () => {
-    setMapReady(true);
-    setMapError(null);
-    console.log('Map is ready');
-  };
-
-  const handleMapError = (error: any) => {
-    setMapError(error.message || 'Map failed to load');
-    console.error('Map error:', error);
-  };
-
-  // Create markers for map
-  const mapMarkers = React.useMemo(() => {
-    const markers = [];
+    const { latitude, longitude } = employee.currentAttendance.location;
     
-    // Add employee markers
-    employees.forEach(employee => {
-      const marker = createEmployeeMarker(employee);
-      if (marker) {
-        markers.push(marker);
-      }
-    });
-    
-    // Add office markers
-    officeLocations.forEach(office => {
-      markers.push(createOfficeMarker(office));
-    });
-    
-    return markers;
-  }, [employees, officeLocations]);
-
-  // Calculate map center
-  const mapCenter: [number, number] = React.useMemo(() => {
-    if (currentLocation) {
-      return [currentLocation.latitude, currentLocation.longitude];
-    }
-    
-    if (officeLocations.length > 0) {
-      return [
-        officeLocations[0].coordinates.latitude,
-        officeLocations[0].coordinates.longitude,
-      ];
-    }
-    
-    // Default to Jakarta
-    return [-6.2088, 106.8456];
-  }, [currentLocation, officeLocations]);
-
-  const renderMapView = () => {
-    if (Platform.OS === 'web') {
-      return (
-        <MapFallback
-          employees={employees}
-          officeLocations={officeLocations}
-          currentLocation={currentLocation}
-          onEmployeeFocus={handleEmployeeFocus}
-          onLocationFocus={handleOfficeFocus}
-          onRefresh={onRefresh}
-          isRefreshing={refreshing}
-        />
-      );
+    // Focus on employee location using Leaflet map
+    if (mapRef.current && mapRef.current.setView) {
+      mapRef.current.setView([latitude, longitude], 16);
     }
 
-    return (
-      <MapErrorBoundary
-        onError={handleMapError}
-        fallbackComponent={
-          <MapFallback
-            employees={employees}
-            officeLocations={officeLocations}
-            currentLocation={currentLocation}
-            onEmployeeFocus={handleEmployeeFocus}
-            onLocationFocus={handleOfficeFocus}
-            onRefresh={onRefresh}
-            isRefreshing={refreshing}
-          />
-        }
-      >
-        <LeafletMap
-          ref={mapRef}
-          center={mapCenter}
-          zoom={13}
-          markers={mapMarkers}
-          onMarkerClick={(marker) => {
-            if (marker.type === 'employee' && marker.employee) {
-              handleEmployeeFocus(marker.employee);
-            } else if (marker.type === 'office') {
-              handleOfficeFocus(marker);
-            }
-          }}
-          onMapReady={handleMapReady}
-          showUserLocation={true}
-          userLocation={currentLocation ? [currentLocation.latitude, currentLocation.longitude] : undefined}
-          style={styles.map}
-        />
-      </MapErrorBoundary>
+    Alert.alert(
+      t('live_tracking.employee_location'),
+      t('live_tracking.focusing_on_employee', { name: employee.name }),
+      [{ text: t('common.ok') }]
     );
   };
 
-  const renderListView = () => (
-    <ScrollView 
-      style={styles.listContainer}
-      refreshControl={
-        <RefreshControl refreshing={refreshing} onRefresh={onRefresh} />
-      }
-    >
-      <LiveEmployeeList
-        onEmployeeFocus={handleEmployeeFocus}
-        refreshing={refreshing}
-        onRefresh={onRefresh}
-      />
-      
-      <OfficeLocationList
-        onLocationFocus={handleOfficeFocus}
-        currentLocation={currentLocation}
-      />
-    </ScrollView>
-  );
+  const handleLocationFocus = (location: any) => {
+    if (!mapRef.current) return;
+
+    // Focus on office location using Leaflet map
+    if (mapRef.current && mapRef.current.setView) {
+      mapRef.current.setView([location.coordinates.latitude, location.coordinates.longitude], 15);
+    }
+
+    Alert.alert(
+      t('live_tracking.office_location'),
+      t('live_tracking.focusing_on_office', { name: location.name }),
+      [{ text: t('common.ok') }]
+    );
+  };
+
+  const handleSnapPointChange = (index: number) => {
+    console.log('Modal snap point changed to:', index);
+  };
+
+  // Use live location data from tracking service
+  const employeeLocations = workingEmployees.filter(emp => emp.liveLocation);
+
+  const getMarkerColor = (status: string) => {
+    switch (status) {
+      case 'online':
+        return '#4CAF50';
+      case 'break':
+        return '#FF9800';
+      case 'offline':
+        return '#9E9E9E';
+      default:
+        return '#4A90E2';
+    }
+  };
+
+  // Prepare markers for the map
+  const mapMarkers = [
+    // Office locations
+    ...officeLocations.map(office => ({
+      id: `office-${office.id}`,
+      position: [office.coordinates.latitude, office.coordinates.longitude] as [number, number],
+      title: office.name,
+      description: office.address,
+      color: '#2196F3',
+      type: 'office' as const,
+    })),
+    // Employee locations
+    ...employeeLocations.map(employee => ({
+      id: `employee-${employee.id}`,
+      position: [
+        employee.liveLocation!.location.latitude,
+        employee.liveLocation!.location.longitude
+      ] as [number, number],
+      title: employee.name,
+      description: `${employee.position} • ${employee.status}`,
+      color: getMarkerColor(employee.status),
+      type: 'employee' as const,
+      employee,
+    })),
+  ];
 
   return (
     <View style={styles.container}>
       <StatusBar style="light" />
       
-      {/* Header */}
+      {/* Modern Professional Header */}
       <LinearGradient
-        colors={['#4A90E2', '#357ABD']}
-        style={[styles.header, { paddingTop: insets.top + 20 }]}
+        colors={['#4A90E2', 'rgba(74, 144, 226, 0)']}
+        locations={[0.6, 1]}
+        style={[styles.header, { paddingTop: insets.top }]}
       >
-        <View style={styles.headerContent}>
-          <TouchableOpacity
-            style={styles.backButton}
-            onPress={() => router.back()}
-          >
-            <ArrowLeft size={24} color="white" />
-          </TouchableOpacity>
-          
-          <View style={styles.headerCenter}>
-            <Text style={styles.headerTitle}>{t('live_tracking.live_tracking')}</Text>
-            <Text style={styles.headerSubtitle}>
-              {stats.activeEmployees} {t('live_tracking.employees_active')}
-            </Text>
-          </View>
-
-          <View style={styles.headerRight}>
-            <View style={styles.connectionStatus}>
-              {isOnline ? (
-                <Wifi size={16} color="rgba(255, 255, 255, 0.8)" />
-              ) : (
-                <WifiOff size={16} color="#FF6B6B" />
-              )}
-            </View>
-            
+        <View style={styles.headerContainer}>
+          {/* Top Row - Navigation and Actions */}
+          <View style={styles.headerTopRow}>
             <TouchableOpacity
-              style={styles.refreshButton}
-              onPress={onRefresh}
-              disabled={refreshing}
+              style={styles.backButton}
+              onPress={() => router.back()}
+              activeOpacity={0.8}
             >
-              <RefreshCw 
-                size={16} 
-                color="white" 
-                style={refreshing ? styles.spinning : undefined}
-              />
+              <ArrowLeft size={20} color="white" />
             </TouchableOpacity>
-          </View>
-        </View>
-
-        {/* View Mode Toggle */}
-        <View style={styles.viewModeContainer}>
-          <TouchableOpacity
-            style={[styles.viewModeButton, viewMode === 'map' && styles.activeViewMode]}
-            onPress={() => setViewMode('map')}
-          >
-            <MapIcon size={16} color={viewMode === 'map' ? '#4A90E2' : 'rgba(255,255,255,0.8)'} />
-            <Text style={[
-              styles.viewModeText,
-              viewMode === 'map' && styles.activeViewModeText
-            ]}>
-              Map
-            </Text>
-          </TouchableOpacity>
-          
-          <TouchableOpacity
-            style={[styles.viewModeButton, viewMode === 'list' && styles.activeViewMode]}
-            onPress={() => setViewMode('list')}
-          >
-            <List size={16} color={viewMode === 'list' ? '#4A90E2' : 'rgba(255,255,255,0.8)'} />
-            <Text style={[
-              styles.viewModeText,
-              viewMode === 'list' && styles.activeViewModeText
-            ]}>
-              List
-            </Text>
-          </TouchableOpacity>
-        </View>
-
-        {/* Location Status */}
-        {currentLocation && (
-          <View style={styles.locationStatus}>
-            <View style={styles.locationStatusContent}>
-              <Navigation size={14} color="rgba(255, 255, 255, 0.8)" />
-              <Text style={styles.locationStatusText}>
-                {isWithinOfficeRange 
-                  ? t('live_tracking.tracking_active')
-                  : t('live_tracking.location_unavailable')
-                }
-              </Text>
-              <View style={[
-                styles.statusDot,
-                { backgroundColor: isWithinOfficeRange ? '#4CAF50' : '#FF9800' }
-              ]} />
+            
+            <View style={styles.headerActions}>
+              <TouchableOpacity
+                style={[styles.actionButton, isRefreshing && styles.refreshingButton]}
+                onPress={handleRefresh}
+                disabled={isRefreshing}
+                activeOpacity={0.8}
+              >
+                <RefreshCw 
+                  size={18} 
+                  color="rgba(255, 255, 255, 0.9)" 
+                  style={[
+                    isRefreshing && styles.spinning,
+                    { transform: [{ rotate: isRefreshing ? '360deg' : '0deg' }] }
+                  ]}
+                />
+              </TouchableOpacity>
             </View>
           </View>
-        )}
+
+          {/* Title Section */}
+          <View style={styles.titleSection}>
+            <Text style={styles.headerTitle}>Live Tracking</Text>
+            <Text style={styles.headerSubtitle}>
+              Real-time employee monitoring & location tracking
+            </Text>
+          </View>
+
+          {/* Stats Row */}
+          <View style={styles.statsRow}>
+            <View style={styles.statItem}>
+              <View style={styles.statIconContainer}>
+                <Users size={16} color="white" />
+              </View>
+              <View style={styles.statContent}>
+                <Text style={styles.statNumber}>{workingEmployees.length}</Text>
+                <Text style={styles.statLabel}>Online</Text>
+              </View>
+            </View>
+
+            <View style={styles.statDivider} />
+
+            <View style={styles.statItem}>
+              <View style={styles.statIconContainer}>
+                <Clock size={16} color="white" />
+              </View>
+              <View style={styles.statContent}>
+                <Text style={styles.statNumber}>{stats.onBreakEmployees}</Text>
+                <Text style={styles.statLabel}>On Break</Text>
+              </View>
+            </View>
+
+            <View style={styles.statDivider} />
+
+            <View style={styles.statItem}>
+              <View style={styles.statIconContainer}>
+                <Building size={16} color="white" />
+              </View>
+              <View style={styles.statContent}>
+                <Text style={styles.statNumber}>{officeLocations.length}</Text>
+                <Text style={styles.statLabel}>Locations</Text>
+              </View>
+            </View>
+
+          </View>
+        </View>
       </LinearGradient>
 
-      {/* Content */}
-      <View style={styles.content}>
-        {isLoading && employees.length === 0 ? (
-          <LoadingSpinner text={t('live_tracking.loading_map')} />
-        ) : error ? (
-          <EmptyState
-            icon={<MapPin size={48} color="#E0E0E0" />}
-            title={t('common.error')}
-            message={error}
-            actionText={t('common.retry')}
-            onAction={onRefresh}
+      {/* Map View */}
+      <View style={styles.mapContainer}>
+        <MapErrorBoundary
+          onError={(error, errorInfo) => {
+            console.error('Map error caught by boundary:', error, errorInfo);
+          }}
+          fallbackComponent={
+          <MapFallback
+            employees={employeeLocations}
+            officeLocations={officeLocations}
+            currentLocation={currentLocation ?? undefined}
+            onEmployeeFocus={handleEmployeeFocus}
+            onLocationFocus={handleLocationFocus}
+            onRefresh={handleRefresh}
+            isRefreshing={isRefreshing}
           />
-        ) : (
-          <>
-            {/* Stats */}
-            <LiveTrackingStats stats={stats} />
-            
-            {/* Main Content */}
-            {viewMode === 'map' ? (
-              <View style={styles.mapContainer}>
-                {renderMapView()}
+          }
+        >
+          {locationLoading && !mapReady ? (
+            <View style={styles.mapLoading}>
+              <LoadingSpinner text={t('live_tracking.loading_map')} />
+            </View>
+          ) : (
+            <LeafletMap
+              ref={mapRef}
+              center={[OFFICE_COORDINATES.latitude, OFFICE_COORDINATES.longitude]}
+              zoom={20}
+              markers={mapMarkers}
+              onMarkerClick={(marker) => {
+                if (marker.type === 'employee' && marker.employee) {
+                  handleEmployeeFocus(marker.employee);
+                }
+              }}
+              onMapReady={() => setMapReady(true)}
+              showUserLocation={!!currentLocation}
+              userLocation={currentLocation ? [currentLocation.latitude, currentLocation.longitude] : undefined}
+              style={styles.map}
+            />
+          )}
+        </MapErrorBoundary>
+
+        {/* Map Controls */}
+        <View style={styles.mapControls}>
+          <TouchableOpacity
+            style={styles.mapControlButton}
+            onPress={() => {
+              if (currentLocation && mapRef.current) {
+                mapRef.current.setView([currentLocation.latitude, currentLocation.longitude], 16);
+              }
+            }}
+          >
+            <Navigation size={20} color="#4A90E2" />
+          </TouchableOpacity>
+          
+          <TouchableOpacity
+            style={styles.mapControlButton}
+            onPress={() => {
+              if (mapRef.current) {
+                mapRef.current.setView([OFFICE_COORDINATES.latitude, OFFICE_COORDINATES.longitude], 15);
+              }
+            }}
+          >
+            <Building size={20} color="#4A90E2" />
+          </TouchableOpacity>
+          
+          <TouchableOpacity
+            style={styles.mapControlButton}
+            onPress={() => {
+              if (mapRef.current && employeeLocations.length > 0) {
+                // Fit bounds to show all employee locations
+                const bounds = employeeLocations.map(emp => [
+                  emp.liveLocation!.location.latitude,
+                  emp.liveLocation!.location.longitude
+                ] as [number, number]);
                 
-                {/* Map Controls */}
-                <View style={styles.mapControls}>
-                  <TouchableOpacity
-                    style={styles.mapControlButton}
-                    onPress={() => {
-                      if (currentLocation && mapRef.current) {
-                        mapRef.current.setView([currentLocation.latitude, currentLocation.longitude], 15);
-                      }
-                    }}
-                  >
-                    <Navigation size={16} color="#4A90E2" />
-                  </TouchableOpacity>
-                  
-                  <TouchableOpacity
-                    style={styles.mapControlButton}
-                    onPress={() => {
-                      if (mapMarkers.length > 0 && mapRef.current) {
-                        const bounds = calculateBounds(mapMarkers.map(m => m.position));
-                        mapRef.current.fitBounds([bounds.southwest, bounds.northeast]);
-                      }
-                    }}
-                  >
-                    <MapIcon size={16} color="#4A90E2" />
-                  </TouchableOpacity>
-                </View>
-              </View>
-            ) : (
-              renderListView()
-            )}
-          </>
-        )}
+                if (mapRef.current.fitBounds) {
+                  mapRef.current.fitBounds(bounds, { padding: [50, 50] });
+                }
+              }
+            }}
+          >
+            <Maximize size={20} color="#4A90E2" />
+          </TouchableOpacity>
+        </View>
       </View>
 
-      {/* Status Indicator */}
-      <View style={styles.statusIndicator}>
-        <View style={styles.statusDot}>
-          <Activity size={16} color="#4CAF50" />
+      {/* Draggable Bottom Modal */}
+      <DraggableModal
+        snapPoints={[0.25, 0.5, 0.65]}
+        initialSnapPoint={0}
+        onSnapPointChange={handleSnapPointChange}
+      >
+        {/* Tab Navigation */}
+        <View style={styles.tabContainer}>
+          <TouchableOpacity
+            style={[styles.tab, activeTab === 'employees' && styles.activeTab]}
+            onPress={() => setActiveTab('employees')}
+          >
+            <Users size={16} color={activeTab === 'employees' ? '#4A90E2' : '#666'} />
+            <Text style={[
+              styles.tabText,
+              activeTab === 'employees' && styles.activeTabText
+            ]}>
+              {t('live_tracking.employees')} ({workingEmployees.length})
+            </Text>
+          </TouchableOpacity>
+          
+          <TouchableOpacity
+            style={[styles.tab, activeTab === 'locations' && styles.activeTab]}
+            onPress={() => setActiveTab('locations')}
+          >
+            <Building size={16} color={activeTab === 'locations' ? '#4A90E2' : '#666'} />
+            <Text style={[
+              styles.tabText,
+              activeTab === 'locations' && styles.activeTabText
+            ]}>
+              {t('live_tracking.locations')}
+            </Text>
+          </TouchableOpacity>
         </View>
-        <Text style={styles.statusText}>
-          {t('live_tracking.tracking_active')} • {stats.activeEmployees} {t('live_tracking.employees')} • {t('common.last_sync')}: {new Date().toLocaleTimeString([], { 
-            hour: '2-digit', 
-            minute: '2-digit' 
-          })}
-        </Text>
-      </View>
+
+        {/* Tab Content */}
+        <View style={styles.tabContent}>
+          
+          {activeTab === 'employees' ? (
+            <LiveEmployeeList
+              onEmployeeFocus={handleEmployeeFocus}
+              refreshing={isRefreshing}
+              onRefresh={handleRefresh}
+            />
+          ) : (
+            <OfficeLocationList
+              onLocationFocus={handleLocationFocus}
+              currentLocation={currentLocation?.latitude && currentLocation?.longitude ? currentLocation : undefined}
+            />
+          )}
+        </View>
+      </DraggableModal>
     </View>
   );
 }
@@ -437,165 +403,183 @@ export default function LiveTrackingScreen() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: Colors.background,
+    backgroundColor: 'transparent',
   },
   header: {
     paddingBottom: 24,
-    paddingHorizontal: 20,
+    position: 'absolute',
+    top: 0,
+    left: 0,
+    right: 0,
+    zIndex: 1000,
   },
-  headerContent: {
+  headerContainer: {
+    paddingHorizontal: 20,
+    paddingTop: 12,
+  },
+  headerTopRow: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    marginBottom: 16,
+    marginBottom: 12,
   },
   backButton: {
     width: 40,
     height: 40,
-    borderRadius: 20,
-    backgroundColor: 'rgba(255, 255, 255, 0.2)',
+    borderRadius: 12,
+    backgroundColor: 'rgba(255, 255, 255, 0.15)',
     justifyContent: 'center',
     alignItems: 'center',
+    backdropFilter: 'blur(10px)',
   },
-  headerCenter: {
-    flex: 1,
-    alignItems: 'center',
-  },
-  headerTitle: {
-    fontSize: 20,
-    fontWeight: 'bold',
-    color: 'white',
-    marginBottom: 2,
-  },
-  headerSubtitle: {
-    fontSize: 12,
-    color: 'rgba(255, 255, 255, 0.8)',
-  },
-  headerRight: {
+  headerActions: {
     flexDirection: 'row',
-    alignItems: 'center',
-    gap: 8,
+    gap: 12,
   },
-  connectionStatus: {
-    width: 20,
-    alignItems: 'center',
-  },
-  refreshButton: {
-    width: 32,
-    height: 32,
-    borderRadius: 16,
-    backgroundColor: 'rgba(255, 255, 255, 0.2)',
+  actionButton: {
+    width: 40,
+    height: 40,
+    borderRadius: 12,
+    backgroundColor: 'rgba(255, 255, 255, 0.15)',
     justifyContent: 'center',
     alignItems: 'center',
+    position: 'relative',
+    backdropFilter: 'blur(10px)',
+  },
+  refreshingButton: {
+    backgroundColor: 'rgba(255, 255, 255, 0.52)',
   },
   spinning: {
     transform: [{ rotate: '360deg' }],
   },
-  viewModeContainer: {
-    flexDirection: 'row',
-    backgroundColor: 'rgba(255, 255, 255, 0.2)',
-    borderRadius: 12,
-    padding: 4,
+  titleSection: {
+    alignItems: 'flex-start',
     marginBottom: 12,
   },
-  viewModeButton: {
-    flex: 1,
+  headerTitle: {
+    fontSize: 32,
+    fontWeight: '700',
+    color: 'white',
+    marginBottom: 2,
+    letterSpacing: -0.5,
+  },
+  headerSubtitle: {
+    fontSize: 15,
+    color: 'rgba(255, 255, 255, 0.75)',
+    fontWeight: '400',
+    lineHeight: 20,
+  },
+  statsRow: {
     flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
-    paddingVertical: 8,
-    paddingHorizontal: 16,
-    borderRadius: 8,
-  },
-  activeViewMode: {
-    backgroundColor: 'white',
-  },
-  viewModeText: {
-    fontSize: 12,
-    color: 'rgba(255, 255, 255, 0.8)',
-    fontWeight: '500',
-    marginLeft: 6,
-  },
-  activeViewModeText: {
-    color: '#4A90E2',
-    fontWeight: '600',
-  },
-  locationStatus: {
-    alignItems: 'center',
-  },
-  locationStatusContent: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    backgroundColor: 'rgba(255, 255, 255, 0.1)',
-    paddingHorizontal: 12,
-    paddingVertical: 6,
+    backgroundColor: 'rgba(255, 255, 255, 0.12)',
     borderRadius: 16,
+    padding: 12,
+    marginBottom: 12,
+    backdropFilter: 'blur(20px)',
   },
-  locationStatusText: {
-    fontSize: 12,
-    color: 'rgba(255, 255, 255, 0.9)',
-    marginHorizontal: 8,
-    fontWeight: '500',
-  },
-  statusDot: {
-    width: 8,
-    height: 8,
-    borderRadius: 4,
-  },
-  content: {
+  statItem: {
     flex: 1,
-    paddingHorizontal: 20,
+    flexDirection: 'row',
+    alignItems: 'center',
+  },
+  statIconContainer: {
+    width: 32,
+    height: 32,
+    borderRadius: 8,
+    backgroundColor: 'rgba(255, 255, 255, 0.15)',
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginRight: 12,
+  },
+  statContent: {
+    flex: 1,
+  },
+  statNumber: {
+    fontSize: 20,
+    fontWeight: '700',
+    color: 'white',
+    lineHeight: 24,
+  },
+  statLabel: {
+    fontSize: 10,
+    color: 'rgba(255, 255, 255, 0.7)',
+    fontWeight: '500',
+    textTransform: 'uppercase',
+    letterSpacing: 0.5,
+  },
+  statDivider: {
+    width: 1,
+    height: 32,
+    backgroundColor: 'rgba(255, 255, 255, 0.15)',
+    marginHorizontal: 12,
   },
   mapContainer: {
     flex: 1,
-    borderRadius: 16,
-    overflow: 'hidden',
-    elevation: 4,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.1,
-    shadowRadius: 8,
-    backgroundColor: 'white',
     position: 'relative',
   },
   map: {
     flex: 1,
   },
+  mapLoading: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+    backgroundColor: '#F8F9FA',
+  },
   mapControls: {
     position: 'absolute',
-    top: 16,
-    right: 16,
+    top: 250,
+    right: 20,
     gap: 8,
   },
   mapControlButton: {
-    width: 40,
-    height: 40,
-    borderRadius: 20,
+    width: 44,
+    height: 44,
+    borderRadius: 22,
     backgroundColor: 'white',
     justifyContent: 'center',
     alignItems: 'center',
     elevation: 4,
     shadowColor: '#000',
     shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.1,
+    shadowOpacity: 0.15,
     shadowRadius: 4,
   },
-  listContainer: {
-    flex: 1,
+  tabContainer: {
+    flexDirection: 'row',
+    backgroundColor: '#F8F9FA',
+    borderRadius: 12,
+    padding: 4,
+    marginBottom: 16,
   },
-  statusIndicator: {
+  tab: {
+    flex: 1,
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
     paddingVertical: 12,
     paddingHorizontal: 16,
-    backgroundColor: 'white',
-    borderTopWidth: 1,
-    borderTopColor: '#F0F0F0',
+    borderRadius: 8,
   },
-  statusText: {
-    fontSize: 11,
+  activeTab: {
+    backgroundColor: 'white',
+    elevation: 2,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 1 },
+    shadowOpacity: 0.1,
+    shadowRadius: 2,
+  },
+  tabText: {
+    fontSize: 14,
     color: '#666',
-    marginLeft: 8,
+    fontWeight: '500',
+    marginLeft: 6,
+  },
+  activeTabText: {
+    color: '#4A90E2',
+    fontWeight: '600',
+  },
+  tabContent: {
+    flex: 1,
   },
 });
