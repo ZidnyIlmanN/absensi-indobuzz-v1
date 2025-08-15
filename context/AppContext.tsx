@@ -213,14 +213,12 @@ export const AppProvider = ({ children }: { children: ReactNode }) => {
   }, [attendance.currentAttendance?.clockIn, attendance.currentAttendance?.status, attendance.todayActivities, uiState.currentStatus]);
 
   const refreshData = async () => {
-    console.log('Refreshing all app data...');
     await Promise.all([
       attendance.refreshData(),
       notifications.refreshNotifications(),
       requests.refreshRequests(),
       auth.refreshUser(), // Added to refresh user data
     ]);
-    console.log('App data refresh completed');
   };
 
   const contextValue: AppContextType = {
