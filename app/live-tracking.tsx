@@ -81,6 +81,16 @@ export default function LiveTrackingScreen() {
   useEffect(() => {
     // Initial data load
     refreshData();
+    
+    // Set up real-time subscription for live tracking updates
+    const { employeesService } = require('@/services/employees');
+    const unsubscribe = employeesService.subscribeToEmployeeStatusUpdates((payload: any) => {
+      console.log('Live tracking received real-time update:', payload);
+      // Refresh tracking data when attendance changes
+      refreshData();
+    });
+    
+    return unsubscribe;
   }, []);
 
   const handleRefresh = async () => {

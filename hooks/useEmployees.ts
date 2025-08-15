@@ -167,6 +167,15 @@ export function useEmployees() {
 
   useEffect(() => {
     loadEmployees();
+    
+    // Set up real-time subscription for employee status updates
+    const unsubscribe = employeesService.subscribeToEmployeeStatusUpdates((payload) => {
+      console.log('Received real-time employee status update:', payload);
+      // Refresh employees when attendance status changes
+      loadEmployees();
+    });
+    
+    return unsubscribe;
   }, [loadEmployees]);
 
   return {

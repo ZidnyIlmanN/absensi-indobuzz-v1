@@ -2,6 +2,46 @@ import { supabase, handleSupabaseError } from '@/lib/supabase';
 import { Employee } from '@/types';
 
 export const employeesService = {
+  // Subscribe to real-time employee status updates
+  subscribeToEmployeeStatusUpdates(callback: (payload: any) => void) {
+    console.log('Setting up real-time employee status subscription...');
+    
+    const subscription = supabase
+      .channel('employee-status-changes')
+      .on(
+        'postgres_changes',
+        {
+          event: 'UPDATE',
+          schema: 'public',
+          table: 'attendance_records',
+        },
+        (payload) => {
+          console.log('Real-time attendance update received:', payload);
+          callback(payload);
+        }
+      )
+      .on(
+        'postgres_changes',
+        {
+          event: 'INSERT',
+          schema: 'public',
+          table: 'attendance_records',
+        },
+        (payload) => {
+          console.log('Real-time attendance insert received:', payload);
+          callback(payload);
+        }
+      )
+      .subscribe((status) => {
+        console.log('Employee status subscription status:', status);
+      });
+
+    return () => {
+      console.log('Unsubscribing from employee status updates');
+      supabase.removeChannel(subscription);
+    };
+  },
+
   // Get all employees
   async getAllEmployees(options?: {
     includeInactive?: boolean;
