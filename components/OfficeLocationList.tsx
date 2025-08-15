@@ -59,33 +59,9 @@ export function OfficeLocationList({
       name: t('live_tracking.main_office'),
       address: 'PT. INDOBUZZ REPUBLIK DIGITAL',
       coordinates: OFFICE_COORDINATES,
-      workingHours: '09:00 - 18:00',
+      workingHours: '10:00 - 17:00',
       employeeCount: 12,
       distance: currentLocation ? calculateDistance(currentLocation, OFFICE_COORDINATES) : undefined,
-    },
-    {
-      id: '2',
-      name: t('live_tracking.branch_office'),
-      address: 'Bandung Branch Office',
-      coordinates: {
-        latitude: -6.9175,
-        longitude: 107.6191,
-      },
-      workingHours: '08:30 - 17:30',
-      employeeCount: 8,
-      distance: currentLocation ? calculateDistance(currentLocation, { latitude: -6.9175, longitude: 107.6191 }) : undefined,
-    },
-    {
-      id: '3',
-      name: t('live_tracking.remote_office'),
-      address: 'Surabaya Remote Hub',
-      coordinates: {
-        latitude: -7.2575,
-        longitude: 112.7521,
-      },
-      workingHours: '09:00 - 18:00',
-      employeeCount: 5,
-      distance: currentLocation ? calculateDistance(currentLocation, { latitude: -7.2575, longitude: 112.7521 }) : undefined,
     },
   ];
 

@@ -82,18 +82,8 @@ export function LiveTrackingCard() {
             <Text style={styles.title}>
               {t('live_tracking.live_tracking_active')}
             </Text>
-            <Text style={styles.subtitle}>
-              {t('live_tracking.location_being_tracked')} • {workHours}
-            </Text>
           </View>
           <ChevronRight size={20} color="#999" />
-        </View>
-        
-        <View style={styles.locationInfo}>
-          <MapPin size={14} color="#666" />
-          <Text style={styles.locationText}>
-            PT. INDOBUZZ REPUBLIK DIGITAL
-          </Text>
         </View>
       </TouchableOpacity>
     </Animated.View>
@@ -103,7 +93,7 @@ export function LiveTrackingCard() {
 const styles = StyleSheet.create({
   container: {
     marginTop: -40,
-    marginBottom: 20,
+    marginBottom: 40,
   },
   card: {
     backgroundColor: '#E8F4FD',
@@ -114,14 +104,12 @@ const styles = StyleSheet.create({
     shadowColor: '#000',
     shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.1,
-    shadowRadius: 4,
-    borderLeftWidth: 4,
-    borderLeftColor: '#4A90E2',
+    shadowRadius: 2,
   },
   header: {
     flexDirection: 'row',
     alignItems: 'center',
-    marginBottom: 8,
+    marginBottom: 2,
   },
   iconContainer: {
     width: 32,
@@ -139,11 +127,6 @@ const styles = StyleSheet.create({
     fontSize: 16,
     fontWeight: '600',
     color: '#1A1A1A',
-    marginBottom: 2,
-  },
-  subtitle: {
-    fontSize: 12,
-    color: '#666',
   },
   locationInfo: {
     flexDirection: 'row',
