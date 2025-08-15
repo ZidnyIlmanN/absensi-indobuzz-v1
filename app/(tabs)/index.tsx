@@ -282,7 +282,9 @@ export default function HomeScreen() {
                 onPressBreak={() => router.push('/attendance')} />
             );
           })()}
-
+          
+          {/* Live Tracking Card */}
+          <LiveTrackingCard />
           <AttendanceCard
             isWorking={isWorking}
             workHours={workHours}
@@ -296,8 +298,6 @@ export default function HomeScreen() {
                 ? 'break'
                 : currentAttendance?.status || 'off'} />
 
-          {/* Live Tracking Card */}
-          <LiveTrackingCard />
 
           {/* Quick Actions */}
           <View style={styles.section}>
