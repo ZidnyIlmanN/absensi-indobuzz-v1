@@ -6,7 +6,6 @@ import { useAttendance } from '@/hooks/userAttendance';
 import { useNotifications } from '@/hooks/useNotifications';
 import { useRequests } from '@/hooks/useRequests';
 import { sessionMonitor } from '@/utils/sessionUtils';
-import { realTimeSyncService } from '@/services/realTimeSync';
 
 interface AppContextType {
   // Auth
@@ -82,22 +81,6 @@ export const AppProvider = ({ children }: { children: ReactNode }) => {
     
     try {
       if (auth.isAuthenticated) {
-        // Initialize real-time sync service
-        realTimeSyncService.initialize({
-          onEmployeeStatusChange: (employee) => {
-            console.log('Employee status changed in real-time:', employee.name, employee.status);
-            // Force refresh employee data when status changes
-            // This ensures all components get the latest data
-          },
-          onAttendanceUpdate: (attendanceData) => {
-            console.log('Attendance updated in real-time:', attendanceData);
-          },
-          onError: (error) => {
-            console.error('Real-time sync error:', error);
-          },
-          enableDebugLogging: true,
-        });
-        
         sessionMonitor.startMonitoring({
           onSessionExpired: () => {
             console.log('Session expired, redirecting to login');
@@ -112,7 +95,6 @@ export const AppProvider = ({ children }: { children: ReactNode }) => {
         });
       } else {
         sessionMonitor.stopMonitoring();
-        realTimeSyncService.cleanup();
       }
     } catch (sessionError) {
       console.error('Session monitoring error:', sessionError);
@@ -126,7 +108,6 @@ export const AppProvider = ({ children }: { children: ReactNode }) => {
     return () => {
       try {
         sessionMonitor.stopMonitoring();
-        realTimeSyncService.cleanup();
       } catch (error) {
         console.error('Error stopping session monitoring:', error);
       }
