@@ -7,6 +7,7 @@ import { useNotifications } from '@/hooks/useNotifications';
 import { useRequests } from '@/hooks/useRequests';
 import { sessionMonitor } from '@/utils/sessionUtils';
 import { realTimeSyncService } from '@/services/realTimeSync';
+import { attendanceSyncService } from '@/services/attendanceSync';
 
 interface AppContextType {
   // Auth
@@ -85,29 +86,38 @@ export const AppProvider = ({ children }: { children: ReactNode }) => {
         // Initialize real-time sync service
         realTimeSyncService.initialize({
           onEmployeeStatusChange: (employee) => {
-            console.log('Employee status changed in real-time:', employee.name, employee.status);
+            console.log('🔄 Employee status changed in real-time:', employee.name, employee.status);
             // Force refresh employee data when status changes
             // This ensures all components get the latest data
+            
+            // Broadcast through attendance sync service
+            attendanceSyncService.broadcastAttendanceEvent({
+              type: 'status_change',
+              userId: employee.id,
+              attendanceId: employee.currentAttendance?.id || '',
+              newStatus: employee.status,
+              timestamp: new Date(),
+            });
           },
           onAttendanceUpdate: (attendanceData) => {
-            console.log('Attendance updated in real-time:', attendanceData);
+            console.log('📊 Attendance updated in real-time:', attendanceData);
           },
           onError: (error) => {
-            console.error('Real-time sync error:', error);
+            console.error('❌ Real-time sync error:', error);
           },
           enableDebugLogging: true,
         });
         
         sessionMonitor.startMonitoring({
           onSessionExpired: () => {
-            console.log('Session expired, redirecting to login');
+            console.log('🔐 Session expired, redirecting to login');
             auth.signOut();
           },
           onSessionRefreshed: () => {
-            console.log('Session refreshed successfully');
+            console.log('🔄 Session refreshed successfully');
           },
           onSessionError: (error) => {
-            console.error('Session error:', error);
+            console.error('❌ Session error:', error);
           },
         });
       } else {
@@ -127,8 +137,9 @@ export const AppProvider = ({ children }: { children: ReactNode }) => {
       try {
         sessionMonitor.stopMonitoring();
         realTimeSyncService.cleanup();
+        attendanceSyncService.clearQueue();
       } catch (error) {
-        console.error('Error stopping session monitoring:', error);
+        console.error('❌ Error stopping session monitoring:', error);
       }
       if (timeoutId) clearTimeout(timeoutId);
     };

@@ -95,13 +95,17 @@ export class RealTimeSyncService {
    */
   private async handleAttendanceChange(payload: any): Promise<void> {
     try {
+      const userId = payload.new?.user_id || payload.old?.user_id;
+      const attendanceRecord = payload.new || payload.old;
+      
       this.log('Processing attendance change:', {
         event: payload.eventType,
         table: payload.table,
-        userId: payload.new?.user_id || payload.old?.user_id,
+        userId: userId,
+        status: attendanceRecord?.status,
+        date: attendanceRecord?.date,
       });
 
-      const attendanceRecord = payload.new || payload.old;
       if (!attendanceRecord?.user_id) return;
 
       // Get updated employee data
@@ -115,9 +119,19 @@ export class RealTimeSyncService {
       }
 
       if (employee) {
-        this.log(`Employee ${employee.name} status updated to: ${employee.status}`);
+        this.log(`🔄 Employee ${employee.name} status updated to: ${employee.status} (from attendance change)`);
         this.options.onEmployeeStatusChange?.(employee);
         this.options.onAttendanceUpdate?.(attendanceRecord);
+        
+        // Broadcast to attendance sync service
+        const { attendanceSyncService } = await import('./attendanceSync');
+        attendanceSyncService.broadcastAttendanceEvent({
+          type: 'status_change',
+          userId: employee.id,
+          attendanceId: attendanceRecord.id,
+          newStatus: employee.status,
+          timestamp: new Date(),
+        });
       }
     } catch (error) {
       this.log('Error handling attendance change:', error);
