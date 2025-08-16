@@ -1,13 +1,14 @@
 import { supabase, handleSupabaseError } from '@/lib/supabase';
 import { Employee } from '@/types';
+import { realTimeSyncService } from './realTimeSync';
 
 export const employeesService = {
-  // Subscribe to real-time employee status updates
+  // Enhanced real-time subscription with better error handling
   subscribeToEmployeeStatusUpdates(callback: (payload: any) => void) {
-    console.log('Setting up real-time employee status subscription...');
+    console.log('Setting up enhanced real-time employee status subscription...');
     
     const subscription = supabase
-      .channel('employee-status-changes')
+      .channel('employee-status-changes-enhanced')
       .on(
         'postgres_changes',
         {
@@ -17,6 +18,8 @@ export const employeesService = {
         },
         (payload) => {
           console.log('Real-time attendance update received:', payload);
+          // Emit status change event
+          this.emitStatusChange(payload);
           callback(payload);
         }
       )
@@ -29,17 +32,114 @@ export const employeesService = {
         },
         (payload) => {
           console.log('Real-time attendance insert received:', payload);
+          this.emitStatusChange(payload);
+          callback(payload);
+        }
+      )
+      .on(
+        'postgres_changes',
+        {
+          event: 'INSERT',
+          schema: 'public',
+          table: 'activity_records',
+        },
+        (payload) => {
+          console.log('Real-time activity insert received:', payload);
+          this.emitActivityChange(payload);
           callback(payload);
         }
       )
       .subscribe((status) => {
-        console.log('Employee status subscription status:', status);
+        console.log('Enhanced employee status subscription status:', status);
+        if (status === 'SUBSCRIBED') {
+          console.log('✅ Real-time employee status sync is active');
+        } else if (status === 'CHANNEL_ERROR') {
+          console.error('❌ Real-time subscription failed');
+        }
       });
 
     return () => {
-      console.log('Unsubscribing from employee status updates');
+      console.log('Unsubscribing from enhanced employee status updates');
       supabase.removeChannel(subscription);
     };
+  },
+
+  // Emit status change for cross-component synchronization
+  emitStatusChange(payload: any) {
+    try {
+      const record = payload.new;
+      const statusUpdate = {
+        employeeId: record.user_id,
+        status: this.mapAttendanceStatusToEmployeeStatus(record.status),
+        timestamp: new Date(record.updated_at || record.created_at),
+        source: 'attendance_record',
+      };
+      
+      // Emit custom event for other components to listen
+      if (typeof window !== 'undefined') {
+        window.dispatchEvent(new CustomEvent('employeeStatusUpdate', {
+          detail: statusUpdate
+        }));
+      }
+    } catch (error) {
+      console.error('Error emitting status change:', error);
+    }
+  },
+
+  // Emit activity change for break status updates
+  emitActivityChange(payload: any) {
+    try {
+      const activity = payload.new;
+      
+      // Get the user_id from the activity record
+      if (activity.user_id) {
+        let newStatus: 'online' | 'break' | 'offline' = 'online';
+        
+        switch (activity.type) {
+          case 'break_start':
+            newStatus = 'break';
+            break;
+          case 'break_end':
+            newStatus = 'online';
+            break;
+          case 'clock_out':
+            newStatus = 'offline';
+            break;
+          default:
+            newStatus = 'online';
+        }
+
+        const statusUpdate = {
+          employeeId: activity.user_id,
+          status: newStatus,
+          timestamp: new Date(activity.timestamp),
+          source: 'activity_record',
+        };
+        
+        // Emit custom event
+        if (typeof window !== 'undefined') {
+          window.dispatchEvent(new CustomEvent('employeeStatusUpdate', {
+            detail: statusUpdate
+          }));
+        }
+      }
+    } catch (error) {
+      console.error('Error emitting activity change:', error);
+    }
+  },
+
+  // Map attendance status to employee status
+  mapAttendanceStatusToEmployeeStatus(attendanceStatus: string): 'online' | 'break' | 'offline' {
+    switch (attendanceStatus) {
+      case 'working':
+        return 'online';
+      case 'break':
+        return 'break';
+      case 'completed':
+        return 'offline';
+      default:
+        return 'offline';
+    }
   },
 
   // Get all employees
