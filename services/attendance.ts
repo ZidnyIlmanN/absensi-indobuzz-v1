@@ -96,17 +96,6 @@ export const attendanceService = {
         selfieUrl: uploadedSelfieUrl,
       });
 
-      // Broadcast status change for real-time sync
-      const { attendanceSyncService } = await import('./attendanceSync');
-      attendanceSyncService.broadcastAttendanceEvent({
-        type: 'clock_in',
-        userId: data.userId,
-        attendanceId: attendance.id,
-        newStatus: 'working',
-        timestamp: new Date(),
-        location: data.location,
-      });
-
       return {
         attendance: this.mapAttendanceRecord(attendance),
         error: null,
@@ -184,16 +173,6 @@ export const attendanceService = {
         });
       }
 
-      // Broadcast status change for real-time sync
-      const { attendanceSyncService } = await import('./attendanceSync');
-      attendanceSyncService.broadcastAttendanceEvent({
-        type: 'clock_out',
-        userId: attendance.user_id,
-        attendanceId: data.attendanceId,
-        newStatus: 'offline',
-        timestamp: new Date(),
-      });
-
       return { error: null };
     } catch (error) {
       return { error: handleSupabaseError(error) };
@@ -237,31 +216,8 @@ export const attendanceService = {
       // Update attendance status based on activity type
       if (data.type === 'break_start') {
         await this.updateAttendanceStatus(data.attendanceId, 'break');
-        
-        // Broadcast break start event
-        const { attendanceSyncService } = await import('./attendanceSync');
-        attendanceSyncService.broadcastAttendanceEvent({
-          type: 'break_start',
-          userId: data.userId,
-          attendanceId: data.attendanceId,
-          newStatus: 'break',
-          timestamp: new Date(),
-          location: data.location,
-        });
       } else if (data.type === 'break_end') {
         await this.updateAttendanceStatus(data.attendanceId, 'working');
-        
-        // Broadcast break end event
-        const { attendanceSyncService } = await import('./attendanceSync');
-        attendanceSyncService.broadcastAttendanceEvent({
-          type: 'break_end',
-          userId: data.userId,
-          attendanceId: data.attendanceId,
-          newStatus: 'working',
-          timestamp: new Date(),
-          location: data.location,
-        });
-        
         // Calculate break duration and update break_time
         const { data: breakStart } = await supabase
           .from('activity_records')

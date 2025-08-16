@@ -112,27 +112,20 @@ export function useEmployees() {
 
   // Handle real-time employee status updates
   const handleEmployeeStatusUpdate = useCallback((payload: any) => {
-    console.log('🔄 Received employee status update:', payload);
+    console.log('Received employee status update:', payload);
     
     if (payload.employee) {
       setEmployeesState(prev => {
-        console.log(`📊 Updating employee ${payload.employee.name} status from ${prev.employees.find(e => e.id === payload.employee.id)?.status} to ${payload.employee.status}`);
-        
-        const updatedEmployees = prev.employees.map(emp => {
-          if (emp.id === payload.employee.id) {
-            console.log(`✅ Updated employee ${emp.name}: ${emp.status} → ${payload.employee.status}`);
-            return { ...emp, ...payload.employee };
-          }
-          return emp;
-        });
+        const updatedEmployees = prev.employees.map(emp => 
+          emp.id === payload.employee.id ? payload.employee : emp
+        );
         
         // Also update filtered employees
-        const updatedFilteredEmployees = prev.filteredEmployees.map(emp => {
-          if (emp.id === payload.employee.id) {
-            return { ...emp, ...payload.employee };
-          }
-          return emp;
-        });
+        const updatedFilteredEmployees = prev.filteredEmployees.map(emp => 
+          emp.id === payload.employee.id ? payload.employee : emp
+        );
+        
+        console.log(`Updated employee ${payload.employee.name} status to ${payload.employee.status}`);
         
         return {
           ...prev,
@@ -146,11 +139,10 @@ export function useEmployees() {
 
   // Set up real-time subscriptions
   useEffect(() => {
-    console.log('🔗 Setting up real-time employee status subscription in useEmployees hook...');
+    console.log('Setting up real-time employee status subscription...');
     
     // Clean up existing subscription
     if (subscriptionRef.current) {
-      console.log('🧹 Cleaning up existing subscription');
       subscriptionRef.current();
     }
     
@@ -159,37 +151,14 @@ export function useEmployees() {
       handleEmployeeStatusUpdate
     );
     
-    console.log('✅ Real-time subscription established in useEmployees');
-    
     return () => {
       if (subscriptionRef.current) {
-        console.log('🧹 Cleaning up employee status subscription in useEmployees');
+        console.log('Cleaning up employee status subscription');
         subscriptionRef.current();
         subscriptionRef.current = null;
       }
     };
   }, [handleEmployeeStatusUpdate]);
-
-  // Additional subscription to attendance sync service for immediate updates
-  useEffect(() => {
-    console.log('🔗 Setting up attendance sync subscription in useEmployees...');
-    
-    const { attendanceSyncService } = require('@/services/attendanceSync');
-    
-    const unsubscribe = attendanceSyncService.subscribe('useEmployees-hook', (event: any) => {
-      console.log('🔄 useEmployees received attendance sync event:', event);
-      
-      // Trigger immediate refresh for the affected employee
-      if (event.userId) {
-        loadEmployees(); // Refresh all employees to ensure consistency
-      }
-    });
-    
-    return () => {
-      console.log('🧹 Cleaning up attendance sync subscription in useEmployees');
-      unsubscribe();
-    };
-  }, [loadEmployees]);
 
   // Separate effect to reload when sort options change
   useEffect(() => {

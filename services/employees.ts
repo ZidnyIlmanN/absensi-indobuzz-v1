@@ -4,7 +4,7 @@ import { Employee } from '@/types';
 export const employeesService = {
   // Subscribe to real-time employee status updates
   subscribeToEmployeeStatusUpdates(callback: (payload: any) => void) {
-    console.log('🔗 Setting up real-time employee status subscription...');
+    console.log('Setting up real-time employee status subscription...');
     
     const subscription = supabase
       .channel('employee-status-changes')
@@ -16,7 +16,7 @@ export const employeesService = {
           table: 'attendance_records',
         },
         (payload) => {
-          console.log('📡 Real-time attendance update received:', payload);
+          console.log('Real-time attendance update received:', payload);
           this.handleAttendanceChange(payload, callback);
         }
       )
@@ -28,7 +28,7 @@ export const employeesService = {
           table: 'attendance_records',
         },
         (payload) => {
-          console.log('📡 Real-time attendance insert received:', payload);
+          console.log('Real-time attendance insert received:', payload);
           this.handleAttendanceChange(payload, callback);
         }
       )
@@ -40,12 +40,12 @@ export const employeesService = {
           table: 'attendance_records',
         },
         (payload) => {
-          console.log('📡 Real-time attendance delete received:', payload);
+          console.log('Real-time attendance delete received:', payload);
           this.handleAttendanceChange(payload, callback);
         }
       )
       .subscribe((status) => {
-        console.log('📊 Employee status subscription status:', status);
+        console.log('Employee status subscription status:', status);
         if (status === 'SUBSCRIBED') {
           console.log('✅ Real-time employee status subscription active');
         } else if (status === 'CHANNEL_ERROR') {
@@ -54,7 +54,7 @@ export const employeesService = {
       });
 
     return () => {
-      console.log('🔌 Unsubscribing from employee status updates');
+      console.log('Unsubscribing from employee status updates');
       supabase.removeChannel(subscription);
     };
   },
@@ -65,25 +65,22 @@ export const employeesService = {
       const attendanceRecord = payload.new || payload.old;
       if (!attendanceRecord) return;
 
-      console.log('🔄 Processing attendance change:', {
+      console.log('Processing attendance change:', {
         event: payload.eventType,
         userId: attendanceRecord.user_id,
         status: attendanceRecord.status,
-        date: attendanceRecord.date,
-        timestamp: new Date().toISOString()
+        date: attendanceRecord.date
       });
 
       // Get updated employee data
       const { employee, error } = await this.getEmployeeById(attendanceRecord.user_id);
       
       if (error) {
-        console.error('❌ Failed to get updated employee data:', error);
+        console.error('Failed to get updated employee data:', error);
         return;
       }
 
       if (employee) {
-        console.log(`✅ Broadcasting employee update: ${employee.name} → ${employee.status}`);
-        
         // Create a standardized payload for the callback
         const standardizedPayload = {
           eventType: payload.eventType,
@@ -93,16 +90,9 @@ export const employeesService = {
         };
 
         callback(standardizedPayload);
-        
-        // Additional logging for debugging
-        console.log('📡 Standardized payload sent:', {
-          employeeName: employee.name,
-          newStatus: employee.status,
-          eventType: payload.eventType,
-        });
       }
     } catch (error) {
-      console.error('❌ Error handling attendance change:', error);
+      console.error('Error handling attendance change:', error);
     }
   },
 
@@ -175,7 +165,7 @@ export const employeesService = {
       console.log(`Loaded ${employees.length} employees from database`);
       return { employees, error: null };
     } catch (error) {
-      console.error('❌ Error loading all employees:', error);
+      console.error('Error loading all employees:', error);
       return { employees: [], error: handleSupabaseError(error) };
     }
   },
@@ -188,13 +178,12 @@ export const employeesService = {
       const today = new Date().toISOString().split('T')[0];
       const attendanceDate = todayAttendance.date;
       
-      console.log(`📊 Mapping employee ${profile.name}:`, {
+      console.log(`Mapping employee ${profile.name}:`, {
         attendanceStatus: todayAttendance.status,
         attendanceDate: attendanceDate,
         isToday: attendanceDate === today,
         clockIn: todayAttendance.clock_in,
-        clockOut: todayAttendance.clock_out,
-        finalStatus: status
+        clockOut: todayAttendance.clock_out
       });
       
       // Only consider attendance from today
@@ -214,13 +203,11 @@ export const employeesService = {
           default:
             status = 'offline';
         }
-        
-        console.log(`✅ Employee ${profile.name} mapped to status: ${status}`);
       } else {
-        console.log(`📅 Employee ${profile.name} has no attendance record for today`);
+        console.log(`Employee ${profile.name} has no attendance record for today`);
       }
     } else {
-      console.log(`📅 Employee ${profile.name} has no attendance record`);
+      console.log(`Employee ${profile.name} has no attendance record for today`);
     }
 
     return {

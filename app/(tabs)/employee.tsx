@@ -23,7 +23,6 @@ import { router } from 'expo-router';
 import { EmployeeCard } from '@/components/EmployeeCard';
 import { useI18n } from '@/hooks/useI18n';
 import { RealTimeSyncIndicator } from '@/components/RealTimeSyncIndicator';
-import { attendanceSyncService } from '@/services/attendanceSync';
 
 export default function EmployeeScreen() {
   const insets = useSafeAreaInsets();
@@ -53,47 +52,13 @@ export default function EmployeeScreen() {
   const [selectedPosition, setSelectedPosition] = useState<string>('');
   const [lastUpdateTime, setLastUpdateTime] = useState<Date>(new Date());
 
-  // Real-time employee status updates
-  useEffect(() => {
-    console.log('Setting up real-time employee status subscription in Employee screen...');
-    
-    // Subscribe to attendance sync events
-    const unsubscribeSync = attendanceSyncService.subscribe('employee-screen', (event) => {
-      console.log('Employee screen received sync event:', event);
-      setLastUpdateTime(new Date());
-      
-      // Force refresh employees to get latest data
-      refreshEmployees();
-    });
-    
-    // Subscribe to global employee updates
-    const handleGlobalUpdate = (event: CustomEvent) => {
-      console.log('Employee screen received global update:', event.detail);
-      setLastUpdateTime(new Date());
-      refreshEmployees();
-    };
-    
-    if (typeof window !== 'undefined') {
-      window.addEventListener('employeeStatusUpdate', handleGlobalUpdate as EventListener);
-    }
-    
-    return () => {
-      console.log('Cleaning up employee screen subscriptions');
-      unsubscribeSync();
-      if (typeof window !== 'undefined') {
-        window.removeEventListener('employeeStatusUpdate', handleGlobalUpdate as EventListener);
-      }
-    };
-  }, [refreshEmployees]);
-  
   // Update timestamp when employees data changes (for debugging)
   useEffect(() => {
     setLastUpdateTime(new Date());
   }, [employees, filteredEmployees]);
-  
   const onRefresh = useCallback(async () => {
     setRefreshing(true);
-    console.log('🔄 Manual refresh triggered at:', new Date().toISOString());
+    console.log('Manual refresh triggered at:', new Date().toISOString());
     await refreshEmployees();
     setRefreshing(false);
   }, [refreshEmployees]);
@@ -362,15 +327,13 @@ export default function EmployeeScreen() {
       >
         <View style={styles.headerTop}>
           <Text style={styles.headerTitle}>{t('employee.employee_directory')}</Text>
-          <RealTimeSyncIndicator showDebugButton={__DEV__} />
+          <RealTimeSyncIndicator showDebugButton={true} />
         </View>
         <Text style={styles.headerSubtitle}>
           {filteredEmployees.length} {t('employee.of')} {totalCount} {t('employee.employees')} • {workingEmployees} {t('employee.working')}
-          {__DEV__ && (
-            <Text style={styles.lastUpdateText}>
-              {'\n'}Last updated: {lastUpdateTime.toLocaleTimeString()}
-            </Text>
-          )}
+          <Text style={styles.lastUpdateText}>
+            {'\n'}Last updated: {lastUpdateTime.toLocaleTimeString()}
+          </Text>
         </Text>
       </LinearGradient>
 

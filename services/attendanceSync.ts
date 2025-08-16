@@ -19,7 +19,6 @@ export class AttendanceSyncService {
   private eventListeners: Map<string, (event: AttendanceSyncEvent) => void> = new Map();
   private syncQueue: AttendanceSyncEvent[] = [];
   private isProcessingQueue = false;
-  private debugMode = true; // Enable debug logging
 
   public static getInstance(): AttendanceSyncService {
     if (!AttendanceSyncService.instance) {
@@ -32,15 +31,7 @@ export class AttendanceSyncService {
    * Broadcast attendance event to all listeners
    */
   broadcastAttendanceEvent(event: AttendanceSyncEvent): void {
-    if (this.debugMode) {
-      console.log('📡 Broadcasting attendance event:', {
-        type: event.type,
-        userId: event.userId,
-        newStatus: event.newStatus,
-        listenerCount: this.eventListeners.size,
-        timestamp: event.timestamp.toISOString()
-      });
-    }
+    console.log('Broadcasting attendance event:', event);
     
     // Add to sync queue for processing
     this.syncQueue.push(event);
@@ -49,38 +40,20 @@ export class AttendanceSyncService {
     // Notify all listeners immediately
     this.eventListeners.forEach((listener, listenerId) => {
       try {
-        if (this.debugMode) {
-          console.log(`📤 Notifying listener ${listenerId} of event ${event.type}`);
-        }
         listener(event);
       } catch (error) {
-        console.error(`❌ Error in listener ${listenerId}:`, error);
+        console.error(`Error in listener ${listenerId}:`, error);
       }
     });
-    
-    if (this.debugMode) {
-      console.log(`✅ Event broadcast complete to ${this.eventListeners.size} listeners`);
-    }
   }
 
   /**
    * Subscribe to attendance events
    */
   subscribe(listenerId: string, callback: (event: AttendanceSyncEvent) => void): () => void {
-    if (this.debugMode) {
-      console.log(`🔗 New subscription: ${listenerId}`);
-    }
-    
     this.eventListeners.set(listenerId, callback);
     
-    if (this.debugMode) {
-      console.log(`📊 Total listeners: ${this.eventListeners.size}`);
-    }
-    
     return () => {
-      if (this.debugMode) {
-        console.log(`🔌 Unsubscribing: ${listenerId}`);
-      }
       this.eventListeners.delete(listenerId);
     };
   }
@@ -168,8 +141,6 @@ export class AttendanceSyncService {
    * Broadcast employee update to all components
    */
   private broadcastEmployeeUpdate(employee: any): void {
-    console.log('Broadcasting employee update:', employee.name, employee.status);
-    
     const updateEvent: AttendanceSyncEvent = {
       type: 'status_change',
       userId: employee.id,
@@ -179,30 +150,13 @@ export class AttendanceSyncService {
     };
 
     // Notify listeners about the employee update
-    this.eventListeners.forEach((listener, listenerId) => {
+    this.eventListeners.forEach((listener) => {
       try {
-        console.log(`Notifying listener ${listenerId} about employee update`);
         listener(updateEvent);
       } catch (error) {
-        console.error(`Error broadcasting employee update to listener ${listenerId}:`, error);
+        console.error('Error broadcasting employee update:', error);
       }
     });
-    
-    // Also trigger a global employee status update event
-    this.triggerGlobalEmployeeUpdate(employee);
-  }
-
-  /**
-   * Trigger global employee status update for all components
-   */
-  private triggerGlobalEmployeeUpdate(employee: any): void {
-    // Create a custom event that can be listened to by any component
-    if (typeof window !== 'undefined') {
-      const event = new CustomEvent('employeeStatusUpdate', {
-        detail: { employee }
-      });
-      window.dispatchEvent(event);
-    }
   }
 
   /**

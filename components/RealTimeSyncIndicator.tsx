@@ -19,7 +19,6 @@ import {
 } from 'lucide-react-native';
 import { realTimeSyncService } from '@/services/realTimeSync';
 import { statusSyncDebugger, SyncDebugInfo } from '@/services/statusSyncDebugger';
-import { attendanceSyncService } from '@/services/attendanceSync';
 
 interface RealTimeSyncIndicatorProps {
   style?: any;
@@ -48,19 +47,10 @@ export function RealTimeSyncIndicator({
     setIsTestingSync(true);
     
     try {
-      console.log('🧪 Starting comprehensive sync test...');
-      
-      // Test attendance sync service
-      const syncStatus = attendanceSyncService.getSyncStatus();
-      console.log('📊 Attendance sync status:', syncStatus);
-      
-      // Test employee status sync
       const results = await statusSyncDebugger.testAllEmployeesSync();
       setDebugLogs(results);
-      
-      console.log('✅ Sync test completed');
     } catch (error) {
-      console.error('❌ Debug test failed:', error);
+      console.error('Debug test failed:', error);
     } finally {
       setIsTestingSync(false);
     }
@@ -68,15 +58,10 @@ export function RealTimeSyncIndicator({
 
   const handleForceRefresh = async () => {
     try {
-      console.log('🔄 Force refreshing real-time sync...');
       await realTimeSyncService.forceRefresh();
       setDebugLogs(statusSyncDebugger.getDebugLogs());
-      
-      // Also clear and reset attendance sync
-      attendanceSyncService.clearQueue();
-      console.log('✅ Force refresh completed');
     } catch (error) {
-      console.error('❌ Force refresh failed:', error);
+      console.error('Force refresh failed:', error);
     }
   };
 
@@ -136,14 +121,6 @@ export function RealTimeSyncIndicator({
               <View style={styles.debugSection}>
                 <Text style={styles.debugSectionTitle}>Connection Status</Text>
                 <View style={styles.debugItem}>
-                  <Text style={styles.debugLabel}>Sync Service:</Text>
-                  <View style={styles.debugValue}>
-                    <Text style={styles.debugValueText}>
-                      {attendanceSyncService.getSyncStatus().listenerCount} listeners
-                    </Text>
-                  </View>
-                </View>
-                <View style={styles.debugItem}>
                   <Text style={styles.debugLabel}>Connected:</Text>
                   <View style={styles.debugValue}>
                     {getStatusIcon(connectionStatus.isConnected)}
@@ -162,10 +139,6 @@ export function RealTimeSyncIndicator({
                 <View style={styles.debugItem}>
                   <Text style={styles.debugLabel}>Active Subscriptions:</Text>
                   <Text style={styles.debugValueText}>{connectionStatus.activeSubscriptions}</Text>
-                </View>
-                <View style={styles.debugItem}>
-                  <Text style={styles.debugLabel}>Queue Length:</Text>
-                  <Text style={styles.debugValueText}>{attendanceSyncService.getSyncStatus().queueLength}</Text>
                 </View>
               </View>
 
