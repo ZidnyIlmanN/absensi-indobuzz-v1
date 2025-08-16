@@ -16,7 +16,6 @@ interface EmployeeCardProps {
   onPress?: () => void;
   showContactInfo?: boolean;
   showNavigationArrow?: boolean;
-  showLastUpdate?: boolean;
 }
 
 export function EmployeeCard({
@@ -24,7 +23,6 @@ export function EmployeeCard({
   onPress,
   showContactInfo = true,
   showNavigationArrow = true,
-  showLastUpdate = false,
 }: EmployeeCardProps) {
   const scaleValue = new Animated.Value(1);
 
@@ -76,23 +74,6 @@ export function EmployeeCard({
     }
   };
 
-  const getLastUpdateTime = () => {
-    if (employee.currentAttendance?.clockIn) {
-      const now = new Date();
-      const clockIn = new Date(employee.currentAttendance.clockIn);
-      const diff = now.getTime() - clockIn.getTime();
-      const minutes = Math.floor(diff / (1000 * 60));
-      
-      if (minutes < 1) return 'Just now';
-      if (minutes < 60) return `${minutes}m ago`;
-      
-      const hours = Math.floor(minutes / 60);
-      if (hours < 24) return `${hours}h ago`;
-      
-      return clockIn.toLocaleDateString();
-    }
-    return 'No recent activity';
-  };
   return (
     <Animated.View style={[styles.container, { transform: [{ scale: scaleValue }] }]}>
       <TouchableOpacity
@@ -132,11 +113,6 @@ export function EmployeeCard({
             ]}>
               {getStatusText(employee.status)}
             </Text>
-            {showLastUpdate && (
-              <Text style={styles.lastUpdateText}>
-                {getLastUpdateTime()}
-              </Text>
-            )}
             {employee.joinDate && (
               <Text style={styles.joinDate}>
                 Joined: {new Date(employee.joinDate).toLocaleDateString()}
@@ -254,11 +230,6 @@ const styles = StyleSheet.create({
     fontSize: 12,
     fontWeight: '500',
     marginBottom: 4,
-  lastUpdateText: {
-    fontSize: 10,
-    color: '#999',
-    marginTop: 2,
-  },
   },
   joinDate: {
     fontSize: 10,
