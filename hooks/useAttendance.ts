@@ -119,6 +119,10 @@ export function useAttendance(userId: string | null) {
       attendanceId: attendanceState.currentAttendance.id,
       selfieUrl,
       notes,
+      workHours: 0,
+      breakTime: 0,
+      overtimeHours: 0,
+      clientVisitTime: 0
     });
 
     if (error) {
