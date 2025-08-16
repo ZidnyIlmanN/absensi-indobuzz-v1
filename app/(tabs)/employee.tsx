@@ -22,7 +22,6 @@ import { Employee as EmployeeType } from '@/types';
 import { router } from 'expo-router';
 import { EmployeeCard } from '@/components/EmployeeCard';
 import { useI18n } from '@/hooks/useI18n';
-import { RealTimeSyncIndicator } from '@/components/RealTimeSyncIndicator';
 
 export default function EmployeeScreen() {
   const insets = useSafeAreaInsets();
@@ -50,15 +49,9 @@ export default function EmployeeScreen() {
   const [selectedDepartment, setSelectedDepartment] = useState<string>('');
   const [selectedStatus, setSelectedStatus] = useState<EmployeeType['status'] | ''>('');
   const [selectedPosition, setSelectedPosition] = useState<string>('');
-  const [lastUpdateTime, setLastUpdateTime] = useState<Date>(new Date());
 
-  // Update timestamp when employees data changes (for debugging)
-  useEffect(() => {
-    setLastUpdateTime(new Date());
-  }, [employees, filteredEmployees]);
   const onRefresh = useCallback(async () => {
     setRefreshing(true);
-    console.log('Manual refresh triggered at:', new Date().toISOString());
     await refreshEmployees();
     setRefreshing(false);
   }, [refreshEmployees]);
@@ -325,15 +318,9 @@ export default function EmployeeScreen() {
         colors={['#4A90E2', '#357ABD']}
         style={[styles.header, { paddingTop: insets.top + 20 }]}
       >
-        <View style={styles.headerTop}>
-          <Text style={styles.headerTitle}>{t('employee.employee_directory')}</Text>
-          <RealTimeSyncIndicator showDebugButton={true} />
-        </View>
+        <Text style={styles.headerTitle}>{t('employee.employee_directory')}</Text>
         <Text style={styles.headerSubtitle}>
           {filteredEmployees.length} {t('employee.of')} {totalCount} {t('employee.employees')} • {workingEmployees} {t('employee.working')}
-          <Text style={styles.lastUpdateText}>
-            {'\n'}Last updated: {lastUpdateTime.toLocaleTimeString()}
-          </Text>
         </Text>
       </LinearGradient>
 
@@ -500,7 +487,6 @@ export default function EmployeeScreen() {
                 employee={employee}
                 showContactInfo={true}
                 showNavigationArrow={true}
-                showLastUpdate={true}
               />
             ))
           )}
@@ -523,26 +509,15 @@ const styles = StyleSheet.create({
     paddingBottom: 20,
     paddingHorizontal: 20,
   },
-  headerTop: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    marginBottom: 4,
-  },
   headerTitle: {
     fontSize: 24,
     fontWeight: 'bold',
     color: 'white',
-    flex: 1,
+    marginBottom: 4,
   },
   headerSubtitle: {
     fontSize: 14,
     color: 'rgba(255, 255, 255, 0.8)',
-  },
-  lastUpdateText: {
-    fontSize: 12,
-    color: 'rgba(255, 255, 255, 0.6)',
-    fontStyle: 'italic',
   },
   content: {
     flex: 1,
