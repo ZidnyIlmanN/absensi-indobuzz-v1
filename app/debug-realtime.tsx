@@ -12,21 +12,7 @@ import { StatusBar } from 'expo-status-bar';
 import { LinearGradient } from 'expo-linear-gradient';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { router } from 'expo-router';
-import {
-  ArrowLeft,
-  Bug,
-  Activity,
-  Wifi,
-  WifiOff,
-  RefreshCw,
-  Play,
-  Pause,
-  Trash2,
-  CheckCircle,
-  AlertTriangle,
-  Users,
-  Database,
-} from 'lucide-react-native';
+import { ArrowLeft, Bug, Activity, Wifi, WifiOff, RefreshCw, Play, Pause, Trash2, CircleCheck as CheckCircle, TriangleAlert as AlertTriangle, Users, Database } from 'lucide-react-native';
 import { realTimeDebugger, useRealTimeDebugger } from '@/utils/realTimeDebugger';
 import { realTimeSyncService } from '@/services/realTimeSync';
 import { LoadingSpinner } from '@/components/LoadingSpinner';
