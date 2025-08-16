@@ -22,8 +22,6 @@ import { Employee as EmployeeType } from '@/types';
 import { router } from 'expo-router';
 import { EmployeeCard } from '@/components/EmployeeCard';
 import { useI18n } from '@/hooks/useI18n';
-import { useRealTimeEmployeeSync } from '@/hooks/useRealTimeEmployeeSync';
-import { RealTimeSyncDebugger } from '@/components/RealTimeSyncDebugger';
 
 export default function EmployeeScreen() {
   const insets = useSafeAreaInsets();
@@ -51,42 +49,10 @@ export default function EmployeeScreen() {
   const [selectedDepartment, setSelectedDepartment] = useState<string>('');
   const [selectedStatus, setSelectedStatus] = useState<EmployeeType['status'] | ''>('');
   const [selectedPosition, setSelectedPosition] = useState<string>('');
-  const [showSyncDebugger, setShowSyncDebugger] = useState(false);
-
-  // Real-time employee synchronization
-  const {
-    employees: syncedEmployees,
-    syncStatus,
-    lastUpdate,
-    error: syncError,
-    updateEmployees,
-    triggerManualSync,
-    getSyncDiagnostics,
-  } = useRealTimeEmployeeSync(employees, {
-    enableDebugLogging: __DEV__,
-    onStatusChange: (employeeId, newStatus) => {
-      console.log(`Employee ${employeeId} status changed to: ${newStatus}`);
-    },
-  });
-
-  // Update employees when sync provides new data
-  React.useEffect(() => {
-    if (syncedEmployees.length > 0) {
-      // Update the filtered employees as well
-      const updatedFiltered = filteredEmployees.map(emp => {
-        const syncedEmp = syncedEmployees.find(se => se.id === emp.id);
-        return syncedEmp || emp;
-      });
-      // Note: This would need to be handled by the useEmployees hook
-      // For now, we'll use the synced employees directly
-    }
-  }, [syncedEmployees]);
 
   const onRefresh = useCallback(async () => {
     setRefreshing(true);
     await refreshEmployees();
-    // Also trigger manual sync
-    await triggerManualSync();
     setRefreshing(false);
   }, [refreshEmployees]);
 
@@ -390,18 +356,6 @@ export default function EmployeeScreen() {
             <Filter size={20} color="#4A90E2" />
           </TouchableOpacity>
           
-          {/* Debug button for development */}
-          {__DEV__ && (
-            <TouchableOpacity 
-              style={[styles.filterButton, { backgroundColor: syncStatus === 'connected' ? '#E8F5E8' : '#FFEBEE' }]}
-              onPress={() => setShowSyncDebugger(true)}
-            >
-              <Text style={styles.syncStatusText}>
-                {syncStatus === 'connected' ? '🟢' : syncStatus === 'error' ? '🔴' : '🟡'}
-              </Text>
-            </TouchableOpacity>
-          )}
-
           <TouchableOpacity 
             style={styles.sortButton}
             onPress={() => setShowSortModal(true)}
@@ -499,16 +453,9 @@ export default function EmployeeScreen() {
             <Text style={styles.sectionTitle}>
               {searchQuery ? t('employee.search_results') : t('employee.all_employees')}
             </Text>
-            <View style={styles.resultCountContainer}>
-              <Text style={styles.resultCount}>
-                {filteredEmployees.length} {filteredEmployees.length !== 1 ? t('employee.results') : t('employee.result')}
-              </Text>
-              {lastUpdate && (
-                <Text style={styles.lastUpdateText}>
-                  • Updated {new Date(lastUpdate).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
-                </Text>
-              )}
-            </View>
+            <Text style={styles.resultCount}>
+              {filteredEmployees.length} {filteredEmployees.length !== 1 ? t('employee.results') : t('employee.result')}
+            </Text>
           </View>
           
           {isLoading ? (
@@ -549,14 +496,6 @@ export default function EmployeeScreen() {
       {/* Modals */}
       <SortModal />
       <FilterModal />
-      
-      {/* Real-Time Sync Debugger */}
-      <RealTimeSyncDebugger
-        visible={showSyncDebugger}
-        onClose={() => setShowSyncDebugger(false)}
-        employees={employees}
-        onTriggerSync={triggerManualSync}
-      />
     </View>
   );
 }
@@ -638,18 +577,6 @@ const styles = StyleSheet.create({
     fontSize: 12,
     color: '#4A90E2',
     fontWeight: 'bold',
-  },
-  syncStatusText: {
-    fontSize: 12,
-    fontWeight: 'bold',
-  },
-  resultCountContainer: {
-    alignItems: 'flex-end',
-  },
-  lastUpdateText: {
-    fontSize: 10,
-    color: '#4CAF50',
-    marginTop: 2,
   },
   statsContainer: {
     flexDirection: 'row',

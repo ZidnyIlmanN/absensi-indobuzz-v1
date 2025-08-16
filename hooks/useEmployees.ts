@@ -1,7 +1,6 @@
 import { useState, useEffect, useCallback } from 'react';
 import { employeesService } from '@/services/employees';
 import { Employee } from '@/types';
-import { realTimeSyncService } from '@/services/realTimeSync';
 
 interface EmployeesState {
   employees: Employee[];
@@ -163,90 +162,16 @@ export function useEmployees() {
     }));
   }, []);
 
-  // Real-time status update handler
-  const handleRealTimeStatusUpdate = useCallback((event: any) => {
-    const statusUpdate = event.detail;
-    
-    if (enableDebugLogging) {
-      console.log('Received real-time status update in useEmployees:', statusUpdate);
-    }
-    
-    setEmployeesState(prev => {
-      const updatedEmployees = prev.employees.map(employee => {
-        if (employee.id === statusUpdate.employeeId) {
-          return {
-            ...employee,
-            status: statusUpdate.status,
-          };
-        }
-        return employee;
-      });
-      
-      const updatedFiltered = prev.filteredEmployees.map(employee => {
-        if (employee.id === statusUpdate.employeeId) {
-          return {
-            ...employee,
-            status: statusUpdate.status,
-          };
-        }
-        return employee;
-      });
-
-      return {
-        ...prev,
-        employees: updatedEmployees,
-        filteredEmployees: updatedFiltered,
-      };
-    });
-  }, []);
-
-  // Set up real-time listeners
-  useEffect(() => {
-    // Listen for custom status update events
-    if (typeof window !== 'undefined') {
-      window.addEventListener('employeeStatusUpdate', handleRealTimeStatusUpdate);
-    }
-
-    // Initialize real-time sync service
-    realTimeSyncService.initialize({
-      enableDebugLogging: __DEV__,
-      onStatusUpdate: (statusUpdate) => {
-        // This will also trigger the custom event
-        handleRealTimeStatusUpdate({ detail: statusUpdate });
-      },
-    });
-
-    return () => {
-      if (typeof window !== 'undefined') {
-        window.removeEventListener('employeeStatusUpdate', handleRealTimeStatusUpdate);
-      }
-    };
-  }, [handleRealTimeStatusUpdate]);
-
   useEffect(() => {
     loadEmployees();
   }, [loadEmployees]);
 
-  // Update employees from sync service
-  const updateEmployeesFromSync = useCallback((newEmployees: Employee[]) => {
-    setEmployeesState(prev => ({
-      ...prev,
-      employees: newEmployees,
-      filteredEmployees: newEmployees, // Reset filters when updating
-    }));
-  }, []);
-
   return {
     ...employeesState,
-    syncStatus,
-    lastSyncUpdate: syncState.lastUpdate,
-    syncError: syncState.error,
     searchEmployees,
     refreshEmployees,
     setSortOptions,
     filterEmployees,
     clearSearch,
-    updateEmployeesFromSync,
-    triggerManualSync: () => triggerManualSync(),
   };
 }
