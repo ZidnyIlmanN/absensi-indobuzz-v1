@@ -8,18 +8,7 @@ import {
   ScrollView,
   Alert,
 } from 'react-native';
-import {
-  Bug,
-  X,
-  RefreshCw,
-  CheckCircle,
-  AlertTriangle,
-  Wifi,
-  WifiOff,
-  Activity,
-  Users,
-  Database,
-} from 'lucide-react-native';
+import { Bug, X, RefreshCw, CircleCheck as CheckCircle, TriangleAlert as AlertTriangle, Wifi, WifiOff, Activity, Users, Database } from 'lucide-react-native';
 import { realTimeSyncService } from '@/services/realTimeSync';
 import { LoadingSpinner } from './LoadingSpinner';
 
