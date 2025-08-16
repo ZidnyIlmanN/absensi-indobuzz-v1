@@ -94,7 +94,7 @@ export const WORK_LOCATIONS = [
       latitude: -6.562300216281189,
       longitude: 107.78160173799691,
     },
-    radius: 100, // 100 meters acceptable radius for better coverage
+    radius: 200, // 100 meters acceptable radius for better coverage
   },
 ];
 
@@ -104,7 +104,7 @@ export const OFFICE_COORDINATES = {
       longitude: 107.78160173799691,
 };
 
-export const ACCEPTABLE_RADIUS = 100; // meters - increased for better user experience
+export const ACCEPTABLE_RADIUS = 200; // meters - increased for better user experience
 
 export const checkOfficeProximity = (
   currentLocation: LocationCoordinates
