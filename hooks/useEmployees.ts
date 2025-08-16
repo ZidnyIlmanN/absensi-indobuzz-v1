@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useRef } from 'react';
 import { employeesService } from '@/services/employees';
 import { Employee } from '@/types';
 
@@ -26,6 +26,9 @@ export function useEmployees() {
     isLoading: true,
     error: null,
   });
+
+  // Real-time subscription cleanup function
+  const subscriptionRef = useRef<(() => void) | null>(null);
 
   const loadEmployees = useCallback(async () => {
     setEmployeesState(prev => ({ ...prev, isLoading: true, error: null }));
@@ -106,6 +109,56 @@ export function useEmployees() {
   const setSortOptions = useCallback((sortBy: typeof employeesState.sortBy, sortOrder: typeof employeesState.sortOrder) => {
     setEmployeesState(prev => ({ ...prev, sortBy, sortOrder }));
   }, []);
+
+  // Handle real-time employee status updates
+  const handleEmployeeStatusUpdate = useCallback((payload: any) => {
+    console.log('Received employee status update:', payload);
+    
+    if (payload.employee) {
+      setEmployeesState(prev => {
+        const updatedEmployees = prev.employees.map(emp => 
+          emp.id === payload.employee.id ? payload.employee : emp
+        );
+        
+        // Also update filtered employees
+        const updatedFilteredEmployees = prev.filteredEmployees.map(emp => 
+          emp.id === payload.employee.id ? payload.employee : emp
+        );
+        
+        console.log(`Updated employee ${payload.employee.name} status to ${payload.employee.status}`);
+        
+        return {
+          ...prev,
+          employees: updatedEmployees,
+          filteredEmployees: updatedFilteredEmployees,
+          activeCount: updatedEmployees.filter(e => e.status === 'online').length,
+        };
+      });
+    }
+  }, []);
+
+  // Set up real-time subscriptions
+  useEffect(() => {
+    console.log('Setting up real-time employee status subscription...');
+    
+    // Clean up existing subscription
+    if (subscriptionRef.current) {
+      subscriptionRef.current();
+    }
+    
+    // Set up new subscription
+    subscriptionRef.current = employeesService.subscribeToEmployeeStatusUpdates(
+      handleEmployeeStatusUpdate
+    );
+    
+    return () => {
+      if (subscriptionRef.current) {
+        console.log('Cleaning up employee status subscription');
+        subscriptionRef.current();
+        subscriptionRef.current = null;
+      }
+    };
+  }, [handleEmployeeStatusUpdate]);
 
   // Separate effect to reload when sort options change
   useEffect(() => {

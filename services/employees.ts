@@ -17,7 +17,7 @@ export const employeesService = {
         },
         (payload) => {
           console.log('Real-time attendance update received:', payload);
-          callback(payload);
+          this.handleAttendanceChange(payload, callback);
         }
       )
       .on(
@@ -29,17 +29,71 @@ export const employeesService = {
         },
         (payload) => {
           console.log('Real-time attendance insert received:', payload);
-          callback(payload);
+          this.handleAttendanceChange(payload, callback);
+        }
+      )
+      .on(
+        'postgres_changes',
+        {
+          event: 'DELETE',
+          schema: 'public',
+          table: 'attendance_records',
+        },
+        (payload) => {
+          console.log('Real-time attendance delete received:', payload);
+          this.handleAttendanceChange(payload, callback);
         }
       )
       .subscribe((status) => {
         console.log('Employee status subscription status:', status);
+        if (status === 'SUBSCRIBED') {
+          console.log('✅ Real-time employee status subscription active');
+        } else if (status === 'CHANNEL_ERROR') {
+          console.error('❌ Real-time subscription failed');
+        }
       });
 
     return () => {
       console.log('Unsubscribing from employee status updates');
       supabase.removeChannel(subscription);
     };
+  },
+
+  // Handle attendance changes and update employee status
+  async handleAttendanceChange(payload: any, callback: (payload: any) => void) {
+    try {
+      const attendanceRecord = payload.new || payload.old;
+      if (!attendanceRecord) return;
+
+      console.log('Processing attendance change:', {
+        event: payload.eventType,
+        userId: attendanceRecord.user_id,
+        status: attendanceRecord.status,
+        date: attendanceRecord.date
+      });
+
+      // Get updated employee data
+      const { employee, error } = await this.getEmployeeById(attendanceRecord.user_id);
+      
+      if (error) {
+        console.error('Failed to get updated employee data:', error);
+        return;
+      }
+
+      if (employee) {
+        // Create a standardized payload for the callback
+        const standardizedPayload = {
+          eventType: payload.eventType,
+          employee: employee,
+          attendanceRecord: attendanceRecord,
+          timestamp: new Date().toISOString(),
+        };
+
+        callback(standardizedPayload);
+      }
+    } catch (error) {
+      console.error('Error handling attendance change:', error);
+    }
   },
 
   // Get all employees
@@ -64,7 +118,7 @@ export const employeesService = {
         .from('profiles')
         .select(`
           *,
-          attendance_records!left (
+          attendance_records!inner (
             id,
             status,
             clock_in,
@@ -72,10 +126,12 @@ export const employeesService = {
             date,
             location_lat,
             location_lng,
-            location_address
+            location_address,
+            updated_at
           )
         `)
         .eq('attendance_records.date', today)
+        .in('attendance_records.status', ['working', 'break', 'completed'])
         .order(sortBy, { ascending: sortOrder === 'asc' })
         .limit(limit);
 
@@ -84,14 +140,27 @@ export const employeesService = {
       }
 
       // Map profiles to employees with their attendance data
-      const employees = profilesWithAttendance.map((profile: any) => {
+      const employees = await Promise.all(profilesWithAttendance.map(async (profile: any) => {
         // Get the attendance record from the joined data
         const todayAttendance = profile.attendance_records && profile.attendance_records.length > 0 
           ? profile.attendance_records[0] 
           : null;
         
+        // For employees without today's attendance, check if they have any recent activity
+        if (!todayAttendance) {
+          const { data: recentAttendance } = await supabase
+            .from('attendance_records')
+            .select('*')
+            .eq('user_id', profile.id)
+            .order('date', { ascending: false })
+            .limit(1)
+            .single();
+          
+          return this.mapEmployeeRecord(profile, recentAttendance);
+        }
+        
         return this.mapEmployeeRecord(profile, todayAttendance);
-      });
+      }));
       
       console.log(`Loaded ${employees.length} employees from database`);
       return { employees, error: null };
@@ -106,19 +175,36 @@ export const employeesService = {
     let status: Employee['status'] = 'offline';
     
     if (todayAttendance) {
-      console.log(`Mapping employee ${profile.name} with attendance status: ${todayAttendance.status}`);
-      switch (todayAttendance.status) {
-        case 'working':
-          status = 'online';
-          break;
-        case 'break':
-          status = 'break';
-          break;
-        case 'completed':
-          status = 'offline';
-          break;
-        default:
-          status = 'offline';
+      const today = new Date().toISOString().split('T')[0];
+      const attendanceDate = todayAttendance.date;
+      
+      console.log(`Mapping employee ${profile.name}:`, {
+        attendanceStatus: todayAttendance.status,
+        attendanceDate: attendanceDate,
+        isToday: attendanceDate === today,
+        clockIn: todayAttendance.clock_in,
+        clockOut: todayAttendance.clock_out
+      });
+      
+      // Only consider attendance from today
+      if (attendanceDate === today) {
+        switch (todayAttendance.status) {
+          case 'working':
+          case 'overtime':
+          case 'client_visit':
+            status = 'online';
+            break;
+          case 'break':
+            status = 'break';
+            break;
+          case 'completed':
+            status = 'offline';
+            break;
+          default:
+            status = 'offline';
+        }
+      } else {
+        console.log(`Employee ${profile.name} has no attendance record for today`);
       }
     } else {
       console.log(`Employee ${profile.name} has no attendance record for today`);
@@ -158,6 +244,17 @@ export const employeesService = {
         notes: todayAttendance.notes,
         activities: [],
         breakStartTime: null,
+      } : undefined,
+      // Add live location data for real-time tracking
+      liveLocation: todayAttendance && todayAttendance.date === new Date().toISOString().split('T')[0] ? {
+        employeeId: profile.id,
+        location: {
+          latitude: parseFloat(todayAttendance.location_lat || '0'),
+          longitude: parseFloat(todayAttendance.location_lng || '0'),
+          address: todayAttendance.location_address || '',
+        },
+        timestamp: new Date(todayAttendance.updated_at || todayAttendance.clock_in),
+        status: todayAttendance.status,
       } : undefined,
     };
   },
