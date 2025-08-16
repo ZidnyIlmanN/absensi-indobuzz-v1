@@ -107,6 +107,16 @@ export interface Employee {
   joinDate?: string;
   isActive: boolean;
   currentAttendance?: AttendanceRecord;
+  liveLocation?: {
+    employeeId: string;
+    location: {
+      latitude: number;
+      longitude: number;
+      address: string;
+    };
+    timestamp: Date;
+    status: 'working' | 'break' | 'offline';
+  };
 }
 
 export interface Company {
