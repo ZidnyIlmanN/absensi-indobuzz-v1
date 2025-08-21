@@ -212,9 +212,9 @@ export default function LiveTrackingScreen() {
 
           {/* Title Section */}
           <View style={styles.titleSection}>
-            <Text style={styles.headerTitle}>Live Tracking</Text>
+            <Text style={styles.headerTitle}>{t('live_tracking.live_tracking')}</Text>
             <Text style={styles.headerSubtitle}>
-              Real-time employee monitoring & location tracking
+              {t('live_tracking.real_time_employee_monitoring')}
             </Text>
           </View>
 
@@ -226,7 +226,7 @@ export default function LiveTrackingScreen() {
               </View>
               <View style={styles.statContent}>
                 <Text style={styles.statNumber}>{workingEmployees.length}</Text>
-                <Text style={styles.statLabel}>Online</Text>
+                <Text style={styles.statLabel}>{t('live_tracking.online')}</Text>
               </View>
             </View>
 
@@ -238,7 +238,7 @@ export default function LiveTrackingScreen() {
               </View>
               <View style={styles.statContent}>
                 <Text style={styles.statNumber}>{stats.onBreakEmployees}</Text>
-                <Text style={styles.statLabel}>On Break</Text>
+                <Text style={styles.statLabel}>{t('live_tracking.on_break')}</Text>
               </View>
             </View>
 
@@ -250,7 +250,7 @@ export default function LiveTrackingScreen() {
               </View>
               <View style={styles.statContent}>
                 <Text style={styles.statNumber}>{officeLocations.length}</Text>
-                <Text style={styles.statLabel}>Locations</Text>
+                <Text style={styles.statLabel}>{t('live_tracking.locations')}</Text>
               </View>
             </View>
 
@@ -471,7 +471,7 @@ const styles = StyleSheet.create({
   },
   statsRow: {
     flexDirection: 'row',
-    backgroundColor: 'rgba(255, 255, 255, 0.12)',
+    backgroundColor: 'rgba(255, 255, 255, 0.18)',
     borderRadius: 16,
     padding: 12,
     marginBottom: 12,
@@ -510,7 +510,7 @@ const styles = StyleSheet.create({
   statDivider: {
     width: 1,
     height: 32,
-    backgroundColor: 'rgba(255, 255, 255, 0.15)',
+    backgroundColor: 'rgba(255, 255, 255, 0.2)',
     marginHorizontal: 12,
   },
   mapContainer: {
