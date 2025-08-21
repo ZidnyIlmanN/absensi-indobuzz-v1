@@ -7,15 +7,17 @@ import {
   Image,
   Animated,
 } from 'react-native';
-import { Clock, MapPin, Phone, Mail, ChevronRight } from 'lucide-react-native';
+import { Clock, MapPin, Phone, Mail, ChevronRight, Wifi, WifiOff } from 'lucide-react-native';
 import { Employee } from '@/types';
 import { router } from 'expo-router';
+import { useRealTimeEmployeeStatus } from '@/hooks/useRealTimeEmployeeStatus';
 
 interface EmployeeCardProps {
   employee: Employee;
   onPress?: () => void;
   showContactInfo?: boolean;
   showNavigationArrow?: boolean;
+  showConnectionStatus?: boolean;
 }
 
 export function EmployeeCard({
@@ -23,8 +25,15 @@ export function EmployeeCard({
   onPress,
   showContactInfo = true,
   showNavigationArrow = true,
+  showConnectionStatus = false,
 }: EmployeeCardProps) {
+  const { getEmployeeStatus, isConnected } = useRealTimeEmployeeStatus();
   const scaleValue = new Animated.Value(1);
+
+  // Get real-time status for this employee
+  const realTimeStatus = getEmployeeStatus(employee.id);
+  const currentStatus = realTimeStatus?.status || employee.status;
+  const lastActivity = realTimeStatus?.timestamp;
 
   const handlePressIn = () => {
     Animated.spring(scaleValue, {
@@ -74,6 +83,21 @@ export function EmployeeCard({
     }
   };
 
+  const formatLastActivity = (timestamp?: Date) => {
+    if (!timestamp) return '';
+    
+    const now = new Date();
+    const diff = now.getTime() - timestamp.getTime();
+    const minutes = Math.floor(diff / (1000 * 60));
+    
+    if (minutes < 1) return 'Just now';
+    if (minutes < 60) return `${minutes}m ago`;
+    
+    const hours = Math.floor(minutes / 60);
+    if (hours < 24) return `${hours}h ago`;
+    
+    return timestamp.toLocaleDateString();
+  };
   return (
     <Animated.View style={[styles.container, { transform: [{ scale: scaleValue }] }]}>
       <TouchableOpacity
@@ -94,9 +118,15 @@ export function EmployeeCard({
             <View
               style={[
                 styles.statusIndicator,
-                { backgroundColor: getStatusColor(employee.status) }
+                { backgroundColor: getStatusColor(currentStatus) }
               ]}
             />
+            {/* Real-time update indicator */}
+            {realTimeStatus && (
+              <View style={styles.realTimeIndicator}>
+                <View style={styles.realTimePulse} />
+              </View>
+            )}
           </View>
           
           <View style={styles.employeeInfo}>
@@ -107,12 +137,31 @@ export function EmployeeCard({
           </View>
           
           <View style={styles.statusContainer}>
+            {/* Connection status indicator */}
+            {showConnectionStatus && (
+              <View style={styles.connectionStatus}>
+                {isConnected ? (
+                  <Wifi size={12} color="#4CAF50" />
+                ) : (
+                  <WifiOff size={12} color="#F44336" />
+                )}
+              </View>
+            )}
+            
             <Text style={[
               styles.statusText,
-              { color: getStatusColor(employee.status) }
+              { color: getStatusColor(currentStatus) }
             ]}>
-              {getStatusText(employee.status)}
+              {getStatusText(currentStatus)}
             </Text>
+            
+            {/* Last activity time */}
+            {lastActivity && (
+              <Text style={styles.lastActivity}>
+                {formatLastActivity(lastActivity)}
+              </Text>
+            )}
+            
             {employee.joinDate && (
               <Text style={styles.joinDate}>
                 Joined: {new Date(employee.joinDate).toLocaleDateString()}
@@ -199,6 +248,23 @@ const styles = StyleSheet.create({
     borderWidth: 2,
     borderColor: 'white',
   },
+  realTimeIndicator: {
+    position: 'absolute',
+    top: -2,
+    right: -2,
+    width: 16,
+    height: 16,
+    borderRadius: 8,
+    backgroundColor: 'rgba(74, 144, 226, 0.2)',
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  realTimePulse: {
+    width: 8,
+    height: 8,
+    borderRadius: 4,
+    backgroundColor: '#4A90E2',
+  },
   employeeInfo: {
     flex: 1,
   },
@@ -226,10 +292,29 @@ const styles = StyleSheet.create({
     alignItems: 'flex-end',
     position: 'relative',
   },
+  connectionStatus: {
+    position: 'absolute',
+    top: -8,
+    right: 0,
+    backgroundColor: 'white',
+    borderRadius: 8,
+    padding: 2,
+    elevation: 2,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 1 },
+    shadowOpacity: 0.1,
+    shadowRadius: 2,
+  },
   statusText: {
     fontSize: 12,
     fontWeight: '500',
     marginBottom: 4,
+  },
+  lastActivity: {
+    fontSize: 10,
+    color: '#999',
+    marginBottom: 2,
+    fontStyle: 'italic',
   },
   joinDate: {
     fontSize: 10,
